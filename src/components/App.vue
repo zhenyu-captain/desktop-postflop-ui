@@ -29,37 +29,40 @@
           ]"
           @click="store.navView = store.navView === 'solver' ? 'results' : 'solver'"
         >
-          {{ store.navView === 'solver' ? 'View Results' : 'Back to Solver' }}
+          {{ store.navView === 'solver' ? '查看结果' : '返回求解器' }}
         </button>
       </div>
     </nav>
 
     <!-- 主内容区域 -->
-    <div class="flex-1 p-6">
-      <div v-show="store.navView === 'solver'" class="h-full">
-        <div v-show="store.sideView === 'oop-range'">
-          <RangeEditor :player="0" />
-        </div>
-        <div v-show="store.sideView === 'ip-range'">
-          <RangeEditor :player="1" />
-        </div>
-        <div v-show="store.sideView === 'board'">
-          <BoardSelector />
-        </div>
-        <div v-show="store.sideView === 'tree-config'">
-          <TreeConfig />
-        </div>
-        <div v-show="store.sideView === 'bunching'">
-          <BunchingEffect />
-        </div>
-        <div v-show="store.sideView === 'run-solver'">
-          <RunSolver />
-        </div>
-        
-        <div v-show="!['oop-range', 'ip-range', 'board', 'tree-config', 'bunching', 'run-solver'].includes(store.sideView)" class="text-xl text-center">
-          当前选择的视图: {{ store.sideView }}
-        </div>
+    <div v-show="store.navView === 'solver'" class="flex-1 p-6 h-[calc(100%-3rem)] overflow-auto">
+      <div v-show="store.sideView === 'oop-range'">
+        <RangeEditor :player="0" />
       </div>
+      <div v-show="store.sideView === 'ip-range'">
+        <RangeEditor :player="1" />
+      </div>
+      <div v-show="store.sideView === 'board'">
+        <BoardSelector />
+      </div>
+      <div v-show="store.sideView === 'tree-config'">
+        <TreeConfig />
+      </div>
+      <div v-show="store.sideView === 'bunching'">
+        <BunchingEffect />
+      </div>
+      <div v-show="store.sideView === 'run-solver'">
+        <RunSolver />
+      </div>
+      
+      <div v-show="!['oop-range', 'ip-range', 'board', 'tree-config', 'bunching', 'run-solver'].includes(store.sideView)" class="text-xl text-center">
+        当前选择的视图: {{ store.sideView }}
+      </div>
+    </div>
+      
+    <!-- 结果页面 -->
+    <div v-show="store.navView === 'results'" class="w-full h-[calc(100%-3rem)] overflow-hidden">
+      <ResultViewer />
     </div>
   </div>
 </template>
@@ -72,6 +75,7 @@ import BoardSelector from "./BoardSelector.vue";
 import TreeConfig from "./TreeConfig.vue";
 import BunchingEffect from "./BunchingEffect.vue";
 import RunSolver from "./RunSolver.vue";
+import ResultViewer from "./ResultViewer.vue";
 
 const store = useStore();
 
