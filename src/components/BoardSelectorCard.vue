@@ -12,6 +12,8 @@
       width: 'var(--width)',
       'padding-top': 'calc(var(--width) * 1.4 - 2px)',
     }"
+    :disabled="disabled"
+    @click="$emit('click')"
   >
     <span
       :class="'absolute top-0 font-semibold ' + colorClass"
@@ -41,15 +43,18 @@ import { cardText } from "../utils";
 interface Props {
   cardId: number;
   isSelected?: boolean;
+  disabled?: boolean;
   width?: string;
   fontSize?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isSelected: false,
+  disabled: false,
   width: "40px",
   fontSize: "1rem",
 });
 
+// 确保使用cardText函数将cardId转换为可读的卡牌表示
 const { rank, suit, colorClass } = cardText(props.cardId);
-</script>
+</script> 

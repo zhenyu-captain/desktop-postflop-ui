@@ -96,7 +96,7 @@ export const useStore = defineStore("app", {
     ranges: Array.from({ length: 6 }, () =>
       Array.from({ length: 13 * 13 }, () => 0)
     ),
-    isBunchingEnabled: true,  // 修改为默认启用
+    isBunchingEnabled: false,
     isBunchingRunning: false,
     bunchingFlop: [] as number[],
     isSolverRunning: false,
@@ -117,16 +117,6 @@ export const useStore = defineStore("app", {
       );
     },
   },
-
-  actions: {
-    setBunchingFlop(flop: number[]) {
-      if (!Array.isArray(flop) || flop.some(card => typeof card !== 'number')) {
-        console.error('Invalid bunching flop type:', flop);
-        return;
-      }
-      this.bunchingFlop = flop;
-    }
-  }
 });
 
 export const useConfigStore = defineStore("config", {
@@ -238,14 +228,3 @@ export const useSavedConfigStore = defineStore("savedConfig", {
     removedLines: "",
   }),
 });
-
-export const cardStringToNumber = (card: string): number => {
-  // 简单实现：将卡牌字符串原样返回，让我们先确保数据能正确传递
-  // 这里应该使用一个约定的编码方式来转换卡牌，但现在先确保基本流程
-  return card as unknown as number;
-};
-
-export const cardNumberToString = (card: number): string => {
-  // 同样的简单实现
-  return card as unknown as string;
-};

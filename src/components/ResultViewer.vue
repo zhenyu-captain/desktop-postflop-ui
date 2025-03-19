@@ -9,18 +9,18 @@
     ></span>
     {{
       !store.hasSolverRun
-        ? "求解器尚未运行。"
+        ? "Solver has not run."
         : store.isSolverRunning
-        ? "求解器运行中..."
+        ? "Solver running..."
         : store.isFinalizing
-        ? "正在完成..."
+        ? "Finalizing..."
         : store.isSolverError
-        ? "求解器错误。"
-        : "求解器已暂停。"
+        ? "Solver error."
+        : "Solver paused."
     }}
   </div>
 
-  <div v-else class="flex flex-col h-full w-full overflow-hidden">
+  <div v-else class="flex flex-col h-full">
     <ResultNav
       :is-handler-updated="isHandlerUpdated"
       :is-locked="isLocked"
@@ -45,11 +45,11 @@
 
     <div
       v-if="store.navView === 'results' && selectedSpot && results"
-      class="flex flex-grow min-h-0 w-full overflow-hidden"
+      class="flex flex-grow min-h-0"
     >
       <template v-if="displayMode === 'basics'">
         <ResultBasics
-          class="flex-grow-6 flex-shrink-0 basis-[55%] overflow-auto h-full"
+          style="flex: 4"
           :cards="cards"
           :selected-spot="selectedSpot"
           :selected-chance="selectedChance"
@@ -63,7 +63,7 @@
         />
 
         <ResultTable
-          class="flex-grow-5 flex-shrink-0 basis-[45%] overflow-auto h-full"
+          style="flex: 3"
           table-mode="basics"
           :cards="cards"
           :selected-spot="selectedSpot"
@@ -75,7 +75,6 @@
 
       <template v-else-if="displayMode === 'graphs'">
         <ResultGraphs
-          class="w-full h-full overflow-auto"
           :cards="cards"
           :selected-spot="selectedSpot"
           :selected-chance="selectedChance"
@@ -88,7 +87,7 @@
 
       <template v-else-if="displayMode === 'compare'">
         <ResultBasics
-          class="flex-grow-4 flex-shrink-0 basis-[35%] overflow-auto h-full"
+          style="flex: 5"
           :cards="cards"
           :selected-spot="selectedSpot"
           :selected-chance="selectedChance"
@@ -101,14 +100,14 @@
         />
 
         <ResultCompare
-          class="flex-grow-2 flex-shrink-0 basis-[30%] overflow-auto h-full"
+          style="flex: 2"
           :selected-spot="selectedSpot"
           :selected-chance="selectedChance"
           :results="results"
         />
 
         <ResultBasics
-          class="flex-grow-4 flex-shrink-0 basis-[35%] overflow-auto h-full"
+          style="flex: 5"
           :cards="cards"
           :selected-spot="selectedSpot"
           :selected-chance="selectedChance"
@@ -123,7 +122,6 @@
 
       <template v-else-if="displayMode === 'chance' && selectedChance">
         <ResultChance
-          class="w-full h-full overflow-auto"
           :selected-spot="selectedSpot"
           :selected-chance="selectedChance"
           :chance-reports="chanceReports"

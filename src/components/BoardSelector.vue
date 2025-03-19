@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col space-y-4">
-    <!-- 原有的4排选择器 -->
+    <!-- 牌选择器 - 使用现代网格设计替代旧的FlexBox布局 -->
     <div class="grid grid-cols-13 gap-1">
       <template v-for="suit in ['s', 'h', 'd', 'c']" :key="suit">
         <div v-for="rank in ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']" 
@@ -10,62 +10,60 @@
                getCardColor(suit),
                isCardSelected(rank + suit) ? 'ring-2 ring-blue-500' : 'hover:bg-gray-100'
              ]"
-             @click="toggleCard(rank + suit)">
+             @click="toggleCardByString(rank + suit)">
           {{ rank }}{{ getSuitSymbol(suit) }}
         </div>
       </template>
     </div>
 
-    <!-- 当前选择的翻牌 -->
+    <!-- 已选牌展示 -->
     <div class="flex items-center space-x-4">
       <div class="flex space-x-2">
-        <div v-for="(card, index) in selectedCards" :key="index" 
+        <div v-for="(card, index) in displayCards" :key="index" 
              class="w-12 h-16 bg-white rounded shadow-md flex items-center justify-center text-xl"
-             :class="getCardColor(card[1] || '')">
-          {{ card ? `${card[0]}${getSuitSymbol(card[1])}` : '?' }}
+             :class="getCardColor(card.suit)">
+          {{ card.rank }}{{ card.suit }}
         </div>
       </div>
-      <button 
-        @click="clearSelection"
-        class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">
-        清空选择
-      </button>
-      <button 
-        @click="toggleDebugInfo"
-        class="px-3 py-1 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded">
-        Debug
-      </button>
-    </div>
-
-    <!-- Debug信息框 -->
-    <div v-if="showDebugInfo" class="p-4 bg-gray-100 rounded-lg text-xs overflow-auto max-h-80">
-      <h3 class="font-bold mb-2">Board Debug信息:</h3>
-      <div class="grid grid-cols-1 gap-2">
-        <div>
-          <h4 class="font-semibold">selectedCards状态:</h4>
-          <pre>{{ JSON.stringify(selectedCards, null, 2) }}</pre>
-        </div>
-        <div>
-          <h4 class="font-semibold">config.board状态:</h4>
-          <pre>{{ JSON.stringify(config.board, null, 2) }}</pre>
-        </div>
-        <div>
-          <h4 class="font-semibold">store.bunchingFlop状态:</h4>
-          <pre>{{ JSON.stringify(store.bunchingFlop, null, 2) }}</pre>
-        </div>
-        <div>
-          <h4 class="font-semibold">store.isBunchingEnabled:</h4>
-          <pre>{{ store.isBunchingEnabled }}</pre>
-        </div>
-      </div>
-      <div class="mt-2">
-        <button class="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded" @click="refreshDebugInfo">刷新调试信息</button>
-        <button class="px-3 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded ml-2" @click="syncBoardData">同步Board数据</button>
-        <button class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded ml-2" @click="logDebugInfo">控制台输出</button>
+      
+      <!-- 输入框 - 保留旧版本的功能 -->
+      <input
+        v-model="boardText"
+        type="text"
+        class="w-40 px-2 py-1 rounded-lg text-sm border border-gray-300"
+        @focus="($event.target as HTMLInputElement).select()"
+        @change="onBoardTextChange"
+      />
+      
+      <!-- 按钮分组 -->
+      <div class="flex space-x-2">
+        <button 
+          @click="clearBoard"
+          class="px-3 py-1 text-sm button-base button-blue">
+          Clear
+        </button>
+        <button 
+          @click="generateRandomBoard"
+          class="px-3 py-1 text-sm button-base button-blue">
+          Random Flop
+        </button>
       </div>
     </div>
 
-    <!-- 组合统计 -->
+    <!-- 警告信息 - 保留原有功能 -->
+    <div
+      v-if="
+        config.board.length >= 3 &&
+        config.expectedBoardLength > 0 &&
+        config.board.length !== config.expectedBoardLength
+      "
+      class="mt-5 text-orange-500 font-semibold"
+    >
+      <span class="underline">Warning:</span>
+      The edited tree assumes a {{ config.expectedBoardLength }}-card board.
+    </div>
+    
+    <!-- 统计信息卡片 - 添加新UI元素 -->
     <div class="grid grid-cols-2 gap-4">
       <!-- 左侧：组合统计 -->
       <div class="p-4 bg-gray-50 rounded-lg">
@@ -121,253 +119,185 @@
         </div>
       </div>
     </div>
-
-    <!-- Equity分布 -->
-    <div class="p-4 bg-gray-50 rounded-lg">
-      <h3 class="text-sm font-medium mb-3">Equity分布</h3>
-      <div class="space-y-3">
-        <div v-for="(range, index) in equityRanges" :key="index"
-             class="grid grid-cols-2 gap-4">
-          <div class="flex items-center space-x-2">
-            <span class="text-sm w-16">{{ range.label }}</span>
-            <div class="flex-1 h-4 rounded bg-gray-100 overflow-hidden">
-              <div class="h-full"
-                   :style="{ 
-                     width: range.oopValue + '%',
-                     backgroundColor: getEquityColor(range.min) 
-                   }"></div>
-            </div>
-            <span class="text-xs w-8 text-right">{{ range.oopValue }}%</span>
-          </div>
-          <div class="flex items-center space-x-2">
-            <span class="text-sm w-16">{{ range.label }}</span>
-            <div class="flex-1 h-4 rounded bg-gray-100 overflow-hidden">
-              <div class="h-full"
-                   :style="{ 
-                     width: range.ipValue + '%',
-                     backgroundColor: getEquityColor(range.min) 
-                   }"></div>
-            </div>
-            <span class="text-xs w-8 text-right">{{ range.ipValue }}%</span>
-          </div>
-        </div>
-        <div class="flex justify-center space-x-8 text-xs text-gray-500 mt-2">
-          <span>← OOP Equity</span>
-          <span>IP Equity →</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { useStore, useConfigStore, useSavedConfigStore, useTmpConfigStore } from '../store'
-import { cardStringToNumber, cardNumberToString } from '../utils'
+import { ref, computed } from "vue";
+import { useStore, useConfigStore } from "../store";
+import { cardText, parseCardString } from "../utils";
 
-const store = useStore()
-const config = useConfigStore()
-const savedConfig = useSavedConfigStore()
-const tmpConfig = useTmpConfigStore()
-const selectedCards = ref(['', '', ''])
+// 保留原版逻辑的Store引用
+const store = useStore();
+const config = useConfigStore();
+const boardText = ref("");
 
-// 调试相关状态
-const showDebugInfo = ref(false)
-const debugInfo = ref({})
-
-// 切换调试信息显示状态
-const toggleDebugInfo = () => {
-  showDebugInfo.value = !showDebugInfo.value
-  if (showDebugInfo.value) {
-    refreshDebugInfo()
-  }
-}
-
-// 刷新调试信息
-const refreshDebugInfo = () => {
-  debugInfo.value = {
-    selectedCards: selectedCards.value,
-    configBoard: config.board,
-    savedConfigBoard: savedConfig.board,
-    tmpConfigBoard: tmpConfig.board,
-    bunchingFlop: store.bunchingFlop,
-    isBunchingEnabled: store.isBunchingEnabled
-  }
-}
-
-// 同步Board数据
-const syncBoardData = () => {
-  // 确保所有相关状态一致
-  const validCards = selectedCards.value.filter(card => card !== '')
-  
-  // 更新config
-  config.board = [...validCards]
-  
-  // 更新savedConfig和tmpConfig
-  savedConfig.board = [...validCards]
-  tmpConfig.board = [...validCards]
-  
-  // 如果是翻牌且bunching功能启用，则更新bunchingFlop
-  if (validCards.length === 3 && store.isBunchingEnabled) {
-    store.bunchingFlop = [...validCards]
+// 从config.board派生的卡牌显示数据
+const displayCards = computed(() => {
+  if (config.board.length === 0) {
+    return Array(3).fill({ rank: '', suit: '' });
   }
   
-  refreshDebugInfo()
-  console.log('已同步Board数据:', {
-    selectedCards: selectedCards.value,
-    configBoard: config.board,
-    savedConfigBoard: savedConfig.board,
-    tmpConfigBoard: tmpConfig.board,
-    bunchingFlop: store.bunchingFlop
-  })
-}
-
-// 在控制台输出更详细的调试信息
-const logDebugInfo = () => {
-  console.log("=== BOARD DEBUG INFO ===")
-  console.log("selectedCards:", selectedCards.value)
-  console.log("config.board:", config.board)
-  console.log("savedConfig.board:", savedConfig.board)
-  console.log("tmpConfig.board:", tmpConfig.board)
-  console.log("store.bunchingFlop:", store.bunchingFlop)
-  console.log("store.isBunchingEnabled:", store.isBunchingEnabled)
-  console.log("=======================")
-}
-
-// 监听selectedCards变化，更新store中的board
-watch(selectedCards, (newCards) => {
-  // 过滤掉空字符串，只保留有效的卡牌
-  const validCards = newCards.filter(card => card !== '')
-  
-  // 直接使用字符串类型的卡牌，暂时跳过转换
-  config.board = [...validCards]
-  
-  console.log("BoardSelector updating board:", {
-    validCards,
-    configBoard: config.board
+  const cards = config.board.map(cardId => {
+    const info = cardText(cardId);
+    return {
+      rank: info.rank,
+      suit: info.suit
+    };
   });
   
-  // 如果是翻牌，且bunching功能启用，则更新bunchingFlop
-  if (validCards.length === 3 && store.isBunchingEnabled) {
-    store.bunchingFlop = [...validCards]
-    console.log("Updated bunchingFlop:", store.bunchingFlop);
-  }
-}, { deep: true })
-
-// 初始化时，如果config中已有board数据，则加载到selectedCards
-onMounted(() => {
-  if (config.board && config.board.length > 0) {
-    // 确保selectedCards数组长度为3
-    selectedCards.value = [...config.board.slice(0, 3), '', '', ''].slice(0, 3)
+  // 填充至少3个位置
+  while (cards.length < 3) {
+    cards.push({ rank: '', suit: '' });
   }
   
-  // 调试信息
-  console.log('BoardSelector mounted:', {
-    configBoard: config.board,
-    selectedCards: selectedCards.value,
-    isBunchingEnabled: store.isBunchingEnabled,
-    bunchingFlop: store.bunchingFlop
-  })
-})
+  return cards;
+});
 
-// 牌力等级数据
-const strengthLevels = [
-  { name: '极弱', oopValue: 15, ipValue: 10 },
-  { name: '较弱', oopValue: 25, ipValue: 20 },
-  { name: '中等', oopValue: 30, ipValue: 35 },
-  { name: '较强', oopValue: 20, ipValue: 25 },
-  { name: '极强', oopValue: 10, ipValue: 10 }
-]
+// 检查卡牌是否已选中
+const isCardSelected = (cardString: string) => {
+  const cardId = parseCardString(cardString.toLowerCase());
+  return cardId !== null && config.board.includes(cardId);
+};
 
-// Equity区间数据
-const equityRanges = [
-  { label: '0-20%', min: 0, max: 20, oopValue: 10, ipValue: 8 },
-  { label: '20-40%', min: 20, max: 40, oopValue: 20, ipValue: 15 },
-  { label: '40-60%', min: 40, max: 60, oopValue: 40, ipValue: 45 },
-  { label: '60-80%', min: 60, max: 80, oopValue: 20, ipValue: 22 },
-  { label: '80-100%', min: 80, max: 100, oopValue: 10, ipValue: 10 }
-]
+// 切换卡牌状态 - 通过字符串
+const toggleCardByString = (cardString: string) => {
+  const cardId = parseCardString(cardString.toLowerCase());
+  if (cardId === null) return;
+  
+  toggleCard(cardId);
+};
 
-// 组合统计
-const remainingCombos = computed(() => {
-  // TODO: 实现组合计算逻辑
-  return 1081 // 示例数值
-})
+// 原有逻辑 - 切换卡牌状态
+const toggleCard = (cardId: number, updateText = true) => {
+  if (config.board.includes(cardId)) {
+    config.board = config.board.filter((card) => card !== cardId);
+  } else if (config.board.length < 5) {
+    config.board.push(cardId);
+    if (config.board.length <= 3) {
+      config.board.sort((a, b) => b - a);
+    }
+  }
 
-const blockedByOOP = computed(() => {
-  // TODO: 实现阻挡组合计算逻辑
-  return 78 // 示例数值
-})
+  if (updateText) {
+    setBoardTextFromButtons();
+  }
+  
+  // 更新bunching flop
+  if (store.isBunchingEnabled && config.board.length === 3) {
+    store.bunchingFlop = [...config.board];
+  }
+};
 
-const flushCombos = computed(() => {
-  // TODO: 实现同花组合计算逻辑
-  return 45 // 示例数值
-})
+// 原有逻辑 - 根据按钮设置文本
+const setBoardTextFromButtons = () => {
+  boardText.value = config.board
+    .map(cardText)
+    .map(({ rank, suitLetter }) => rank.toLowerCase() + suitLetter)
+    .join(", ");
+};
 
-const straightCombos = computed(() => {
-  // TODO: 实现顺子组合计算逻辑
-  return 32 // 示例数值
-})
+// 原有逻辑 - 处理文本变化
+const onBoardTextChange = () => {
+  config.board = [];
 
-// 工具方法
+  const cardIds = boardText.value
+    // Allow pasting in things like [Ah Kd Qc], by reformatting to Ah,Kd,Qc
+    .trim()
+    .replace(/[^A-Za-z0-9\s,]/g, "")
+    .replace(/\s+/g, ",")
+    .split(",")
+    .map(parseCardString)
+    .filter((cardId): cardId is number => cardId !== null);
+
+  new Set(cardIds).forEach((cardId) => toggleCard(cardId, false));
+  setBoardTextFromButtons();
+  
+  // 更新bunching flop
+  if (store.isBunchingEnabled && config.board.length === 3) {
+    store.bunchingFlop = [...config.board];
+  }
+};
+
+// 原有逻辑 - 清空牌面
+const clearBoard = () => {
+  config.board = [];
+  setBoardTextFromButtons();
+  
+  // 清空bunching flop
+  if (store.isBunchingEnabled) {
+    store.bunchingFlop = [];
+  }
+};
+
+// 原有逻辑 - 生成随机翻牌
+const generateRandomBoard = () => {
+  config.board = [];
+
+  while (config.board.length < 3) {
+    const randomCard = Math.floor(Math.random() * 52);
+    if (!config.board.includes(randomCard)) {
+      config.board.push(randomCard);
+    }
+  }
+
+  config.board.sort((a, b) => b - a);
+  setBoardTextFromButtons();
+  
+  // 更新bunching flop
+  if (store.isBunchingEnabled) {
+    store.bunchingFlop = [...config.board];
+  }
+};
+
+// 根据花色获取颜色CSS类
 const getCardColor = (suit: string) => {
-  return suit === 'h' || suit === 'd' ? 'text-red-600' : 'text-gray-900'
-}
+  if (suit === '♥' || suit === '♦' || suit === 'h' || suit === 'd') {
+    return 'text-pink-600';
+  }
+  return 'text-gray-900';
+};
 
+// 获取花色符号
 const getSuitSymbol = (suit: string) => {
   const symbols: Record<string, string> = {
     's': '♠',
     'h': '♥',
     'd': '♦',
     'c': '♣'
-  }
-  return symbols[suit] || suit
-}
+  };
+  return symbols[suit] || suit;
+};
 
-const isCardSelected = (card: string) => {
-  return selectedCards.value.includes(card)
-}
+// 统计数据 - 示例数据，可以根据实际需求进行计算
+const remainingCombos = computed(() => {
+  // 实际应该根据当前牌计算剩余组合
+  return 1081 - (config.board.length * 50);
+});
 
-const toggleCard = (card: string) => {
-  const index = selectedCards.value.indexOf(card)
-  if (index !== -1) {
-    // 如果卡牌已经被选中，则移除
-    selectedCards.value[index] = ''
-    // 重新排列卡牌，确保没有空位
-    const validCards = selectedCards.value.filter(c => c !== '')
-    selectedCards.value = [...validCards, ...Array(3 - validCards.length).fill('')]
-  } else {
-    // 如果卡牌未被选中，则添加到第一个空位
-    const emptyIndex = selectedCards.value.findIndex(c => !c)
-    if (emptyIndex !== -1) {
-      selectedCards.value[emptyIndex] = card
-    }
-  }
-  
-  // 每次修改后立即更新store中的数据
-  const validCards = selectedCards.value.filter(card => card !== '')
-  config.board = validCards
-  
-  // 如果是翻牌，且bunching功能启用，则更新bunchingFlop
-  if (validCards.length === 3 && store.isBunchingEnabled) {
-    store.bunchingFlop = [...validCards]
-  }
-}
+const blockedByOOP = computed(() => {
+  // 实际应该根据当前OOP范围和牌计算
+  return 78;
+});
 
-const clearSelection = () => {
-  selectedCards.value = ['', '', '']
-  config.board = []
-  if (store.isBunchingEnabled) {
-    store.bunchingFlop = []
-  }
-}
+const flushCombos = computed(() => {
+  // 实际应该根据当前牌计算同花可能性
+  return 45;
+});
 
-const getEquityColor = (value: number) => {
-  // 根据equity值返回从红到绿的渐变色
-  const red = Math.floor(255 * (1 - value / 100))
-  const green = Math.floor(255 * (value / 100))
-  return `rgb(${red}, ${green}, 100)`
-}
+const straightCombos = computed(() => {
+  // 实际应该根据当前牌计算顺子可能性
+  return 32;
+});
+
+// 示例牌力等级数据
+const strengthLevels = [
+  { name: '极弱', oopValue: 15, ipValue: 10 },
+  { name: '较弱', oopValue: 25, ipValue: 20 },
+  { name: '中等', oopValue: 30, ipValue: 35 },
+  { name: '较强', oopValue: 20, ipValue: 25 },
+  { name: '极强', oopValue: 10, ipValue: 10 }
+];
 </script>
 
 <style scoped>

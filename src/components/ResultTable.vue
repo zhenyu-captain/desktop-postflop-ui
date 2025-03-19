@@ -357,7 +357,6 @@ import {
   toFixed,
   toFixedAdaptive,
   capitalize,
-  cardNumberToString,
 } from "../utils";
 
 import {
@@ -546,12 +545,9 @@ const pairText = (pair: number) => {
   const card1 = pair & 0xff;
   const card2 = pair >>> 8;
   if (card2 !== 0xff) {
-    return [
-      cardText(cardNumberToString(card2)), 
-      cardText(cardNumberToString(card1))
-    ];
+    return [cardText(card2), cardText(card1)];
   } else {
-    return [cardText(cardNumberToString(card1))];
+    return [cardText(card1)];
   }
 };
 

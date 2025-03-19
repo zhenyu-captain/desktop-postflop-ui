@@ -33,41 +33,12 @@ const suitClasses = [
   "text-black",
 ];
 
-export const cardText = (card: string | number): { rank: string; suit: string; colorClass: string } => {
-  console.log("cardText received:", card, "type:", typeof card);
-  
-  let rank = "?";
-  let suit = "?";
-  
-  if (typeof card === 'string') {
-    if (card.length >= 2) {
-      rank = card[0];
-      suit = card[1];
-    }
-  } else if (card !== null && card !== undefined) {
-    const cardStr = String(card);
-    if (cardStr.length >= 2) {
-      rank = cardStr[0];
-      suit = cardStr[1];
-    }
-  }
-  
-  let colorClass = "text-gray-900";
-  if (suit === 'h' || suit === 'd') {
-    colorClass = "text-red-600";
-  }
-  
-  const suitMap: Record<string, string> = {
-    's': '♠',
-    'h': '♥',
-    'd': '♦',
-    'c': '♣'
-  };
-  
+export const cardText = (card: number) => {
   return {
-    rank,
-    suit: suitMap[suit] || suit,
-    colorClass
+    rank: ranks[card >>> 2],
+    suit: suits[card & 3],
+    suitLetter: suitLetters[card & 3],
+    colorClass: suitClasses[card & 3],
   };
 };
 
@@ -368,37 +339,4 @@ export const readableLineString = (s: string): string => {
   }
 
   return ret;
-};
-
-// 将字符串格式的卡牌(如 "Ts", "Kh")转换为数字ID
-export const cardStringToNumber = (cardStr: string): number => {
-  if (!cardStr || cardStr.length < 2) return -1;
-  
-  const rank = cardStr[0].toUpperCase();
-  const suit = cardStr[1].toLowerCase();
-  
-  // 计算rank索引 (A=0, K=1, ..., 3=11, 2=12)
-  let rankIndex = "AKQJT98765432".indexOf(rank);
-  if (rankIndex === -1) return -1;
-  
-  // 计算suit索引 (s=0, h=1, d=2, c=3)
-  let suitIndex = "shdc".indexOf(suit);
-  if (suitIndex === -1) return -1;
-  
-  // 确保每种花色的相同点数有不同ID
-  // 公式: rankIndex * 4 + suitIndex
-  return rankIndex * 4 + suitIndex;
-};
-
-// 数字ID到字符串的反向转换(用于调试)
-export const cardNumberToString = (cardId: number): string => {
-  if (cardId < 0 || cardId >= 52) return "??";
-  
-  const rankIndex = Math.floor(cardId / 4);
-  const suitIndex = cardId % 4;
-  
-  const ranks = "AKQJT98765432";
-  const suits = "shdc";
-  
-  return ranks[rankIndex] + suits[suitIndex];
 };

@@ -1,6 +1,6 @@
 <template>
   <div class="min-w-[1080px] bg-white" :style="{ height: clientHeight + 'px' }">
-    <!-- 新的顶部菜单栏 -->
+    <!-- 顶部导航栏 - 使用现代UI设计 -->
     <nav class="flex w-full h-12 shadow-lg bg-white text-slate-800 border-b border-gray-200">
       <div class="flex items-center px-4">
         <span class="text-lg font-semibold">Boos SaaS</span>
@@ -34,33 +34,48 @@
       </div>
     </nav>
 
-    <!-- 主内容区域 -->
-    <div v-show="store.navView === 'solver'" class="flex-1 p-6 h-[calc(100%-3rem)] overflow-auto">
-      <div v-show="store.sideView === 'oop-range'">
-        <RangeEditor :player="0" />
-      </div>
-      <div v-show="store.sideView === 'ip-range'">
-        <RangeEditor :player="1" />
-      </div>
-      <div v-show="store.sideView === 'board'">
-        <BoardSelector />
-      </div>
-      <div v-show="store.sideView === 'tree-config'">
-        <TreeConfig />
-      </div>
-      <div v-show="store.sideView === 'bunching'">
-        <BunchingEffect />
-      </div>
-      <div v-show="store.sideView === 'run-solver'">
-        <RunSolver />
-      </div>
-      
-      <div v-show="!['oop-range', 'ip-range', 'board', 'tree-config', 'bunching', 'run-solver'].includes(store.sideView)" class="text-xl text-center">
-        当前选择的视图: {{ store.sideView }}
+    <!-- 主内容区域 - 保留旧版本的逻辑结构，但使用现代UI样式 -->
+    <div v-show="store.navView === 'solver'" class="flex h-[calc(100%-3rem)] overflow-auto">
+      <SideBar class="h-[calc(100%-2rem)] my-4" />
+
+      <div class="flex-grow py-6 px-6 overflow-y-auto">
+        <div class="flex mb-4">
+          <div
+            :class="
+              'mb-5 pl-2 pr-3 pb-0.5 text-lg font-bold border-l-8 border-b-2 ' +
+              'border-blue-600 rounded rounded-br-none'
+            "
+          >
+            {{ header }}
+          </div>
+        </div>
+
+        <!-- 保留旧版本的组件结构和条件渲染 -->
+        <div v-show="store.sideView === 'oop-range'">
+          <RangeEditor :player="0" />
+        </div>
+        <div v-show="store.sideView === 'ip-range'">
+          <RangeEditor :player="1" />
+        </div>
+        <div v-show="store.sideView === 'board'">
+          <BoardSelector />
+        </div>
+        <div v-show="store.sideView === 'tree-config'">
+          <TreeConfig />
+        </div>
+        <div v-show="store.sideView === 'bunching'">
+          <BunchingEffect />
+        </div>
+        <div v-show="store.sideView === 'run-solver'">
+          <RunSolver />
+        </div>
+        <div v-if="store.sideView === 'about'">
+          <AboutPage />
+        </div>
       </div>
     </div>
-      
-    <!-- 结果页面 -->
+
+    <!-- 结果页面 - 使用现代UI样式 -->
     <div v-show="store.navView === 'results'" class="w-full h-[calc(100%-3rem)] overflow-hidden">
       <ResultViewer />
     </div>
@@ -68,18 +83,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useStore } from "../store";
+
+import SideBar from "./SideBar.vue";
 import RangeEditor from "./RangeEditor.vue";
 import BoardSelector from "./BoardSelector.vue";
 import TreeConfig from "./TreeConfig.vue";
 import BunchingEffect from "./BunchingEffect.vue";
 import RunSolver from "./RunSolver.vue";
+import AboutPage from "./AboutPage.vue";
 import ResultViewer from "./ResultViewer.vue";
 
 const store = useStore();
+const header = computed(() => store.headers[store.sideView].join(" > "));
 
-// 菜单项配置
+// 添加菜单项配置 - 来自新UI设计
 const menuItems = [
   { view: 'oop-range', label: 'OOP Range' },
   { view: 'ip-range', label: 'IP Range' },
