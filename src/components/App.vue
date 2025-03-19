@@ -34,11 +34,9 @@
       </div>
     </nav>
 
-    <!-- 主内容区域 - 保留旧版本的逻辑结构，但使用现代UI样式 -->
-    <div v-show="store.navView === 'solver'" class="flex h-[calc(100%-3rem)] overflow-auto">
-      <SideBar class="h-[calc(100%-2rem)] my-4" />
-
-      <div class="flex-grow py-6 px-6 overflow-y-auto">
+    <!-- 主内容区域 - 移除左侧菜单栏，保留主要内容 -->
+    <div v-show="store.navView === 'solver'" class="h-[calc(100%-3rem)] overflow-auto">
+      <div class="w-full py-6 px-8 overflow-y-auto">
         <div class="flex mb-4">
           <div
             :class="
@@ -86,7 +84,6 @@
 import { computed, ref } from "vue";
 import { useStore } from "../store";
 
-import SideBar from "./SideBar.vue";
 import RangeEditor from "./RangeEditor.vue";
 import BoardSelector from "./BoardSelector.vue";
 import TreeConfig from "./TreeConfig.vue";
