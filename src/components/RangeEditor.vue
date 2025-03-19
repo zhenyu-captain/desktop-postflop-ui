@@ -1,134 +1,222 @@
 <template>
-  <div class="flex mt-1">
-    <div class="shrink-0 ml-1">
-      <table class="shadow-md select-none snug" @mouseleave="dragEnd">
-        <tr v-for="row in 13" :key="row" class="h-9">
-          <td
-            v-for="col in 13"
-            :key="col"
-            class="relative w-[2.625rem] border border-black"
-            @mousedown="dragStart(row, col)"
-            @mouseup="dragEnd"
-            @mouseenter="mouseEnter(row, col)"
-          >
-            <div
-              :class="
-                'absolute w-full h-full left-0 top-0 ' +
-                (row === col ? 'bg-neutral-700' : 'bg-neutral-800')
-              "
+  <div class="flex gap-8">
+    <!-- 左侧：矩阵和控件 -->
+    <div class="shrink-0">
+      <div class="bg-white rounded-lg shadow-lg p-5">
+        <!-- 矩阵表格 -->
+        <table 
+          class="shadow-md select-none snug rounded-lg overflow-hidden" 
+          @mouseleave="dragEnd"
+          style="border-collapse: separate; border-spacing: 0;"
+        >
+          <tr v-for="row in 13" :key="row" class="h-9">
+            <td
+              v-for="col in 13"
+              :key="col"
+              class="relative w-[2.625rem] border border-black"
+              :class="{
+                'hover:border-yellow-500/50': !cellValue(row, col),
+                'hover:border-yellow-400/50': cellValue(row, col) > 0
+              }"
+              @mousedown="dragStart(row, col)"
+              @mouseup="dragEnd"
+              @mouseenter="mouseEnter(row, col)"
             >
               <div
-                class="absolute w-full h-full left-0 top-0 bg-bottom bg-no-repeat"
-                :style="{
-                  'background-image': `linear-gradient(${yellow500} 0% 100%)`,
-                  'background-size': `100% ${cellValue(row, col)}%`,
-                }"
-              ></div>
+                :class="[
+                  'absolute w-full h-full left-0 top-0',
+                  row === col ? 'bg-neutral-700' : 'bg-neutral-800'
+                ]"
+              >
+                <div
+                  class="absolute w-full h-full left-0 top-0 bg-bottom bg-no-repeat"
+                  :style="{
+                    'background-image': `linear-gradient(${yellow500} 0% 100%)`,
+                    'background-size': `100% ${cellValue(row, col)}%`
+                  }"
+                ></div>
+              </div>
+              <div
+                :class="[
+                  'absolute -top-px left-[0.1875rem] z-10 text-shadow',
+                  cellValue(row, col) > 0 ? 'text-white' : 'text-neutral-500'
+                ]"
+              >
+                {{ cellText(row, col) }}
+              </div>
+              <div
+                v-if="cellValue(row, col) > 0 && cellValue(row, col) < 100"
+                class="absolute bottom-px right-1 z-10 text-sm text-shadow text-white"
+              >
+                {{ cellValue(row, col).toFixed(1) }}
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- 权重和动作控件 -->
+        <div class="mt-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium">Weight:</span>
+              <input
+                v-model="weight"
+                type="range"
+                class="w-32 align-middle"
+                min="0"
+                max="100"
+                step="5"
+                @change="onWeightChange"
+              />
+              <input
+                v-model="weight"
+                type="number"
+                :class="[
+                  'w-16 px-2 py-1 rounded text-sm text-center border',
+                  weight < 0 || weight > 100 
+                    ? 'border-red-500 bg-red-50' 
+                    : 'border-gray-300'
+                ]"
+                min="0"
+                max="100"
+                step="5"
+                @change="onWeightChange"
+              />
+              <span class="text-sm">%</span>
             </div>
-            <div
-              :class="
-                'absolute -top-px left-[0.1875rem] z-10 text-shadow ' +
-                (cellValue(row, col) > 0 ? 'text-white' : 'text-neutral-500')
-              "
-            >
-              {{ cellText(row, col) }}
+          </div>
+
+          <!-- 范围文本输入 -->
+          <div class="flex items-center gap-2 mt-2">
+            <input
+              v-model="rangeText"
+              type="text"
+              :class="[
+                'flex-grow px-3 py-2 rounded-lg text-sm border',
+                rangeTextError 
+                  ? 'border-red-500 bg-red-50' 
+                  : 'border-gray-300'
+              ]"
+              placeholder="Enter range notation (e.g., 'AKs, QQ+')"
+              @focus="($event.target as HTMLInputElement).select()"
+              @change="onRangeTextChange"
+            />
+
+            <div class="flex gap-2">
+              <button
+                v-if="player >= 2"
+                class="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+                @click="invertRange"
+              >
+                Invert
+              </button>
+
+              <button 
+                class="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+                @click="clearRange"
+              >
+                Clear
+              </button>
             </div>
-            <div
-              class="absolute bottom-px right-1 z-10 text-sm text-shadow text-white"
-            >
-              {{
-                cellValue(row, col) > 0 && cellValue(row, col) < 100
-                  ? cellValue(row, col).toFixed(1)
-                  : ""
-              }}
-            </div>
-          </td>
-        </tr>
-      </table>
+          </div>
 
-      <div class="mt-5">
-        <div class="flex">
-          <input
-            v-model="rangeText"
-            type="text"
-            :class="
-              'flex-grow mr-6 px-2 py-1 rounded-lg text-sm ' +
-              (rangeTextError ? 'input-error' : '')
-            "
-            @focus="($event.target as HTMLInputElement).select()"
-            @change="onRangeTextChange"
-          />
+          <div v-if="rangeTextError" class="text-sm text-red-500 flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            {{ rangeTextError }}
+          </div>
 
-          <button
-            v-if="player >= 2"
-            class="mr-4 button-base button-blue"
-            @click="invertRange"
-          >
-            Invert
-          </button>
-
-          <button class="button-base button-blue" @click="clearRange">
-            Clear
-          </button>
+          <div class="flex items-center justify-between text-sm text-gray-600">
+            <span>Combos: {{ numCombos.toFixed(1) }}</span>
+            <span>{{ ((numCombos * 100) / ((52 * 51) / 2)).toFixed(1) }}% of total</span>
+          </div>
         </div>
-
-        <div v-if="rangeTextError" class="mt-1 text-red-500">
-          Error: {{ rangeTextError }}
-        </div>
-      </div>
-
-      <div class="flex mt-3.5 items-center">
-        <div>
-          Weight:
-          <input
-            v-model="weight"
-            type="range"
-            class="ml-3 w-40 align-middle"
-            min="0"
-            max="100"
-            step="5"
-            @change="onWeightChange"
-          />
-          <input
-            v-model="weight"
-            type="number"
-            :class="
-              'w-20 ml-4 px-2 py-1 rounded-lg text-sm text-center ' +
-              (weight < 0 || weight > 100 ? 'input-error' : '')
-            "
-            min="0"
-            max="100"
-            step="5"
-            @change="onWeightChange"
-          />
-          %
-        </div>
-
-        <span class="inline-block ml-auto">
-          {{ numCombos.toFixed(1) }} combos ({{
-            ((numCombos * 100) / ((52 * 51) / 2)).toFixed(1)
-          }}%)
-        </span>
       </div>
     </div>
 
-    <div class="flex-grow max-w-[18rem] ml-6">
-      <DbItemPicker
-        store-name="ranges"
-        :index="player"
-        :value="rangeText"
-        :allow-save="rangeText !== '' && rangeTextError === ''"
-        :hide-import-export="player >= 2"
-        @load-item="loadRange"
-      />
+    <!-- 中间：范围分析 -->
+    <div class="w-[240px]">
+      <div class="bg-white rounded-lg shadow-lg p-5">
+        <h3 class="text-base font-medium mb-4">Range Analysis</h3>
+        
+        <!-- 手牌类型分布 -->
+        <div class="space-y-3 mb-5">
+          <div class="flex justify-between text-sm">
+            <span>Pocket Pairs</span>
+            <span>{{ calculatePocketPairs() }}%</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span>Suited</span>
+            <span>{{ calculateSuited() }}%</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span>Offsuit</span>
+            <span>{{ calculateOffsuit() }}%</span>
+          </div>
+        </div>
 
-      <div v-if="player >= 2" class="flex mt-12 justify-center gap-4">
-        <button class="button-base button-blue !px-5" @click="emit('save')">
-          Save Edit
-        </button>
-        <button class="button-base button-red !px-5" @click="emit('cancel')">
-          Cancel Edit
-        </button>
+        <!-- 快速模板 -->
+        <div class="border-t border-gray-200 pt-4">
+          <h4 class="text-sm font-medium mb-3">Quick Templates</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <button 
+              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              @click="loadTemplate('RFI')"
+            >
+              RFI Range
+            </button>
+            <button 
+              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              @click="loadTemplate('3BET')"
+            >
+              3Bet Range
+            </button>
+            <button 
+              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              @click="loadTemplate('4BET')"
+            >
+              4Bet Range
+            </button>
+            <button 
+              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              @click="loadTemplate('CALL')"
+            >
+              Call Range
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：数据库 -->
+    <div class="flex-1">
+      <div class="bg-white rounded-lg shadow-lg p-5">
+        <h3 class="text-base font-medium mb-4">Saved Ranges</h3>
+        <DbItemPicker
+          store-name="ranges"
+          :index="player"
+          :value="rangeText"
+          :allow-save="rangeText !== '' && rangeTextError === ''"
+          :hide-import-export="player >= 2"
+          @load-item="loadRange"
+        />
+
+        <!-- 操作按钮 -->
+        <div v-if="player >= 2" class="mt-6 flex justify-end gap-3">
+          <button 
+            class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
+            @click="emit('cancel')"
+          >
+            Cancel
+          </button>
+          <button 
+            class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            @click="emit('save')"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -268,6 +356,56 @@ const invertRange = async () => {
 
 const loadRange = (rangeStr: unknown) => {
   rangeText.value = String(rangeStr);
+  onRangeTextChange();
+};
+
+// 范围分析功能
+const calculatePocketPairs = () => {
+  let total = 0;
+  for (let i = 0; i < 13; i++) {
+    total += store.ranges[props.player][i * 13 + i];
+  }
+  return (total / 1300 * 100).toFixed(1);
+};
+
+const calculateSuited = () => {
+  let total = 0;
+  for (let i = 0; i < 13; i++) {
+    for (let j = i + 1; j < 13; j++) {
+      total += store.ranges[props.player][i * 13 + j];
+    }
+  }
+  return (total / 1300 * 100).toFixed(1);
+};
+
+const calculateOffsuit = () => {
+  let total = 0;
+  for (let i = 0; i < 13; i++) {
+    for (let j = 0; j < i; j++) {
+      total += store.ranges[props.player][i * 13 + j];
+    }
+  }
+  return (total / 1300 * 100).toFixed(1);
+};
+
+// 快速模板加载
+const loadTemplate = (type: string) => {
+  let rangeStr = "";
+  switch (type) {
+    case 'RFI':
+      rangeStr = "22+, A2s+, K9s+, QTs+, JTs, T9s, 98s, 87s, 76s, 65s, ATo+, KJo+, QJo";
+      break;
+    case '3BET':
+      rangeStr = "JJ+, AQs+, AKo";
+      break;
+    case '4BET':
+      rangeStr = "QQ+, AKs";
+      break;
+    case 'CALL':
+      rangeStr = "TT-22, AJs-A2s, KQs-K9s, QJs-QTs, JTs, T9s, 98s, 87s, 76s, AQo-ATo, KQo-KJo";
+      break;
+  }
+  rangeText.value = rangeStr;
   onRangeTextChange();
 };
 </script>
