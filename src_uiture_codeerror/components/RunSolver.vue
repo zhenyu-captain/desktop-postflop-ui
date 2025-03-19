@@ -20,9 +20,60 @@
     >
       Build New Tree
     </button>
+    <button
+      class="ml-3 button-base button-yellow"
+      @click="toggleDebugInfo"
+    >
+      Debug
+    </button>
   </div>
 
   <div class="my-1">Status: {{ treeStatus }}</div>
+  
+  <div v-if="showDebugInfo" class="my-3 p-3 bg-gray-100 rounded-lg text-xs overflow-auto max-h-80">
+    <h3 class="font-bold mb-2">Debug Information:</h3>
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <h4 class="font-semibold">Store State:</h4>
+        <pre>{{ JSON.stringify(storeDebugInfo, null, 2) }}</pre>
+      </div>
+      <div>
+        <h4 class="font-semibold">Config State:</h4>
+        <pre>{{ JSON.stringify(configDebugInfo, null, 2) }}</pre>
+      </div>
+    </div>
+    <div class="mt-2">
+      <h4 class="font-semibold">Board & Tree Config:</h4>
+      <pre>{{ JSON.stringify(boardTreeDebugInfo, null, 2) }}</pre>
+    </div>
+    
+    <div class="mt-4 border-t pt-2">
+      <h4 class="font-semibold">Tree Building Debug:</h4>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <p><span class="font-medium">Current Status:</span> {{ treeStatus }}</p>
+          <p><span class="font-medium">isTreeBuilding:</span> {{ isTreeBuilding }}</p>
+          <p><span class="font-medium">isTreeBuilt:</span> {{ isTreeBuilt }}</p>
+          <p><span class="font-medium">Last Error:</span> {{ lastTreeBuildError || "None" }}</p>
+        </div>
+        <div>
+          <p><span class="font-medium">Tree Build Started:</span> {{ treeBuildStartTime ? new Date(treeBuildStartTime).toLocaleTimeString() : "Not started" }}</p>
+          <p><span class="font-medium">Elapsed Time:</span> {{ treeBuildStartTime ? ((Date.now() - treeBuildStartTime) / 1000).toFixed(2) + "s" : "N/A" }}</p>
+          <p><span class="font-medium">gameInit Promise State:</span> {{ gameInitPromiseState }}</p>
+        </div>
+      </div>
+      <div class="mt-2">
+        <button class="button-base button-blue text-xs py-1" @click="trackTreeBuildingStatus">Check Tree Status</button>
+        <button class="button-base button-green text-xs py-1 ml-2" @click="retryBuildTree">Retry Build Tree</button>
+        <button class="button-base button-red text-xs py-1 ml-2" @click="forceResetTreeState">Force Reset Tree State</button>
+      </div>
+    </div>
+
+    <div class="mt-2">
+      <button class="button-base button-blue text-xs py-1" @click="refreshDebugInfo">刷新调试信息</button>
+      <button class="button-base button-red text-xs py-1 ml-2" @click="logDebugInfo">控制台输出</button>
+    </div>
+  </div>
 
   <div v-if="isTreeBuilt" class="mt-3">
     <div>
@@ -43,8 +94,8 @@
             <ul class="pl-6 list-disc">
               <li class="mt-1">
                 Memory efficiency: 16-bit integer > 32-bit FP. The 16-bit
-                integer mode uses only about half the memory of the 32-bit FP
-                mode.
+                integer mode uses only about half the memory of the 32-bit
+                FP mode.
               </li>
               <li class="mt-1">
                 Performance: Depends on the environment. The 32-bit FP mode
@@ -329,6 +380,7 @@ import {
   ROOT_LINE_STRING,
   INVALID_LINE_STRING,
   readableLineString,
+  cardStringToNumber,
 } from "../utils";
 import * as invokes from "../invokes";
 
@@ -543,12 +595,194 @@ const timeText = computed(() => {
   }
 });
 
+const showDebugInfo = ref(false);
+const storeDebugInfo = ref({});
+const configDebugInfo = ref({});
+const boardTreeDebugInfo = ref({});
+const treeBuildStartTime = ref(0);
+const lastTreeBuildError = ref("");
+const gameInitPromiseState = ref("idle");
+
+const toggleDebugInfo = () => {
+  showDebugInfo.value = !showDebugInfo.value;
+  if (showDebugInfo.value) {
+    refreshDebugInfo();
+  }
+};
+
+const refreshDebugInfo = () => {
+  storeDebugInfo.value = {
+    isSolverRunning: store.isSolverRunning,
+    isSolverPaused: store.isSolverPaused,
+    isSolverFinished: store.isSolverFinished,
+    isSolverError: store.isSolverError,
+    isFinalizing: store.isFinalizing,
+    hasSolverRun: store.hasSolverRun,
+    isBunchingEnabled: store.isBunchingEnabled,
+    isBunchingRunning: store.isBunchingRunning,
+    bunchingFlop: store.bunchingFlop,
+  };
+  
+  configDebugInfo.value = {
+    board: config.board,
+    startingPot: config.startingPot,
+    effectiveStack: config.effectiveStack,
+    donkOption: config.donkOption,
+    rakePercent: config.rakePercent,
+    rakeCap: config.rakeCap,
+    expectedBoardLength: config.expectedBoardLength,
+  };
+  
+  boardTreeDebugInfo.value = {
+    savedConfigBoard: savedConfig.board,
+    tmpConfigBoard: tmpConfig.board,
+    numericBoard: tmpConfig.board.map(card => getCardNumber(card)),
+    areFlopMatching: areFlopMatching.value,
+    isTreeBuilt: isTreeBuilt.value,
+    isTreeBuilding: isTreeBuilding.value,
+    treeStatus: treeStatus.value,
+    memoryUsage: memoryUsage.value,
+    memoryUsageCompressed: memoryUsageCompressed.value,
+    addedLines: config.addedLines,
+    removedLines: config.removedLines,
+    boardRaw: tmpConfig.board,
+    bunchingFlop: store.bunchingFlop,
+    areFlopMatchingResult: areFlopMatching.value,
+  };
+};
+
+const trackTreeBuildingStatus = async () => {
+  try {
+    const status = await invokes.gameGetStatus?.() || "Status method not available";
+    console.log("Tree status from backend:", status);
+    
+    refreshDebugInfo();
+    
+    if (typeof invokes.gameGetStatus === 'function') {
+      treeStatus.value = `From backend: ${status}`;
+    } else {
+      console.log("gameGetStatus not implemented in invokes");
+    }
+  } catch (err) {
+    console.error("Error checking tree status:", err);
+    lastTreeBuildError.value = err.toString();
+  }
+};
+
+const retryBuildTree = async () => {
+  if (isTreeBuilding.value) {
+    if (!confirm("Tree building is in progress. Force restart?")) {
+      return;
+    }
+  }
+  console.log("Retrying tree build...");
+  isTreeBuilding.value = false;
+  isTreeBuilt.value = false;
+  lastTreeBuildError.value = "";
+  treeStatus.value = "Preparing to build tree...";
+  
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  buildTree();
+};
+
+const forceResetTreeState = () => {
+  if (!confirm("This will reset the tree state without rebuilding. Continue?")) {
+    return;
+  }
+  
+  isTreeBuilding.value = false;
+  isTreeBuilt.value = false;
+  treeStatus.value = "Tree state forcibly reset";
+  gameInitPromiseState.value = "idle";
+  lastTreeBuildError.value = "";
+  treeBuildStartTime.value = 0;
+  console.log("Tree state forcibly reset");
+  refreshDebugInfo();
+};
+
+const logDebugInfo = () => {
+  console.log("=== DEBUG INFO ===");
+  console.log("Store State:", store);
+  console.log("Config State:", config);
+  console.log("Tmp Config State:", tmpConfig);
+  console.log("Saved Config State:", savedConfig);
+  console.log("Tree Status:", {
+    isTreeBuilt: isTreeBuilt.value,
+    isTreeBuilding: isTreeBuilding.value,
+    treeStatus: treeStatus.value,
+    treeBuildStartTime: treeBuildStartTime.value ? new Date(treeBuildStartTime.value).toLocaleString() : "Not started",
+    lastError: lastTreeBuildError.value,
+    gameInitPromiseState: gameInitPromiseState.value
+  });
+  console.log("Memory Usage:", {
+    raw: memoryUsageRaw.value,
+    compressed: memoryUsageRawCompressed.value,
+    bunching: memoryUsageBunching.value,
+    total: memoryUsage.value,
+    totalCompressed: memoryUsageCompressed.value,
+    selected: memoryUsageSelected.value,
+    max: maxMemoryUsage.value,
+  });
+  console.log("================");
+  
+  try {
+    const { dialog } = window.__TAURI__;
+    if (dialog) {
+      dialog.message("调试信息已输出到控制台");
+    }
+  } catch (e) {
+    console.log("Tauri API not available:", e);
+  }
+};
+
+const convertCardToNumber = (card: string): number => {
+  const ranks: Record<string, number> = {
+    '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '8': 6, '9': 7,
+    'T': 8, 'J': 9, 'Q': 10, 'K': 11, 'A': 12
+  };
+  const suits: Record<string, number> = { 'c': 0, 'd': 1, 'h': 2, 's': 3 };
+  
+  if (card.length !== 2) {
+    console.error(`Invalid card format: ${card}`);
+    return 0;
+  }
+  
+  const rank = card[0];
+  const suit = card[1];
+  
+  if (!(rank in ranks) || !(suit in suits)) {
+    console.error(`Invalid card: ${card}, rank: ${rank}, suit: ${suit}`);
+    return 0;
+  }
+  
+  return ranks[rank] * 4 + suits[suit];
+};
+
+const getCardNumber = (card: string): number => {
+  try {
+    if (typeof cardStringToNumber === 'function') {
+      return cardStringToNumber(card);
+    } else {
+      return convertCardToNumber(card);
+    }
+  } catch (e) {
+    console.error(`Error converting card ${card}:`, e);
+    return convertCardToNumber(card);
+  }
+};
+
 const buildTree = async () => {
   isTreeBuilt.value = false;
+  treeBuildStartTime.value = Date.now();
+  gameInitPromiseState.value = "pending";
+  lastTreeBuildError.value = "";
 
   const configError = checkConfig(config);
   if (configError !== null) {
     treeStatus.value = `Error: ${configError}`;
+    lastTreeBuildError.value = configError;
+    gameInitPromiseState.value = "rejected";
     return;
   }
 
@@ -556,71 +790,93 @@ const buildTree = async () => {
   isTreeBuilding.value = true;
   treeStatus.value = "Building tree...";
 
-  const errorString = await invokes.gameInit(
-    tmpConfig.board,
-    tmpConfig.startingPot,
-    tmpConfig.effectiveStack,
-    tmpConfig.rakePercent / 100,
-    tmpConfig.rakeCap,
-    tmpConfig.donkOption,
-    convertBetString(tmpConfig.oopFlopBet),
-    convertBetString(tmpConfig.oopFlopRaise),
-    convertBetString(tmpConfig.oopTurnBet),
-    convertBetString(tmpConfig.oopTurnRaise),
-    tmpConfig.donkOption ? convertBetString(tmpConfig.oopTurnDonk) : "",
-    convertBetString(tmpConfig.oopRiverBet),
-    convertBetString(tmpConfig.oopRiverRaise),
-    tmpConfig.donkOption ? convertBetString(tmpConfig.oopRiverDonk) : "",
-    convertBetString(tmpConfig.ipFlopBet),
-    convertBetString(tmpConfig.ipFlopRaise),
-    convertBetString(tmpConfig.ipTurnBet),
-    convertBetString(tmpConfig.ipTurnRaise),
-    convertBetString(tmpConfig.ipRiverBet),
-    convertBetString(tmpConfig.ipRiverRaise),
-    tmpConfig.addAllInThreshold / 100,
-    tmpConfig.forceAllInThreshold / 100,
-    tmpConfig.mergingThreshold / 100,
-    tmpConfig.addedLines,
-    tmpConfig.removedLines
-  );
+  try {
+    const numericBoard = tmpConfig.board.map(card => getCardNumber(card));
+    console.log("原始卡牌:", tmpConfig.board);
+    console.log("转换后的数字卡牌:", numericBoard);
 
-  if (errorString) {
+    const errorString = await invokes.gameInit(
+      numericBoard,
+      tmpConfig.startingPot,
+      tmpConfig.effectiveStack,
+      tmpConfig.rakePercent / 100,
+      tmpConfig.rakeCap,
+      tmpConfig.donkOption,
+      convertBetString(tmpConfig.oopFlopBet),
+      convertBetString(tmpConfig.oopFlopRaise),
+      convertBetString(tmpConfig.oopTurnBet),
+      convertBetString(tmpConfig.oopTurnRaise),
+      tmpConfig.donkOption ? convertBetString(tmpConfig.oopTurnDonk) : "",
+      convertBetString(tmpConfig.oopRiverBet),
+      convertBetString(tmpConfig.oopRiverRaise),
+      tmpConfig.donkOption ? convertBetString(tmpConfig.oopRiverDonk) : "",
+      convertBetString(tmpConfig.ipFlopBet),
+      convertBetString(tmpConfig.ipFlopRaise),
+      convertBetString(tmpConfig.ipTurnBet),
+      convertBetString(tmpConfig.ipTurnRaise),
+      convertBetString(tmpConfig.ipRiverBet),
+      convertBetString(tmpConfig.ipRiverRaise),
+      tmpConfig.addAllInThreshold / 100,
+      tmpConfig.forceAllInThreshold / 100,
+      tmpConfig.mergingThreshold / 100,
+      tmpConfig.addedLines,
+      tmpConfig.removedLines
+    );
+
+    if (errorString) {
+      isTreeBuilding.value = false;
+      treeStatus.value = "Error: " + errorString;
+      lastTreeBuildError.value = errorString;
+      gameInitPromiseState.value = "rejected";
+      return;
+    }
+
+    gameInitPromiseState.value = "fulfilled";
+    saveConfig();
+
+    console.log("Tree built successfully, collecting memory info...");
+    try {
+      [memoryUsageRaw.value, memoryUsageRawCompressed.value] =
+        await invokes.gameMemoryUsage();
+      memoryUsageBunching.value = await invokes.gameMemoryUsageBunching();
+
+      osName.value = await invokes.osName();
+      [availableMemory.value, totalMemory.value] = await invokes.memory();
+
+      if (osName.value === "macos") {
+        maxMemoryUsage.value = totalMemory.value * 0.7;
+      } else {
+        maxMemoryUsage.value = availableMemory.value;
+      }
+
+      if (
+        memoryUsage.value > maxMemoryUsage.value &&
+        memoryUsageCompressed.value <= maxMemoryUsage.value
+      ) {
+        isCompressionEnabled.value = true;
+      }
+
+      console.log("Memory info collected successfully");
+    } catch (err) {
+      console.error("Error collecting memory info:", err);
+      lastTreeBuildError.value = `Tree built but memory info failed: ${err}`;
+    }
+
     isTreeBuilding.value = false;
-    treeStatus.value = "Error: " + errorString;
-    return;
+    isTreeBuilt.value = true;
+    treeStatus.value = "Successfully built tree";
+
+    store.isSolverRunning = false;
+    store.isSolverPaused = false;
+    store.isSolverFinished = false;
+    store.isSolverError = false;
+  } catch (err) {
+    console.error("Error in buildTree:", err);
+    isTreeBuilding.value = false;
+    treeStatus.value = `Error building tree: ${err}`;
+    lastTreeBuildError.value = err.toString();
+    gameInitPromiseState.value = "rejected";
   }
-
-  saveConfig();
-
-  [memoryUsageRaw.value, memoryUsageRawCompressed.value] =
-    await invokes.gameMemoryUsage();
-  memoryUsageBunching.value = await invokes.gameMemoryUsageBunching();
-
-  osName.value = await invokes.osName();
-  [availableMemory.value, totalMemory.value] = await invokes.memory();
-
-  if (osName.value === "macos") {
-    // available memory is not useful on macOS
-    maxMemoryUsage.value = totalMemory.value * 0.7;
-  } else {
-    maxMemoryUsage.value = availableMemory.value;
-  }
-
-  if (
-    memoryUsage.value > maxMemoryUsage.value &&
-    memoryUsageCompressed.value <= maxMemoryUsage.value
-  ) {
-    isCompressionEnabled.value = true;
-  }
-
-  isTreeBuilding.value = false;
-  isTreeBuilt.value = true;
-  treeStatus.value = "Successfully built tree";
-
-  store.isSolverRunning = false;
-  store.isSolverPaused = false;
-  store.isSolverFinished = false;
-  store.isSolverError = false;
 };
 
 const runSolver = async () => {
@@ -638,8 +894,17 @@ const runSolver = async () => {
   await invokes.gameAllocateMemory(isCompressionEnabled.value);
 
   if (store.isBunchingEnabled && store.bunchingFlop.length > 0) {
+    if (!areFlopMatching.value) {
+      solverErrorText.value = "Error: Flop cards do not match bunching data";
+      store.isSolverRunning = false;
+      store.isSolverError = true;
+      return;
+    }
+    
     currentIteration.value = -2;
+    
     const errorString = await invokes.gameSetBunching();
+    
     if (errorString) {
       solverErrorText.value = "Error: " + errorString;
       store.isSolverRunning = false;
@@ -707,3 +972,11 @@ const resumeSolver = async () => {
   elapsedTimeMs.value += end - startTime;
 };
 </script>
+
+<style scoped>
+.button-yellow {
+  @apply bg-yellow-500 hover:bg-yellow-600 text-white;
+}
+
+/* 如果需要，可以在这里添加更多样式 */
+</style>
