@@ -5,18 +5,18 @@
       <div class="bg-white rounded-lg shadow-lg p-5">
         <!-- 矩阵表格 -->
         <table 
-          class="shadow-lg select-none rounded-lg overflow-hidden" 
+          class="shadow-md select-none rounded-md overflow-hidden" 
           @mouseleave="dragEnd"
-          style="border-collapse: separate; border-spacing: 0;"
+          style="border-collapse: separate; border-spacing: 0.5px;"
         >
           <tr v-for="row in 13" :key="row" class="h-9">
             <td
               v-for="col in 13"
               :key="col"
-              class="relative w-[2.625rem] border border-black transition-all duration-150"
+              class="relative w-[2.625rem] border border-gray-300 transition-all duration-150"
               :class="{
                 'hover:border-blue-500': !cellValue(row, col),
-                'hover:border-white': cellValue(row, col) > 0
+                'hover:border-blue-600': cellValue(row, col) > 0
               }"
               @mousedown="dragStart(row, col)"
               @mouseup="dragEnd"
@@ -25,7 +25,7 @@
               <div
                 :class="[
                   'absolute w-full h-full left-0 top-0',
-                  row === col ? 'bg-neutral-700' : 'bg-neutral-800'
+                  row === col ? 'bg-blue-50' : (row > col ? 'bg-fuchsia-50' : 'bg-emerald-50')
                 ]"
               >
                 <div
@@ -41,16 +41,17 @@
                   'absolute -top-px left-[0.1875rem] z-10 font-medium',
                   cellValue(row, col) > 0 
                     ? 'text-white' 
-                    : (row === col ? 'text-blue-200' : (row > col ? 'text-fuchsia-200' : 'text-emerald-200'))
+                    : (row === col ? 'text-blue-600' : (row > col ? 'text-fuchsia-600' : 'text-emerald-600'))
                 ]"
-                style="text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);"
+                style="text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);"
               >
                 {{ cellText(row, col) }}
               </div>
               <div
                 v-if="cellValue(row, col) > 0 && cellValue(row, col) < 100"
-                class="absolute bottom-px right-1 z-10 text-xs font-medium text-white"
-                style="text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);"
+                class="absolute bottom-px right-1 z-10 text-xs font-medium"
+                :class="cellValue(row, col) > 70 ? 'text-white' : 'text-gray-700'"
+                style="text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);"
               >
                 {{ cellValue(row, col).toFixed(1) }}
               </div>
@@ -235,9 +236,9 @@ import DbItemPicker from "./DbItemPicker.vue";
 
 // 颜色方案
 const colors = {
-  pocketPairs: "#3b82f6",   // 蓝色 - 口袋对子
-  suited: "#d946ef",        // 洋红色 - 同花 (fuchsia-500)
-  offsuit: "#10b981"        // 绿色 - 非同花
+  pocketPairs: "#4f46e5",   // 靛蓝色 - 口袋对子 (indigo-600)
+  suited: "#c026d3",        // 洋红色 - 同花 (fuchsia-600)
+  offsuit: "#059669"         // 绿色 - 非同花 (emerald-600)
 };
 
 type DraggingMode = "none" | "enabling" | "disabling";
