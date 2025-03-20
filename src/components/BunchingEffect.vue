@@ -1,191 +1,273 @@
 <template>
-  <div v-if="editingPlayer === -1">
-    <div class="flex">
-      <div
-        class="flex pl-2.5 pr-3 py-1 text-cyan-600 bg-cyan-50 border-2 border-cyan-600 rounded-md font-semibold"
-      >
-        <InformationCircleIcon class="inline w-5 h-5 mt-[0.1875rem] mr-1.5" />
-        <div>
-          Enabling the bunching effect will significantly slow down the
-          solver.<br />
-          If you are not sure, we recommend leaving it disabled.
+  <div v-if="editingPlayer === -1" class="bunching-effect">
+    <!-- 信息提示区域 -->
+    <div class="mb-4">
+      <div class="flex items-start p-4 bg-cyan-50 border-2 border-cyan-600 rounded-lg">
+        <InformationCircleIcon class="w-5 h-5 text-cyan-600 mt-0.5 mr-3 shrink-0" />
+        <div class="text-cyan-600">
+          <p class="font-medium">
+            Enabling the bunching effect will significantly slow down the
+            solver.<br />
+            If you are not sure, we recommend leaving it disabled.
+          </p>
         </div>
       </div>
     </div>
 
-    <div class="flex mt-4 gap-8 items-center">
-      <label class="cursor-pointer">
-        <input
-          type="checkbox"
-          v-model="store.isBunchingEnabled"
-          class="mr-1 align-middle rounded"
-        />
-        Enable bunching effect
-      </label>
+    <!-- 主要控制区域 -->
+    <div class="bg-white rounded-lg p-5">
+      <div class="flex items-center gap-6">
+        <label class="flex items-center cursor-pointer select-none">
+          <input
+            type="checkbox"
+            v-model="store.isBunchingEnabled"
+            class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+          />
+          <span class="text-gray-700">Enable bunching effect</span>
+        </label>
 
-      <div class="flex">
-        <Tippy
-          class="inline-block cursor-help text-gray-600"
-          max-width="500px"
-          trigger="mouseenter click"
-          placement="bottom"
-          :delay="[200, 0]"
-          :interactive="true"
-        >
-          <QuestionMarkCircleIcon class="inline w-5 h-5" />
-          <div class="inline-block ml-0.5 text-sm underline">
-            What is the bunching effect?
-          </div>
-          <template #content>
-            <div class="px-1 py-0.5 text-justify">
-              <div>
-                The bunching effect refers to the card removal effect caused by
-                the ranges of folded players. Since most players fold with a
-                weak hand, the remaining players will have a higher chance of
-                holding a strong hand.
+        <div class="flex items-center">
+          <Tippy
+            class="inline-flex items-center cursor-help text-gray-600 hover:text-indigo-600"
+            max-width="500px"
+            trigger="mouseenter click"
+            placement="bottom"
+            :delay="[200, 0]"
+            :interactive="true"
+          >
+            <QuestionMarkCircleIcon class="w-5 h-5" />
+            <span class="ml-1 text-sm underline">What is the bunching effect?</span>
+            <template #content>
+              <div class="px-3 py-2 text-sm">
+                <p class="mb-3">
+                  The bunching effect refers to the card removal effect caused by
+                  the ranges of folded players. Since most players fold with a
+                  weak hand, the remaining players will have a higher chance of
+                  holding a strong hand.
+                </p>
+                <p class="mb-3">
+                  This option supports up to 4 folded players (6-max game). By
+                  entering the ranges of the folded players and performing a
+                  precomputation, the solver can account for the bunching effect.
+                </p>
+                <p>
+                  The simulation is exact and precise. This means that the solver
+                  does not make any abstractions or approximations. However,
+                  please note that enabling the bunching effect will significantly
+                  slow down the solver due to the heavy additional computation
+                  required.
+                </p>
               </div>
-              <div class="mt-3">
-                This option supports up to 4 folded players (6-max game). By
-                entering the ranges of the folded players and performing a
-                precomputation, the solver can account for the bunching effect.
+            </template>
+          </Tippy>
+        </div>
+      </div>
+
+      <div v-if="store.isBunchingEnabled" class="mt-6">
+        <div class="flex gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+            <div v-for="i in 4" :key="i" class="range-card">
+              <div class="text-base font-medium mb-2">Fold Range {{ i }}</div>
+              <RangeMiniViewer
+                class="w-full h-44 cursor-pointer mb-3"
+                :player="i + 1"
+                @click="editRange(i - 1)"
+              />
+              <input
+                v-model="rangeTexts[i - 1]"
+                type="text"
+                :class="[
+                  'w-full px-3 py-2 rounded-md text-sm border transition-colors mb-2',
+                  isRangeTextError[i - 1]
+                    ? 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500'
+                    : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
+                ]"
+                @focus="($event.target as HTMLInputElement).select()"
+                @change="onRangeTextChange(i - 1)"
+              />
+              <div class="text-sm text-gray-600 text-center mb-3">
+                {{ numCombos[i - 1].toFixed(1) }} combos ({{
+                  numCombos[i - 1] >= 0.9995 * ((52 * 51) / 2)
+                    ? "100"
+                    : ((numCombos[i - 1] * 100) / ((52 * 51) / 2)).toFixed(1)
+                }}%)
               </div>
-              <div class="mt-3">
-                The simulation is exact and precise. This means that the solver
-                does not make any abstractions or approximations. However,
-                please note that enabling the bunching effect will significantly
-                slow down the solver due to the heavy additional computation
-                required.
+              <div class="flex gap-2">
+                <button 
+                  class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300
+                         bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2
+                         focus:ring-indigo-500"
+                  @click="invertRange(i - 1)"
+                >
+                  Invert
+                </button>
+                <button 
+                  class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300
+                         bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2
+                         focus:ring-indigo-500"
+                  @click="clearRange(i - 1)"
+                >
+                  Clear
+                </button>
               </div>
             </div>
-          </template>
-        </Tippy>
-      </div>
-    </div>
-
-    <div v-if="store.isBunchingEnabled" class="mt-6">
-      <div class="flex gap-8">
-        <div v-for="i in 4" :key="i">
-          <div class="text-[1.0625rem]">Fold Range {{ i }}</div>
-          <RangeMiniViewer
-            class="w-44 h-44 mt-2 cursor-pointer"
-            :player="i + 1"
-            @click="editRange(i - 1)"
-          />
-          <input
-            v-model="rangeTexts[i - 1]"
-            type="text"
-            :class="
-              'w-44 mt-3 px-2 py-1 rounded-lg text-sm ' +
-              (isRangeTextError[i - 1] ? ' input-error' : '')
-            "
-            @focus="($event.target as HTMLInputElement).select()"
-            @change="onRangeTextChange(i - 1)"
-          />
-          <div class="mt-2 text-center">
-            {{ numCombos[i - 1].toFixed(1) }} combos ({{
-              numCombos[i - 1] >= 0.9995 * ((52 * 51) / 2)
-                ? "100"
-                : ((numCombos[i - 1] * 100) / ((52 * 51) / 2)).toFixed(1)
-            }}%)
           </div>
-          <div class="flex mt-3 w-full justify-center gap-3">
-            <button class="button-base button-blue" @click="invertRange(i - 1)">
-              Invert
-            </button>
-            <button class="button-base button-blue" @click="clearRange(i - 1)">
-              Clear
-            </button>
+
+          <!-- 右侧信息面板 -->
+          <div class="hidden md:block w-64 flex-shrink-0 space-y-4">
+            <!-- 统计信息卡片 -->
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 class="text-base font-medium mb-3">Statistics</h3>
+              <div class="space-y-2">
+                <div class="text-sm text-gray-600">
+                  <div class="flex justify-between items-center mb-1">
+                    <span>Total Ranges:</span>
+                    <span class="font-medium text-gray-900">{{ numCombos.filter(x => x > 0).length }}/4</span>
+                  </div>
+                  <div class="flex justify-between items-center mb-1">
+                    <span>Total Combos:</span>
+                    <span class="font-medium text-gray-900">
+                      {{ numCombos.reduce((a, b) => a + b, 0).toFixed(1) }}
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span>Coverage:</span>
+                    <span class="font-medium text-gray-900">
+                      {{ ((numCombos.reduce((a, b) => a + b, 0) * 100) / (52 * 51 / 2)).toFixed(1) }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 快速提示卡片 -->
+            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+              <h3 class="text-base font-medium mb-3 text-indigo-900">Quick Tips</h3>
+              <ul class="text-sm text-indigo-700 space-y-2">
+                <li class="flex items-start gap-2">
+                  <span class="text-indigo-500 mt-0.5">•</span>
+                  <span>Click on any range matrix to edit</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-indigo-500 mt-0.5">•</span>
+                  <span>Use text input for quick range entry</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-indigo-500 mt-0.5">•</span>
+                  <span>Invert button flips selection</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="flex mt-8 gap-3 items-center">
-        <button
-          class="button-base button-blue"
-          :disabled="
-            numCombos.every((x) => x === 0) ||
-            store.isBunchingRunning ||
-            store.isSolverRunning ||
-            numThreads < 1 ||
-            numThreads > 64 ||
-            numThreads % 1 !== 0
-          "
-          @click="runPrecomputation"
-        >
-          Run Precomputation
-        </button>
-        <button
-          class="button-base button-red"
-          :disabled="!hasBunchingRun"
-          @click="clearPrecomputation"
-        >
-          Clear
-        </button>
-        <button
-          v-if="!isBunchingPaused"
-          class="button-base button-green"
-          :disabled="!store.isBunchingRunning"
-          @click="() => (pauseFlag = true)"
-        >
-          Pause
-        </button>
-        <button
-          v-else
-          class="button-base button-green"
-          :disabled="
-            store.isSolverRunning ||
-            numThreads < 1 ||
-            numThreads > 64 ||
-            numThreads % 1 !== 0
-          "
-          @click="resumePrecomputation"
-        >
-          Resume
-        </button>
+        <!-- 控制按钮和状态区域 -->
+        <div class="mt-6 bg-gray-50 rounded-lg border border-gray-200 p-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 
+                     hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="
+                numCombos.every((x) => x === 0) ||
+                store.isBunchingRunning ||
+                store.isSolverRunning ||
+                numThreads < 1 ||
+                numThreads > 64 ||
+                numThreads % 1 !== 0
+              "
+              @click="runPrecomputation"
+            >
+              Run Precomputation
+            </button>
+            <button
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600
+                     hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                     focus:ring-offset-1"
+              @click="store.currentView = 'run-solver'"
+            >
+              Run Solver
+            </button>
+            <button
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600
+                     hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!hasBunchingRun"
+              @click="clearPrecomputation"
+            >
+              Clear
+            </button>
+            <button
+              v-if="!isBunchingPaused"
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600
+                     hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!store.isBunchingRunning"
+              @click="() => (pauseFlag = true)"
+            >
+              Pause
+            </button>
+            <button
+              v-else
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600
+                     hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="
+                store.isSolverRunning ||
+                numThreads < 1 ||
+                numThreads > 64 ||
+                numThreads % 1 !== 0
+              "
+              @click="resumePrecomputation"
+            >
+              Resume
+            </button>
 
-        <span class="pl-3">
-          Number of threads:
-          <input
-            v-model="numThreads"
-            type="number"
-            :class="
-              'w-20 ml-1.5 px-2 py-1 rounded-lg text-sm text-center ' +
-              (numThreads < 1 || numThreads > 64 || numThreads % 1 !== 0
-                ? 'input-error'
-                : '')
-            "
-            min="1"
-            max="64"
-          />
-        </span>
-        <span class="pl-3">
-          RAM usage:
-          {{
-            ["-", "60MB", "60MB", "190MB", "3.5GB"][
-              numCombos.filter((x) => x > 0).length
-            ]
-          }}
-        </span>
-      </div>
+            <div class="flex items-center ml-2">
+              <span class="text-sm text-gray-700 mr-2">Number of threads:</span>
+              <input
+                v-model="numThreads"
+                type="number"
+                :class="[
+                  'w-20 px-3 py-1.5 text-sm text-center rounded-md border',
+                  numThreads < 1 || numThreads > 64 || numThreads % 1 !== 0
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-300'
+                ]"
+                min="1"
+                max="64"
+              />
+            </div>
+            <div class="flex items-center ml-2">
+              <span class="text-sm text-gray-700 mr-2">RAM usage:</span>
+              <span class="text-sm font-medium text-gray-900">
+                {{ ["-", "60MB", "60MB", "190MB", "3.5GB"][numCombos.filter((x) => x > 0).length] }}
+              </span>
+            </div>
+          </div>
 
-      <div class="mt-3">
-        <span class="flex items-center">
-          Status:
-          <span
-            v-if="store.isBunchingRunning"
-            class="spinner inline-block ml-2 mr-2.5"
-          ></span>
-          {{ statusText }}
-        </span>
-        <span v-if="store.bunchingFlop.length > 0">
-          [Flop:
-          <span
-            v-for="item in store.bunchingFlop.map(cardText)"
-            :key="item.rank + item.suit"
-            :class="'inline-block mx-px ' + item.colorClass"
-            >{{ item.rank + item.suit }}</span
-          >]
-        </span>
+          <div class="mt-4 flex items-center text-sm">
+            <span class="text-gray-700">Status:</span>
+            <span
+              v-if="store.isBunchingRunning"
+              class="inline-block w-4 h-4 ml-2 mr-2.5 border-2 border-t-blue-600 border-gray-300 rounded-full animate-spin"
+            ></span>
+            <span :class="[
+              'ml-2',
+              statusText.includes('Error') ? 'text-red-600' : 
+              statusText.includes('ready') ? 'text-green-600' : 'text-gray-900'
+            ]">{{ statusText }}</span>
+            <span v-if="store.bunchingFlop.length > 0" class="ml-3">
+              [Flop:
+              <span
+                v-for="item in store.bunchingFlop.map(cardText)"
+                :key="item.rank + item.suit"
+                :class="'inline-block mx-px ' + item.colorClass"
+              >{{ item.rank + item.suit }}</span
+              >]
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -375,3 +457,28 @@ const cancelEdit = async () => {
   editingPlayer.value = -1;
 };
 </script>
+
+<style scoped>
+.bunching-effect {
+  @apply text-gray-800;
+}
+
+/* 修复RangeMiniViewer的响应式布局问题 */
+@media (min-width: 768px) {
+  .range-card RangeMiniViewer {
+    height: 180px;
+  }
+}
+
+/* 修复输入数字字段的外观 */
+input[type="number"] {
+  @apply appearance-none;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+</style>
