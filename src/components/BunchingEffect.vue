@@ -20,7 +20,8 @@
         <label class="flex items-center cursor-pointer select-none">
           <input
             type="checkbox"
-            v-model="store.isBunchingEnabled"
+            v-model="isBunchingEnabledUI"
+            @change="updateBunchingState"
             class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
           />
           <span class="text-gray-700">Enable bunching effect</span>
@@ -63,7 +64,7 @@
         </div>
       </div>
 
-      <div v-if="store.isBunchingEnabled" class="mt-6">
+      <div v-if="isBunchingEnabledUI" class="mt-6">
         <div class="flex gap-4">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
             <div v-for="i in 4" :key="i" class="range-card">
@@ -282,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useStore, useConfigStore } from "../store";
 import { trimRegex, rangeRegex, cardText } from "../utils";
 import * as invokes from "../invokes";
@@ -297,6 +298,35 @@ import {
 
 const store = useStore();
 const configStore = useConfigStore();
+
+// UI和功能状态
+const isBunchingEnabledUI = ref(false);
+
+// 组件挂载时设置默认UI状态
+onMounted(() => {
+  // 默认勾选UI，但不改变功能状态
+  isBunchingEnabledUI.value = true;
+  
+  // 如果已有bunching数据，UI状态和功能状态保持一致
+  if (store.bunchingFlop.length > 0 && hasBunchingRun.value) {
+    isBunchingEnabledUI.value = store.isBunchingEnabled;
+  } else {
+    // 否则，功能状态总是false
+    store.isBunchingEnabled = false;
+  }
+});
+
+// 更新bunching状态
+const updateBunchingState = () => {
+  if (isBunchingEnabledUI.value && store.bunchingFlop.length === 0) {
+    // 如果UI勾选但没有预计算数据，不修改store中的值
+    // 这样在Run Solver时会显示警告而不是尝试收集数据
+    store.isBunchingEnabled = false;
+  } else {
+    // 如果有预计算数据或用户取消勾选，直接同步状态
+    store.isBunchingEnabled = isBunchingEnabledUI.value;
+  }
+};
 
 const numThreads = ref(navigator.hardwareConcurrency || 1);
 
@@ -385,7 +415,13 @@ const runPrecomputation = async () => {
   flopCopy.value = configStore.board.slice(0, 3);
   hasBunchingRun.value = true;
   elapsedTimeMs.value = 0;
+  
   await resumePrecomputation();
+  
+  // 预计算完成后，如果UI勾选则启用功能
+  if (isBunchingEnabledUI.value && statusText.value.includes("ready")) {
+    store.isBunchingEnabled = true;
+  }
 };
 
 const clearPrecomputation = async () => {
@@ -397,6 +433,9 @@ const clearPrecomputation = async () => {
     statusText.value = "No bunching data";
     hasBunchingRun.value = false;
     isBunchingPaused.value = false;
+    
+    // 清除预计算数据时，禁用功能状态但保持UI状态
+    store.isBunchingEnabled = false;
   }
 };
 
