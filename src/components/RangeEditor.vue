@@ -13,7 +13,7 @@
             <td
               v-for="col in 13"
               :key="col"
-              class="relative w-[2.625rem] border border-gray-900 transition-all duration-150"
+              class="relative w-[2.625rem] border border-black transition-all duration-150"
               :class="{
                 'hover:border-blue-500': !cellValue(row, col),
                 'hover:border-white': cellValue(row, col) > 0
@@ -32,17 +32,18 @@
                   class="absolute w-full h-full left-0 top-0 bg-bottom bg-no-repeat"
                   :style="{
                     'background-image': `linear-gradient(${row === col ? colors.pocketPairs : (row > col ? colors.suited : colors.offsuit)} 0% 100%)`,
-                    'background-size': `100% ${cellValue(row, col)}%`,
-                    'box-shadow': cellValue(row, col) > 0 ? 'inset 0 0 4px rgba(255, 255, 255, 0.15)' : 'none'
+                    'background-size': `100% ${cellValue(row, col)}%`
                   }"
                 ></div>
               </div>
               <div
                 :class="[
                   'absolute -top-px left-[0.1875rem] z-10 font-medium',
-                  cellValue(row, col) > 0 ? 'text-white' : 'text-gray-400'
+                  cellValue(row, col) > 0 
+                    ? 'text-white' 
+                    : (row === col ? 'text-blue-200' : (row > col ? 'text-fuchsia-200' : 'text-emerald-200'))
                 ]"
-                style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);"
+                style="text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);"
               >
                 {{ cellText(row, col) }}
               </div>
@@ -235,7 +236,7 @@ import DbItemPicker from "./DbItemPicker.vue";
 // 颜色方案
 const colors = {
   pocketPairs: "#3b82f6",   // 蓝色 - 口袋对子
-  suited: "#8b5cf6",        // 紫色 - 同花
+  suited: "#d946ef",        // 洋红色 - 同花 (fuchsia-500)
   offsuit: "#10b981"        // 绿色 - 非同花
 };
 
