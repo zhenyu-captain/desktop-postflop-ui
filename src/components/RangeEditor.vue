@@ -5,7 +5,7 @@
       <div class="bg-white rounded-lg shadow-lg p-5">
         <!-- 矩阵表格 -->
         <table 
-          class="shadow-md select-none snug rounded-lg overflow-hidden" 
+          class="shadow-lg select-none rounded-lg overflow-hidden" 
           @mouseleave="dragEnd"
           style="border-collapse: separate; border-spacing: 0;"
         >
@@ -13,10 +13,10 @@
             <td
               v-for="col in 13"
               :key="col"
-              class="relative w-[2.625rem] border border-black"
+              class="relative w-[2.625rem] border border-gray-900 transition-all duration-150"
               :class="{
-                'hover:border-yellow-500/50': !cellValue(row, col),
-                'hover:border-yellow-400/50': cellValue(row, col) > 0
+                'hover:border-blue-500': !cellValue(row, col),
+                'hover:border-white': cellValue(row, col) > 0
               }"
               @mousedown="dragStart(row, col)"
               @mouseup="dragEnd"
@@ -31,22 +31,25 @@
                 <div
                   class="absolute w-full h-full left-0 top-0 bg-bottom bg-no-repeat"
                   :style="{
-                    'background-image': `linear-gradient(${yellow500} 0% 100%)`,
-                    'background-size': `100% ${cellValue(row, col)}%`
+                    'background-image': `linear-gradient(${row === col ? colors.pocketPairs : (row > col ? colors.suited : colors.offsuit)} 0% 100%)`,
+                    'background-size': `100% ${cellValue(row, col)}%`,
+                    'box-shadow': cellValue(row, col) > 0 ? 'inset 0 0 4px rgba(255, 255, 255, 0.15)' : 'none'
                   }"
                 ></div>
               </div>
               <div
                 :class="[
-                  'absolute -top-px left-[0.1875rem] z-10 text-shadow',
-                  cellValue(row, col) > 0 ? 'text-white' : 'text-neutral-500'
+                  'absolute -top-px left-[0.1875rem] z-10 font-medium',
+                  cellValue(row, col) > 0 ? 'text-white' : 'text-gray-400'
                 ]"
+                style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);"
               >
                 {{ cellText(row, col) }}
               </div>
               <div
                 v-if="cellValue(row, col) > 0 && cellValue(row, col) < 100"
-                class="absolute bottom-px right-1 z-10 text-sm text-shadow text-white"
+                class="absolute bottom-px right-1 z-10 text-xs font-medium text-white"
+                style="text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);"
               >
                 {{ cellValue(row, col).toFixed(1) }}
               </div>
@@ -55,14 +58,14 @@
         </table>
 
         <!-- 权重和动作控件 -->
-        <div class="mt-4 space-y-4">
+        <div class="mt-5 space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="text-sm font-medium">Weight:</span>
+              <span class="text-sm font-medium text-gray-700">Weight:</span>
               <input
                 v-model="weight"
                 type="range"
-                class="w-32 align-middle"
+                class="w-32 align-middle accent-blue-500"
                 min="0"
                 max="100"
                 step="5"
@@ -72,30 +75,30 @@
                 v-model="weight"
                 type="number"
                 :class="[
-                  'w-16 px-2 py-1 rounded text-sm text-center border',
+                  'w-16 px-2 py-1 rounded text-sm text-center border transition-colors duration-150',
                   weight < 0 || weight > 100 
                     ? 'border-red-500 bg-red-50' 
-                    : 'border-gray-300'
+                    : 'border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 focus:outline-none'
                 ]"
                 min="0"
                 max="100"
                 step="5"
                 @change="onWeightChange"
               />
-              <span class="text-sm">%</span>
+              <span class="text-sm text-gray-700">%</span>
             </div>
           </div>
 
           <!-- 范围文本输入 -->
-          <div class="flex items-center gap-2 mt-2">
+          <div class="flex items-center gap-2 mt-3">
             <input
               v-model="rangeText"
               type="text"
               :class="[
-                'flex-grow px-3 py-2 rounded-lg text-sm border',
+                'flex-grow px-3 py-2 rounded-lg text-sm border transition-colors duration-150 focus:outline-none focus:ring-1',
                 rangeTextError 
-                  ? 'border-red-500 bg-red-50' 
-                  : 'border-gray-300'
+                  ? 'border-red-500 bg-red-50 focus:ring-red-400' 
+                  : 'border-gray-300 focus:border-blue-400 focus:ring-blue-400'
               ]"
               placeholder="Enter range notation (e.g., 'AKs, QQ+')"
               @focus="($event.target as HTMLInputElement).select()"
@@ -105,14 +108,14 @@
             <div class="flex gap-2">
               <button
                 v-if="player >= 2"
-                class="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+                class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors duration-150"
                 @click="invertRange"
               >
                 Invert
               </button>
 
               <button 
-                class="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+                class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors duration-150"
                 @click="clearRange"
               >
                 Clear
@@ -120,15 +123,15 @@
             </div>
           </div>
 
-          <div v-if="rangeTextError" class="text-sm text-red-500 flex items-center">
+          <div v-if="rangeTextError" class="text-sm text-red-500 flex items-center mt-1">
             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
             </svg>
             {{ rangeTextError }}
           </div>
 
-          <div class="flex items-center justify-between text-sm text-gray-600">
-            <span>Combos: {{ numCombos.toFixed(1) }}</span>
+          <div class="flex items-center justify-between text-sm text-gray-600 mt-2">
+            <span>Combos: <span class="font-medium">{{ numCombos.toFixed(1) }}</span></span>
             <span>{{ ((numCombos * 100) / ((52 * 51) / 2)).toFixed(1) }}% of total</span>
           </div>
         </div>
@@ -138,48 +141,48 @@
     <!-- 中间：范围分析 -->
     <div class="w-[240px]">
       <div class="bg-white rounded-lg shadow-lg p-5">
-        <h3 class="text-base font-medium mb-4">Range Analysis</h3>
+        <h3 class="text-base font-medium text-gray-800 mb-4">Range Analysis</h3>
         
         <!-- 手牌类型分布 -->
         <div class="space-y-3 mb-5">
           <div class="flex justify-between text-sm">
-            <span>Pocket Pairs</span>
-            <span>{{ calculatePocketPairs() }}%</span>
+            <span class="text-gray-700">Pocket Pairs</span>
+            <span class="font-medium text-blue-600">{{ calculatePocketPairs() }}%</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span>Suited</span>
-            <span>{{ calculateSuited() }}%</span>
+            <span class="text-gray-700">Suited</span>
+            <span class="font-medium text-purple-600">{{ calculateSuited() }}%</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span>Offsuit</span>
-            <span>{{ calculateOffsuit() }}%</span>
+            <span class="text-gray-700">Offsuit</span>
+            <span class="font-medium text-emerald-600">{{ calculateOffsuit() }}%</span>
           </div>
         </div>
 
         <!-- 快速模板 -->
         <div class="border-t border-gray-200 pt-4">
-          <h4 class="text-sm font-medium mb-3">Quick Templates</h4>
+          <h4 class="text-sm font-medium text-gray-800 mb-3">Quick Templates</h4>
           <div class="grid grid-cols-2 gap-2">
             <button 
-              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              class="px-3 py-2 text-sm rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors duration-150"
               @click="loadTemplate('RFI')"
             >
               RFI Range
             </button>
             <button 
-              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              class="px-3 py-2 text-sm rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors duration-150"
               @click="loadTemplate('3BET')"
             >
               3Bet Range
             </button>
             <button 
-              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              class="px-3 py-2 text-sm rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors duration-150"
               @click="loadTemplate('4BET')"
             >
               4Bet Range
             </button>
             <button 
-              class="px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+              class="px-3 py-2 text-sm rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 transition-colors duration-150"
               @click="loadTemplate('CALL')"
             >
               Call Range
@@ -204,13 +207,13 @@
         <!-- 操作按钮 -->
         <div v-if="player >= 2" class="mt-6 flex justify-end gap-3">
           <button 
-            class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
+            class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium transition-colors duration-150"
             @click="emit('cancel')"
           >
             Cancel
           </button>
           <button 
-            class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors duration-150"
             @click="emit('save')"
           >
             Save
@@ -229,7 +232,12 @@ import * as invokes from "../invokes";
 
 import DbItemPicker from "./DbItemPicker.vue";
 
-const yellow500 = "#eab308";
+// 颜色方案
+const colors = {
+  pocketPairs: "#3b82f6",   // 蓝色 - 口袋对子
+  suited: "#8b5cf6",        // 紫色 - 同花
+  offsuit: "#10b981"        // 绿色 - 非同花
+};
 
 type DraggingMode = "none" | "enabling" | "disabling";
 
