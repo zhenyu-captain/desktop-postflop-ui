@@ -192,6 +192,7 @@
     <!-- 右侧：数据库 -->
     <div class="flex-1">
       <div class="bg-white rounded-lg shadow-lg p-5">
+        <h3 class="text-base font-medium mb-4">Saved Ranges</h3>
         <DbItemPicker
           store-name="ranges"
           :index="player"

@@ -613,6 +613,7 @@
           <div class="h-full">
             <!-- Saved Configurations Card -->
             <div class="bg-white rounded-lg shadow-lg p-5 h-full">
+              <h2 class="text-lg font-medium mb-4">Saved Configurations</h2>
               <DbItemPicker
                 store-name="configurations"
                 :value="dbValue"

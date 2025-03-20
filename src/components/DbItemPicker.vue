@@ -1,7 +1,7 @@
 <template>
   <div class="db-picker-container">
-    <!-- 顶部渐变色标题栏 - 根据hideTitle属性决定是否显示 -->
-    <div v-if="!hideTitle" class="picker-title-bar">
+    <!-- 顶部渐变色标题栏 -->
+    <div class="picker-title-bar">
       <div class="title-text">{{ storeName === 'ranges' ? 'Saved Ranges' : 'Saved Configurations' }}</div>
     </div>
     
@@ -603,13 +603,11 @@ interface Props {
   value: unknown;
   allowSave: boolean;
   hideImportExport?: boolean;
-  hideTitle?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   index: 0,
   hideImportExport: false,
-  hideTitle: false,
 });
 const emit = defineEmits<{ (event: "load-item", value: unknown): void }>();
 
