@@ -232,24 +232,23 @@
             <span class="text-lg font-semibold">{{ ["IP", "OOP"][spot.equityOop] }} Wins</span>
           </div>
           <div v-else-if="spot.equityOop !== -1" class="w-full">
-            <div class="mb-2 font-medium text-center text-green-700 dark:text-green-300">Equity</div>
-            <div class="flex w-full px-3 py-1.5 mb-2 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
+            <div class="flex w-full px-2 py-1 mb-1 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
               <span>OOP</span>
               <span class="ml-auto pl-2 font-medium text-green-700 dark:text-green-300">
                 {{ (spot.equityOop * 100).toFixed(1) }}%
               </span>
             </div>
-            <div class="flex w-full px-3 py-1.5 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
+            <div class="flex w-full px-2 py-1 mb-1 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
               <span>IP</span>
               <span class="ml-auto pl-2 font-medium text-green-700 dark:text-green-300">
                 {{ ((1 - spot.equityOop) * 100).toFixed(1) }}%
               </span>
             </div>
-          </div>
-          <div class="mt-2 w-full border-t pt-2 text-center">
-            <div class="font-medium flex items-center justify-center transition-all duration-200">
-              <span>Pot</span> 
-              <span class="ml-2 text-green-700 dark:text-green-300 font-semibold">{{ spot.pot }}</span>
+            <div class="flex w-full px-2 py-1 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
+              <span>Pot</span>
+              <span class="ml-auto pl-2 font-medium text-green-700 dark:text-green-300">
+                {{ spot.pot }}
+              </span>
             </div>
           </div>
         </div>
@@ -665,7 +664,7 @@ const spliceSpotsTerminal = (spotIndex: number) => {
   spots.value.splice(spotIndex, spots.value.length, {
     type: "terminal",
     index: spotIndex,
-    player: "end",
+    player: "equity",
     selectedIndex: -1,
     prevPlayer: prevSpot.player,
     equityOop,
