@@ -1,56 +1,63 @@
 <template>
   <div
     ref="navDiv"
-    class="flex shrink-0 h-[10.5rem] gap-1 p-1 overflow-x-auto whitespace-nowrap snug"
+    class="flex shrink-0 h-[10.5rem] gap-2 p-2 overflow-x-auto whitespace-nowrap snug bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors duration-200 scroll-smooth custom-scrollbar"
+    style="scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.5) transparent;"
   >
     <div
       v-for="spot in spots"
       :key="spot.index"
       :class="
-        'flex flex-col relative h-full px-1 py-0.5 justify-start ' +
-        'rounded-lg shadow-md border-[3px] transition group ' +
+        'flex flex-col relative h-full px-2 py-1 justify-start ' +
+        'rounded-lg shadow-md border-[2px] transition-all duration-200 ' +
         (spot.type === 'chance'
           ? isSelectedChanceSkipped && spot.index > selectedChanceIndex
-            ? ''
-            : 'hover:border-red-600 '
-          : 'hover:border-blue-600 ') +
+            ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 opacity-75 '
+            : 'hover:border-red-500 bg-white dark:bg-gray-700 hover:shadow-lg '
+          : spot.type === 'root' 
+            ? 'hover:border-blue-500 bg-white dark:bg-gray-700 hover:shadow-lg '
+            : spot.type === 'terminal'
+              ? 'hover:border-green-500 bg-white dark:bg-gray-700 hover:shadow-lg '
+              : 'hover:border-blue-500 bg-white dark:bg-gray-700 hover:shadow-lg ') +
         (spot.index === selectedChanceIndex
-          ? 'border-red-600 cursor-default'
+          ? 'border-red-500 cursor-default shadow-lg'
           : spot.index === selectedSpotIndex
-          ? 'border-blue-600 cursor-default'
+          ? 'border-blue-500 cursor-default shadow-lg'
           : spot.type === 'chance' &&
             isSelectedChanceSkipped &&
             spot.index > selectedChanceIndex
-          ? 'border-gray-400 cursor-default'
-          : 'border-gray-400 cursor-pointer')
+          ? 'border-gray-300 dark:border-gray-600 cursor-default'
+          : 'border-gray-300 dark:border-gray-600 cursor-pointer')
       "
+      style="animation: cardEnter 0.3s ease-out;"
       @click="selectSpot(spot.index, false)"
     >
       <!-- Root or Chance -->
       <template v-if="spot.type === 'root' || spot.type === 'chance'">
         <div
           :class="
-            'px-1.5 pt-1 pb-0.5 font-semibold ' +
+            'px-1.5 pt-1 pb-0.5 font-semibold text-gray-800 dark:text-gray-200 ' +
+            (spot.type === 'root' ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300') + ' ' +
             (spot.index === selectedChanceIndex
               ? ''
               : isSelectedChanceSkipped && spot.index > selectedChanceIndex
               ? 'opacity-70'
-              : 'group-hover:opacity-100 opacity-70')
+              : 'group-hover:opacity-100 opacity-90')
           "
         >
           {{ spot.player.toUpperCase() }}
         </div>
         <div
-          class="flex flex-col flex-grow px-3 items-center justify-evenly font-semibold"
+          class="flex flex-col flex-grow px-3 items-center justify-evenly"
         >
-          <div class="relative">
+          <div class="relative my-1">
             <span
               v-for="card of spotCards(spot)"
               :key="card.rank + card.suit"
               :class="
                 (spot.type === 'root'
-                  ? 'mx-px '
-                  : 'inline-block w-8 text-center ') + card.colorClass
+                  ? 'mx-1 font-semibold '
+                  : 'inline-block w-8 text-center font-semibold ') + card.colorClass
               "
             >
               {{ card.rank + card.suit }}
@@ -60,10 +67,10 @@
             >
               <button
                 :class="
-                  'absolute -top-[1.375rem] left-1/2 -ml-3 w-6 h-6 ' +
+                  'absolute -top-[1.375rem] left-1/2 -ml-3 w-6 h-6 rounded-full transition-transform duration-200 ' +
                   (isCardAvailable(spot, 0, 1)
-                    ? 'opacity-70 hover:opacity-100 text-gray-700'
-                    : 'text-red-300')
+                    ? 'opacity-70 hover:opacity-100 hover:scale-110 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'
+                    : 'text-red-300 dark:text-red-500 cursor-not-allowed')
                 "
                 @click.stop="
                   isCardAvailable(spot, 0, 1) && dealArrow(spot, 0, 1)
@@ -73,10 +80,10 @@
               </button>
               <button
                 :class="
-                  'absolute -left-[1.375rem] top-1/2 -mt-3 w-6 h-6 ' +
+                  'absolute -left-[1.375rem] top-1/2 -mt-3 w-6 h-6 rounded-full transition-transform duration-200 ' +
                   (isCardAvailable(spot, 1, 0)
-                    ? 'opacity-70 hover:opacity-100 text-gray-700'
-                    : 'text-red-300')
+                    ? 'opacity-70 hover:opacity-100 hover:scale-110 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'
+                    : 'text-red-300 dark:text-red-500 cursor-not-allowed')
                 "
                 @click.stop="
                   isCardAvailable(spot, 1, 0) && dealArrow(spot, 1, 0)
@@ -86,10 +93,10 @@
               </button>
               <button
                 :class="
-                  'absolute -right-[1.375rem] top-1/2 -mt-3 w-6 h-6 ' +
+                  'absolute -right-[1.375rem] top-1/2 -mt-3 w-6 h-6 rounded-full transition-transform duration-200 ' +
                   (isCardAvailable(spot, -1, 0)
-                    ? 'opacity-70 hover:opacity-100 text-gray-700'
-                    : 'text-red-300')
+                    ? 'opacity-70 hover:opacity-100 hover:scale-110 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'
+                    : 'text-red-300 dark:text-red-500 cursor-not-allowed')
                 "
                 @click.stop="
                   isCardAvailable(spot, -1, 0) && dealArrow(spot, -1, 0)
@@ -99,10 +106,10 @@
               </button>
               <button
                 :class="
-                  'absolute -bottom-[1.375rem] left-1/2 -ml-3 w-6 h-6 ' +
+                  'absolute -bottom-[1.375rem] left-1/2 -ml-3 w-6 h-6 rounded-full transition-transform duration-200 ' +
                   (isCardAvailable(spot, 0, -1)
-                    ? 'opacity-70 hover:opacity-100 text-gray-700'
-                    : 'text-red-300')
+                    ? 'opacity-70 hover:opacity-100 hover:scale-110 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400'
+                    : 'text-red-300 dark:text-red-500 cursor-not-allowed')
                 "
                 @click.stop="
                   isCardAvailable(spot, 0, -1) && dealArrow(spot, 0, -1)
@@ -114,15 +121,16 @@
           </div>
           <div
             :class="
-              spot.index === selectedChanceIndex
+              'text-gray-700 dark:text-gray-300 border-t pt-1 w-full ' +
+              (spot.index === selectedChanceIndex
                 ? ''
                 : isSelectedChanceSkipped && spot.index > selectedChanceIndex
                 ? 'opacity-70'
-                : 'group-hover:opacity-100 opacity-70'
+                : 'group-hover:opacity-100 opacity-90')
             "
           >
-            <div>Pot {{ spot.pot }}</div>
-            <div>Stack {{ spot.stack }}</div>
+            <div class="font-medium text-center">Pot {{ spot.pot }}</div>
+            <div class="font-medium text-center">Stack {{ spot.stack }}</div>
           </div>
         </div>
 
@@ -132,10 +140,10 @@
             spot.selectedIndex !== -1 &&
             !isDealing
           "
-          class="absolute top-1.5 right-1.5 opacity-70 hover:opacity-100 text-gray-700"
+          class="absolute top-1.5 right-1.5 opacity-70 hover:opacity-100 hover:scale-110 hover:text-red-500 dark:hover:text-red-400 text-gray-700 dark:text-gray-300 rounded-full p-0.5 transition-all duration-200"
           @click="deal(spot.selectedIndex)"
         >
-          <XMarkIcon class="w-6 h-6" />
+          <XMarkIcon class="w-5 h-5" />
         </button>
       </template>
 
@@ -143,23 +151,27 @@
       <template v-if="spot.type === 'player'">
         <div
           :class="
-            'px-1.5 py-1 font-semibold group-hover:opacity-100 ' +
-            (spot.index === selectedSpotIndex ? '' : 'opacity-70')
+            'px-1.5 py-1 font-semibold text-gray-800 dark:text-gray-200 ' +
+            (spot.index === selectedSpotIndex ? 'text-blue-700 dark:text-blue-300' : 'opacity-90')
           "
         >
           {{ spot.player.toUpperCase() }}
         </div>
-        <div class="flex-grow overflow-y-auto">
+        <div class="flex-grow overflow-y-auto px-1 custom-scrollbar">
           <button
             v-for="action of spot.actions"
             :key="action.index"
             :class="
-              'flex w-full px-1.5 rounded-md transition-colors hover:bg-blue-100 ' +
-              (action.isSelected ? 'bg-blue-100 ' : '')
+              'flex w-full px-2 py-1 my-1 rounded-md transition-all duration-200 ' +
+              (action.isSelected 
+                ? 'border border-blue-500 text-blue-700 dark:text-blue-300 shadow-sm transform translate-x-1'
+                : 'border border-transparent hover:border-blue-300 dark:hover:border-blue-600 hover:translate-x-1')
             "
+            style="animation: fadeIn 0.2s ease-out;"
             @click.stop="play(spot.index, action.index)"
           >
-            <span class="inline-block relative w-4 mr-0.5">
+            <span class="inline-block relative w-4 mr-1 transition-transform duration-200" 
+                  :class="action.isSelected ? 'scale-110' : ''">
               <span
                 v-if="
                   spot.index === selectedSpotIndex &&
@@ -169,27 +181,30 @@
                 :style="{ backgroundColor: action.color }"
               ></span>
               <span v-if="action.isSelected">
-                <CheckIcon class="absolute top-[0.1875rem] -left-0.5 w-4 h-4" />
+                <CheckIcon class="absolute top-[0.3125rem] -left-0.5 w-4 h-4 text-blue-600 dark:text-blue-400" />
               </span>
             </span>
             <span
               :class="
-                'pr-0.5 font-semibold group-hover:opacity-100 ' +
+                'pr-0.5 font-medium transition-colors duration-200 ' +
                 (action.isSelected || spot.index === selectedSpotIndex
-                  ? ''
-                  : 'opacity-70')
+                  ? 'text-gray-800 dark:text-gray-200'
+                  : 'text-gray-700 dark:text-gray-300')
               "
             >
               {{ action.name }}
-              {{ action.amount === "0" ? "" : action.amount }}
+              <span v-if="action.amount !== '0'" 
+                    :class="action.isSelected ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''">
+                {{ action.amount }}
+              </span>
             </span>
             <span
               v-if="spot.index === selectedSpotIndex && rates != null"
               :class="
-                'ml-auto pl-1.5 group-hover:opacity-100 ' +
-                (action.isSelected || spot.index === selectedSpotIndex
-                  ? ''
-                  : 'opacity-70')
+                'ml-auto pl-1.5 transition-colors duration-200 ' +
+                (action.isSelected
+                  ? 'text-blue-600 dark:text-blue-400 font-semibold'
+                  : 'text-gray-600 dark:text-gray-400')
               "
             >
               [{{ (rates[action.index] * 100).toFixed(1) }}%]
@@ -202,37 +217,41 @@
       <template v-else-if="spot.type === 'terminal'">
         <div
           :class="
-            'px-1.5 pt-1 pb-0.5 font-semibold group-hover:opacity-100 ' +
-            (spot.index === selectedSpotIndex ? '' : 'opacity-70')
+            'px-1.5 pt-1 pb-1 font-semibold text-green-700 dark:text-green-300 border-b'
           "
         >
           {{ spot.player.toUpperCase() }}
         </div>
         <div
-          :class="
-            'flex flex-col flex-grow items-center justify-evenly font-semibold group-hover:opacity-100 ' +
-            (spot.index === selectedSpotIndex ? '' : 'opacity-70')
-          "
+          class="flex flex-col flex-grow items-center justify-center gap-2 text-gray-700 dark:text-gray-300 px-2 pt-2"
+          style="animation: fadeIn 0.3s ease-out;"
         >
-          <div v-if="spot.equityOop === 0 || spot.equityOop === 1" class="px-3">
-            {{ ["IP", "OOP"][spot.equityOop] }} Wins
+          <div v-if="spot.equityOop === 0 || spot.equityOop === 1" 
+               class="px-3 py-1.5 font-medium border border-green-500 text-green-700 dark:text-green-300 rounded-md transition-all duration-200 hover:shadow-sm w-full text-center"
+               style="animation: pulse 1.5s infinite ease-in-out;">
+            <span class="text-lg font-semibold">{{ ["IP", "OOP"][spot.equityOop] }} Wins</span>
           </div>
-          <div v-else-if="spot.equityOop !== -1" class="px-1.5">
-            <div class="mb-0.5">Equity</div>
-            <div class="flex w-full px-1.5">
+          <div v-else-if="spot.equityOop !== -1" class="w-full">
+            <div class="mb-2 font-medium text-center text-green-700 dark:text-green-300">Equity</div>
+            <div class="flex w-full px-3 py-1.5 mb-2 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
               <span>OOP</span>
-              <span class="ml-auto pl-2">
+              <span class="ml-auto pl-2 font-medium text-green-700 dark:text-green-300">
                 {{ (spot.equityOop * 100).toFixed(1) }}%
               </span>
             </div>
-            <div class="flex w-full px-1.5">
+            <div class="flex w-full px-3 py-1.5 border border-green-300 dark:border-green-700 rounded-md transition-all duration-200 hover:border-green-500 dark:hover:border-green-600 hover:shadow-sm">
               <span>IP</span>
-              <span class="ml-auto pl-2">
+              <span class="ml-auto pl-2 font-medium text-green-700 dark:text-green-300">
                 {{ ((1 - spot.equityOop) * 100).toFixed(1) }}%
               </span>
             </div>
           </div>
-          <div class="px-3">Pot {{ spot.pot }}</div>
+          <div class="mt-2 w-full border-t pt-2 text-center">
+            <div class="font-medium flex items-center justify-center transition-all duration-200">
+              <span>Pot</span> 
+              <span class="ml-2 text-green-700 dark:text-green-300 font-semibold">{{ spot.pot }}</span>
+            </div>
+          </div>
         </div>
       </template>
     </div>
@@ -863,3 +882,70 @@ const spotCards = (spot: SpotRoot | SpotChance) => {
   }
 };
 </script>
+
+<style scoped>
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(75, 85, 99, 0.7);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardEnter {
+  from { transform: scale(0.95); opacity: 0.6; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.2); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* 确保跨浏览器一致性 */
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+</style>
