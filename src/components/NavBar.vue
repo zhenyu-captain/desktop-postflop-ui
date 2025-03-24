@@ -5,7 +5,7 @@
     <div class="flex relative w-full">
       <div class="flex items-center z-10">
         <div class="px-4">
-          <span class="text-lg font-semibold">ui_productName_gamename_title</span>
+          <span class="text-lg font-semibold">OptimalPoker Pro</span>
           <span class="pl-2 font-semibold text-gray-400">v0.2.7</span>
         </div>
       </div>

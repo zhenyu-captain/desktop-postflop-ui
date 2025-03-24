@@ -7,7 +7,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "ui_productName_gamename_title",
+    "productName": "OptimalPoker Pro",
     "version": "0.2.7"
   },
   "tauri": {
@@ -58,7 +58,7 @@
     },
     "windows": [
       {
-        "title": "ui_productName_gamename_title",
+        "title": "OptimalPoker Pro",
         "width": 1350,
         "height": 810,
         "minWidth": 1080,
