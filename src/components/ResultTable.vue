@@ -449,7 +449,7 @@ const columnIndex = (column: Column) => {
   }
 };
 
-const yellow500 = "#eab308";
+const yellow500 = "#eab308"; // 由橙黄色改为紫色 (purple-500)
 const blue500 = "#3b82f6";  // 蓝色 (blue-500)
 const green500 = "#10b981"; // 绿色 (emerald-500)
 const neutral200 = "#e5e7eb"; // 浅灰色背景
@@ -915,7 +915,7 @@ const maxWeight = computed(() => {
 
 const strategyBarBgImage = (row: number[]) => {
   if (!row || row.length === INDEX_STRATEGY_BASE) {
-    return `linear-gradient(to right, ${blue500} 0% 50%, ${green500} 50% 100%)`;
+    return `linear-gradient(${yellow500} 0% 100%)`;
   }
 
   let pos = 0;
