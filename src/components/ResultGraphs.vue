@@ -23,7 +23,7 @@
           <div
             v-for="(item, i) in strategyItems"
             :key="i"
-            class="hover:brightness-75"
+            class="hover:brightness-90"
             :style="{ flex: item.weight, 'background-image': item.bgImage }"
             @mouseover="tableScrollTarget = item.cards"
           ></div>
@@ -32,7 +32,7 @@
     </div>
 
     <div v-else class="flex h-full items-center justify-center" style="flex: 4">
-      Graphs not available
+      <div class="text-gray-500">Graphs not available</div>
     </div>
 
     <ResultTable
@@ -89,11 +89,19 @@ Chart.register(
 
 Chart.defaults.font.size = 14;
 Chart.defaults.font.family =
-  "system-ui, 'Noto Sans', 'Open Sans', Roboto, sans-serif";
+  "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-const sky500 = "#0ea5e9";
-const lime500 = "#84cc16";
 const xTicks = 10000;
+
+// 更现代的图表配色
+const modernColors = {
+  oopLine: "#2563eb", // 清晰的蓝色
+  ipLine: "#16a34a", // 清晰的绿色
+  gridLine: "#e2e8f0", // 浅灰色网格线
+  tooltipBg: "#ffffff", // 白色背景
+  tooltipBorder: "#e2e8f0", // 浅灰色边框
+  tooltipText: "#1e293b" // 深色文本
+};
 
 const props = defineProps<{
   cards: number[][];
@@ -221,20 +229,22 @@ const chartData = computed((): ChartData<"line", Point[]> => {
       {
         label: oopLabel,
         data: data[0],
-        borderWidth: props.displayPlayer === "oop" ? 4 : 2,
-        borderColor: sky500,
-        backgroundColor: sky500,
+        borderWidth: props.displayPlayer === "oop" ? 3 : 2,
+        borderColor: modernColors.oopLine,
+        backgroundColor: modernColors.oopLine,
         pointStyle: false,
         stepped: "middle",
+        fill: false,
       },
       {
         label: ipLabel,
         data: data[1],
-        borderWidth: props.displayPlayer === "ip" ? 4 : 2,
-        borderColor: lime500,
-        backgroundColor: lime500,
+        borderWidth: props.displayPlayer === "ip" ? 3 : 2,
+        borderColor: modernColors.ipLine,
+        backgroundColor: modernColors.ipLine,
         pointStyle: false,
         stepped: "middle",
+        fill: false,
       },
     ],
   };
@@ -263,6 +273,12 @@ const chartOptions = computed((): ChartOptions<"line"> => {
         afterFit(axis) {
           chartWidth.value = axis.width;
         },
+        grid: {
+          color: modernColors.gridLine,
+        },
+        border: {
+          display: true,
+        }
       },
       y: {
         min: content === "eq" ? 0 : undefined,
@@ -274,6 +290,12 @@ const chartOptions = computed((): ChartOptions<"line"> => {
         afterFit(axis) {
           axis.width = 52;
         },
+        grid: {
+          color: modernColors.gridLine,
+        },
+        border: {
+          display: true,
+        }
       },
     },
     interaction: {
@@ -283,15 +305,22 @@ const chartOptions = computed((): ChartOptions<"line"> => {
     plugins: {
       legend: {
         labels: {
-          font: { size: 16 },
-          color: "rgba(0, 0, 0, 0.9)",
+          font: { size: 14 },
+          color: "#334155",
           boxHeight: 12,
+          padding: 16,
         },
+        align: 'center',
       },
       tooltip: {
         padding: 8,
         boxWidth: 10,
         boxHeight: 10,
+        backgroundColor: modernColors.tooltipBg,
+        titleColor: modernColors.tooltipText,
+        bodyColor: modernColors.tooltipText,
+        borderColor: modernColors.tooltipBorder,
+        borderWidth: 1,
         callbacks: {
           title() {
             return "";
@@ -341,13 +370,23 @@ const verticalLinePlugin: Plugin<"line"> = {
     if (x === null) return;
     const ctx = chart.ctx;
     ctx.save();
+    
+    // 高质量垂直虚线
     ctx.beginPath();
-    ctx.setLineDash([4, 2]);
+    ctx.setLineDash([5, 3]);
     ctx.moveTo(x, chart.scales.y.top);
     ctx.lineTo(x, chart.scales.y.bottom);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(71, 85, 105, 0.6)";
     ctx.stroke();
+    
+    // 顶部标记点
+    const radius = 3;
+    ctx.beginPath();
+    ctx.arc(x, chart.scales.y.top, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(71, 85, 105, 0.7)";
+    ctx.fill();
+    
     ctx.restore();
   },
 };
@@ -370,7 +409,30 @@ const strategyItems = computed(() => {
       pos += width;
     }
     bgImage += ")";
-    return { cards: tuple[0], weight: tuple[1], bgImage };
+    return { 
+      cards: tuple[0], 
+      weight: tuple[1], 
+      bgImage 
+    };
   });
 });
 </script>
+
+<style scoped>
+.strategy-bar {
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.strategy-bar:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+</style>
