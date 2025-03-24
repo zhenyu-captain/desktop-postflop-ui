@@ -1,11 +1,12 @@
 <template>
   <button
-    :class="
-      'relative rounded-lg border select-none enabled:shadow ' +
-      (isSelected
-        ? 'bg-yellow-300 ring-1 ring-red-600 border-red-600'
-        : 'bg-white border-black')
-    "
+    :class="[
+      'relative rounded-lg border select-none transition-all duration-200',
+      isSelected 
+        ? 'bg-gradient-to-br from-amber-50 to-amber-100 ring-2 ring-blue-500 border-blue-400 shadow-md transform scale-105' 
+        : 'bg-white border-gray-300 hover:border-gray-400 enabled:hover:shadow-md',
+      disabled ? 'opacity-60' : 'enabled:hover:scale-105'
+    ]"
     :style="{
       '--width': width,
       '--font-size': fontSize,
@@ -13,10 +14,17 @@
       'padding-top': 'calc(var(--width) * 1.4 - 2px)',
     }"
     :disabled="disabled"
+    :aria-pressed="isSelected"
+    :aria-label="`${rank} of ${suit === '♠' ? 'spades' : suit === '♥' ? 'hearts' : suit === '♦' ? 'diamonds' : 'clubs'}`"
     @click="$emit('click')"
   >
+    <!-- Card Value -->
     <span
-      :class="'absolute top-0 font-semibold ' + colorClass"
+      :class="[
+        'absolute top-0 font-semibold', 
+        colorClass,
+        isSelected ? 'drop-shadow-sm' : ''
+      ]"
       :style="{
         left: '15%',
         'font-size': 'calc(var(--font-size) * 1.25)',
@@ -24,8 +32,14 @@
     >
       {{ rank }}
     </span>
+    
+    <!-- Card Suit -->
     <span
-      :class="'absolute ' + colorClass"
+      :class="[
+        'absolute', 
+        colorClass,
+        isSelected ? 'drop-shadow-sm' : ''
+      ]"
       :style="{
         bottom: '5%',
         right: '10%',
