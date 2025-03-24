@@ -153,6 +153,39 @@
         </select>
       </div>
 
+      <div
+        v-if="['basics', 'graphs', 'chance'].includes(displayMode)"
+        class="flex flex-col items-start justify-center h-full"
+      >
+        <div class="text-sm">Bar width:</div>
+        <select
+          v-model="displayOptions.barWidth"
+          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
+          @change="updateDisplayOptions"
+        >
+          <option value="normalized">Normalized</option>
+          <option v-if="displayMode !== 'chance'" value="absolute">
+            Absolute
+          </option>
+          <option value="full">Full</option>
+        </select>
+      </div>
+
+      <div
+        v-if="['basics', 'graphs'].includes(displayMode)"
+        class="flex flex-col items-start justify-center h-full"
+      >
+        <div class="text-sm">Action:</div>
+        <select
+          v-model="displayOptions.actionContent"
+          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
+          @change="updateDisplayOptions"
+        >
+          <option value="percentage">Action %</option>
+          <option value="ev">Action EV</option>
+        </select>
+      </div>
+
       <!--
       <div class="flex items-center px-4 gap-4">
         <Tippy content="Copy range text to clipboard">
@@ -240,6 +273,8 @@ const displayOptions = reactive<Types.DisplayOptions>({
   contentBasics: "default",
   contentGraphs: "eq",
   chartChance: "strategy-combos",
+  barWidth: "normalized",
+  actionContent: "percentage",
 });
 
 const strategyContentPair = ref("show,default");

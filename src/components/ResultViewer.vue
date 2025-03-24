@@ -70,6 +70,8 @@
           :results="results"
           :display-player="displayPlayerBasics"
           :hover-content="basicsHoverContent"
+          :table-bar-width="displayOptions.barWidth"
+          :table-display-content="displayOptions.actionContent"
         />
       </template>
 

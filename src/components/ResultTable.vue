@@ -1,55 +1,29 @@
 <template>
   <div class="flex flex-col w-full border-l border-gray-200 overflow-x-auto">
-    <div class="flex shrink-0 h-12 border-b border-gray-200">
-      <div class="flex h-full px-4 items-center text-lg font-semibold text-gray-800">
-        <span class="relative pb-0.5">
+    <!-- 只保留标题，移除控件区域 -->
+    <div class="flex shrink-0 h-12 border-b border-gray-200 bg-gray-50">
+      <div class="flex h-full px-4 items-center">
+        <span class="relative pb-0.5 text-lg font-semibold text-gray-800">
           Summary
           <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></span>
         </span>
       </div>
-
-      <div class="flex h-full ml-auto pr-4 items-center gap-4 snug">
-        <div class="flex flex-col items-start justify-center h-full">
-          <div class="text-sm text-gray-600 font-medium">Bar width:</div>
-          <select
-            v-model="displayOptions.barWidth"
-            class="w-28 px-1 py-0.5 border border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            @change="updateDisplayOptions"
-          >
-            <option value="normalized">Normalized</option>
-            <option v-if="tableMode !== 'chance'" value="absolute">
-              Absolute
-            </option>
-            <option value="full">Full</option>
-          </select>
+      
+      <div class="flex h-full ml-auto pr-4 items-center">
+        <!-- 只保留导出按钮 -->
+        <div class="flex items-center px-3">
+          <Tippy content="Export summary to CSV file">
+            <button
+              :class="
+                'flex w-8 h-8 items-center justify-center border border-gray-300 bg-white ' +
+                'rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-100 active:bg-gray-200'
+              "
+              @click="exportSummary"
+            >
+              <ArrowTopRightOnSquareIcon class="w-5 h-5 text-gray-600" />
+            </button>
+          </Tippy>
         </div>
-
-        <div
-          v-if="tableMode !== 'chance'"
-          class="flex flex-col items-start justify-center h-full"
-        >
-          <div class="text-sm text-gray-600 font-medium">Display:</div>
-          <select
-            v-model="(displayOptions as DisplayOptionsBasics).content"
-            class="w-28 px-1 py-0.5 border border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            @change="updateDisplayOptions"
-          >
-            <option value="percentage">Action %</option>
-            <option value="ev">Action EV</option>
-          </select>
-        </div>
-
-        <Tippy content="Export summary to CSV file">
-          <button
-            :class="
-              'flex w-8 h-8 items-center justify-center border border-gray-300 bg-gray-50 ' +
-              'rounded-lg shadow-sm transition-colors hover:bg-gray-100 active:bg-gray-200'
-            "
-            @click="exportSummary"
-          >
-            <ArrowTopRightOnSquareIcon class="w-5 h-5 text-gray-600" />
-          </button>
-        </Tippy>
       </div>
     </div>
 
@@ -498,6 +472,8 @@ interface Props {
   displayPlayer: "oop" | "ip";
   hoverContent?: HoverContent | null;
   scrollTarget?: number | null;
+  tableBarWidth?: "normalized" | "absolute" | "full";
+  tableDisplayContent?: "percentage" | "ev";
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -508,16 +484,18 @@ const props = withDefaults(defineProps<Props>(), {
   chanceReports: null,
   hoverContent: null,
   scrollTarget: null,
+  tableBarWidth: "normalized",
+  tableDisplayContent: "percentage"
 });
 
 const displayOptions =
   props.tableMode !== "chance"
     ? reactive<DisplayOptionsBasics>({
-        barWidth: "normalized",
-        content: "percentage",
+        barWidth: props.tableBarWidth as (typeof barWidthListBasics)[number],
+        content: props.tableDisplayContent as (typeof contentListBasics)[number],
       })
     : reactive<DisplayOptionsChance>({
-        barWidth: "normalized",
+        barWidth: props.tableBarWidth as (typeof barWidthListChance)[number],
       });
 
 const optionsStorageKey = `display-options-table-${props.tableMode}`;
@@ -1056,6 +1034,22 @@ const exportSummary = async () => {
 
 /* eslint-disable prefer-const */
 let strTmp = "";
+
+watch(() => props.tableBarWidth, (newValue) => {
+  if (newValue) {
+    displayOptions.barWidth = newValue as any;
+    updateDisplayOptions();
+  }
+});
+
+if (props.tableMode !== "chance") {
+  watch(() => props.tableDisplayContent, (newValue) => {
+    if (newValue && displayOptions) {
+      (displayOptions as DisplayOptionsBasics).content = newValue;
+      updateDisplayOptions();
+    }
+  });
+}
 </script>
 
 <style scoped>
