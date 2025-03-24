@@ -2,15 +2,18 @@
   <div class="flex flex-col w-full border-l border-gray-200 overflow-x-auto">
     <div class="flex shrink-0 h-12 border-b border-gray-200">
       <div class="flex h-full px-4 items-center text-lg font-semibold text-gray-800">
-        Summary
+        <span class="relative pb-0.5">
+          Summary
+          <span class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></span>
+        </span>
       </div>
 
       <div class="flex h-full ml-auto pr-4 items-center gap-4 snug">
         <div class="flex flex-col items-start justify-center h-full">
-          <div class="text-sm text-gray-600">Bar width:</div>
+          <div class="text-sm text-gray-600 font-medium">Bar width:</div>
           <select
             v-model="displayOptions.barWidth"
-            class="w-28 px-1 py-0.5 border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right"
+            class="w-28 px-1 py-0.5 border border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             @change="updateDisplayOptions"
           >
             <option value="normalized">Normalized</option>
@@ -25,10 +28,10 @@
           v-if="tableMode !== 'chance'"
           class="flex flex-col items-start justify-center h-full"
         >
-          <div class="text-sm text-gray-600">Display:</div>
+          <div class="text-sm text-gray-600 font-medium">Display:</div>
           <select
             v-model="(displayOptions as DisplayOptionsBasics).content"
-            class="w-28 px-1 py-0.5 border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right"
+            class="w-28 px-1 py-0.5 border border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             @change="updateDisplayOptions"
           >
             <option value="percentage">Action %</option>
@@ -40,7 +43,7 @@
           <button
             :class="
               'flex w-8 h-8 items-center justify-center border border-gray-300 bg-gray-50 ' +
-              'rounded-lg shadow-sm transition-colors active:bg-gray-100'
+              'rounded-lg shadow-sm transition-colors hover:bg-gray-100 active:bg-gray-200'
             "
             @click="exportSummary"
           >
@@ -56,8 +59,8 @@
       @scroll.passive="onTableScroll"
     >
       <table class="w-full h-full text-sm text-center align-middle">
-        <thead class="sticky top-0 z-30 bg-gray-50 shadow-sm">
-          <tr style="height: calc(1.9rem + 1px)">
+        <thead class="sticky top-0 z-30 bg-blue-100 shadow-md">
+          <tr style="height: calc(1.9rem + 1px)" class="bg-blue-500 text-white">
             <th
               v-for="column in columns"
               :key="column.label"
@@ -65,9 +68,9 @@
               :class="
                 'whitespace-nowrap select-none ' +
                 (column.type === 'card'
-                  ? 'sticky left-0 z-40 bg-gray-50 '
+                  ? 'sticky left-0 z-40 bg-blue-500 '
                   : '') +
-                (column.type !== 'bar' ? 'cursor-pointer ' : '') +
+                (column.type !== 'bar' ? 'cursor-pointer hover:bg-blue-600 ' : '') +
                 (tableMode === 'chance' ? 'header-divider' : '')
               "
               :style="{
@@ -82,15 +85,15 @@
             >
               <span
                 v-if="sortKey.key === columnIndex(column)"
-                class="inline-block text-xs pr-1 text-blue-600"
+                class="inline-block text-xs pr-1 text-white"
               >
                 {{ sortKey.order === "asc" ? "▲" : "▼" }}
               </span>
-              <span class="text-gray-700 font-medium">{{ column.label }}</span>
+              <span class="font-medium">{{ column.label }}</span>
             </th>
           </tr>
 
-          <tr v-if="tableMode !== 'chance'" style="height: calc(1.9rem + 1px)">
+          <tr v-if="tableMode !== 'chance'" style="height: calc(1.9rem + 1px)" class="bg-blue-300">
             <th
               v-for="column in columns"
               :key="column.label"
@@ -98,11 +101,11 @@
               :class="
                 'header-divider ' +
                 (column.type === 'card'
-                  ? 'sticky left-0 z-40 underline bg-gray-50 text-gray-700 '
+                  ? 'sticky left-0 z-40 underline bg-blue-300 text-gray-800 '
                   : 'relative ') +
                 (column.type === 'bar'
                   ? 'pt-[0.3125rem] pb-1 px-1'
-                  : 'cursor-pointer')
+                  : 'cursor-pointer hover:bg-blue-400')
               "
               :style="{
                 height: column.type === 'bar' ? 'calc(1.9rem + 1px)' : 'auto',
@@ -110,7 +113,7 @@
               @click="column.type !== 'bar' && sortBy(columnIndex(column))"
             >
               <template v-if="column.type === 'card'">
-                <span>{{ hoverContent?.name ?? "Total" }}</span>
+                <span class="font-medium">{{ hoverContent?.name ?? "Total" }}</span>
               </template>
 
               <template v-else-if="column.type === 'bar'">
@@ -176,7 +179,7 @@
                         summary[columnIndex(column)]
                       ))
                     "
-                    class="text-gray-800"
+                    :class="summary[columnIndex(column)] >= 0 ? 'text-emerald-600' : 'text-rose-600'"
                   >
                     <span>{{ strTmp.slice(0, -evDigits) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-evDigits) }}</span>
@@ -212,11 +215,12 @@
 
           <!-- Body -->
           <tr
-            v-for="item in resultsRendered"
+            v-for="(item, index) in resultsRendered"
             :key="item[0]"
             :class="
               'relative ' +
-              (item[0] === scrollTarget ? 'bg-yellow-100' : 'bg-white')
+              (item[0] === scrollTarget ? 'bg-yellow-100' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50')) +
+              ' hover:bg-blue-50 transform transition-all duration-200 hover:scale-[1.01]'
             "
             style="height: calc(1.9rem + 1px)"
           >
@@ -229,7 +233,7 @@
                   ? 'sticky left-0 z-10 ' +
                     (item[0] === scrollTarget
                       ? 'bg-yellow-100 '
-                      : 'bg-white ') +
+                      : (index % 2 === 0 ? 'bg-white ' : 'bg-gray-50 ')) +
                     'font-medium'
                   : 'relative ') +
                 (column.type === 'bar' ? 'pt-[0.3125rem] pb-1 px-1' : 'pt-0.5')
@@ -299,7 +303,7 @@
                         item[columnIndex(column)]
                       ))
                     "
-                    class="text-gray-800"
+                    :class="item[columnIndex(column)] >= 0 ? 'text-emerald-600' : 'text-rose-600'"
                   >
                     <span>{{ strTmp.slice(0, -evDigits) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-evDigits) }}</span>
@@ -324,11 +328,13 @@
               style="height: calc(1.9rem + 1px)"
               :colspan="columns.length"
             >
-              {{
-                tableMode === "chance"
-                  ? `${capitalize(chanceType)} reports not available`
-                  : "No results"
-              }}
+              <span class="text-gray-500">
+                {{
+                  tableMode === "chance"
+                    ? `${capitalize(chanceType)} reports not available`
+                    : "No results"
+                }}
+              </span>
             </td>
           </tr>
 
@@ -1061,5 +1067,59 @@ let strTmp = "";
 .row-divider::before {
   content: "";
   @apply absolute left-0 top-0 w-full border-t border-gray-200;
+}
+
+/* 设置表格行过渡效果 */
+tr {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* 添加表头动效 */
+thead th {
+  transition: background-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+thead th::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: white;
+  transition: width 0.2s ease;
+}
+
+thead th:hover::after {
+  width: 100%;
+}
+
+/* 为卡片添加投影效果 */
+td span[class*="text-"] {
+  transition: transform 0.15s ease, text-shadow 0.15s ease;
+}
+
+td:hover span[class*="text-"] {
+  text-shadow: 0 0 1px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+}
+
+/* 增强EV值视觉效果 */
+span.text-emerald-600, span.text-rose-600 {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+span.text-emerald-600:hover, span.text-rose-600:hover {
+  transform: scale(1.05);
+}
+
+/* 表格整体阴影 */
+table {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+  overflow: hidden;
 }
 </style>
