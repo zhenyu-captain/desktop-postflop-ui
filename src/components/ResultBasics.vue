@@ -30,10 +30,10 @@
             :class="
               'flex absolute w-full h-full left-0 top-0 transition-colors duration-150 ' +
               (row === col 
-                ? 'bg-blue-200 hover:bg-blue-300' 
+                ? 'bg-rose-100 hover:bg-rose-200' 
                 : row < col 
-                  ? 'bg-emerald-200 hover:bg-emerald-300'
-                  : 'bg-fuchsia-200 hover:bg-fuchsia-300')
+                  ? 'bg-amber-100 hover:bg-amber-200'
+                  : 'bg-teal-100 hover:bg-teal-200')
             "
           >
             <div
