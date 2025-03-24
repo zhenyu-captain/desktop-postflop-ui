@@ -1,7 +1,8 @@
 <template>
   <div class="w-full h-full">
     <table
-      class="w-full h-full table-fixed select-none snug"
+      class="w-full h-full table-fixed select-none snug shadow-sm rounded-md overflow-hidden"
+      style="border-collapse: separate; border-spacing: 0.5px;"
       :style="{
         '--font-scale': isCompareMode ? 0.875 : 1,
         '--pair-font-size':
@@ -16,16 +17,23 @@
           v-for="col in 13"
           :key="col"
           :class="
-            'relative border border-black ' +
+            'relative border transition-all duration-150 ' +
             (clickedCellIndex === cellIndex(row, col) ? 'clicked-cell' : '')
           "
+          :style="{
+            'border-color': clickedCellIndex === cellIndex(row, col) ? '#3b82f6' : '#e5e7eb'
+          }"
           @click="onClickCell(row, col)"
           @mouseenter="onMouseEnterCell(row, col)"
         >
           <div
             :class="
-              'flex absolute w-full h-full left-0 top-0 ' +
-              (row === col ? 'bg-neutral-700' : 'bg-neutral-800')
+              'flex absolute w-full h-full left-0 top-0 transition-colors duration-150 ' +
+              (row === col 
+                ? 'bg-blue-200 hover:bg-blue-300' 
+                : row < col 
+                  ? 'bg-emerald-200 hover:bg-emerald-300'
+                  : 'bg-fuchsia-200 hover:bg-fuchsia-300')
             "
           >
             <div
@@ -40,15 +48,22 @@
           </div>
           <div
             :class="
-              'absolute -top-px left-[0.1875rem] z-10 text-shadow ' +
-              (hasWeight(row, col) ? 'text-white' : 'text-neutral-500')
+              'absolute -top-px left-[0.1875rem] z-10 font-medium ' +
+              (hasWeight(row, col) 
+                ? (row === col 
+                  ? 'text-blue-700' 
+                  : row < col 
+                    ? 'text-emerald-700' 
+                    : 'text-fuchsia-700') 
+                : 'text-gray-400')
             "
-            style="font-size: var(--pair-font-size)"
+            style="font-size: var(--pair-font-size);"
           >
             {{ cellText(row, col) }}
           </div>
           <div
-            class="absolute bottom-px right-1 z-10 text-shadow text-white overflow-hidden"
+            :class="hasWeight(row, col) ? 'text-gray-800 font-medium' : 'text-gray-400'"
+            class="absolute bottom-px right-1 z-10 overflow-hidden"
             style="
               max-width: calc(100% - 0.25rem);
               font-size: var(--value-font-size);
@@ -489,8 +504,14 @@ let strTmp = "";
 <style scoped>
 .clicked-cell::before {
   content: "";
-  @apply absolute -left-px -top-px z-10 border-2 border-red-500;
+  @apply absolute -left-px -top-px z-10 border-2 border-blue-500;
   width: calc(100% + 2px);
   height: calc(100% + 2px);
+  border-radius: 2px;
+  box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+}
+
+.text-shadow {
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
 </style>

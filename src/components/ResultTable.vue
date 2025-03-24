@@ -1,16 +1,16 @@
 <template>
-  <div class="flex flex-col w-full border-l border-gray-500 overflow-x-auto">
-    <div class="flex shrink-0 h-12 border-b border-gray-500">
-      <div class="flex h-full px-4 items-center text-lg font-semibold">
+  <div class="flex flex-col w-full border-l border-gray-200 overflow-x-auto">
+    <div class="flex shrink-0 h-12 border-b border-gray-200">
+      <div class="flex h-full px-4 items-center text-lg font-semibold text-gray-800">
         Summary
       </div>
 
       <div class="flex h-full ml-auto pr-4 items-center gap-4 snug">
         <div class="flex flex-col items-start justify-center h-full">
-          <div class="text-sm">Bar width:</div>
+          <div class="text-sm text-gray-600">Bar width:</div>
           <select
             v-model="displayOptions.barWidth"
-            class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
+            class="w-28 px-1 py-0.5 border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right"
             @change="updateDisplayOptions"
           >
             <option value="normalized">Normalized</option>
@@ -25,10 +25,10 @@
           v-if="tableMode !== 'chance'"
           class="flex flex-col items-start justify-center h-full"
         >
-          <div class="text-sm">Display:</div>
+          <div class="text-sm text-gray-600">Display:</div>
           <select
             v-model="(displayOptions as DisplayOptionsBasics).content"
-            class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
+            class="w-28 px-1 py-0.5 border-gray-300 bg-gray-50 rounded-lg shadow-sm cursor-pointer bg-right"
             @change="updateDisplayOptions"
           >
             <option value="percentage">Action %</option>
@@ -39,12 +39,12 @@
         <Tippy content="Export summary to CSV file">
           <button
             :class="
-              'flex w-8 h-8 items-center justify-center border border-gray-600 bg-gray-200 ' +
-              'rounded-lg shadow transition-colors active:bg-gray-300'
+              'flex w-8 h-8 items-center justify-center border border-gray-300 bg-gray-50 ' +
+              'rounded-lg shadow-sm transition-colors active:bg-gray-100'
             "
             @click="exportSummary"
           >
-            <ArrowTopRightOnSquareIcon class="w-5 h-5" />
+            <ArrowTopRightOnSquareIcon class="w-5 h-5 text-gray-600" />
           </button>
         </Tippy>
       </div>
@@ -56,7 +56,7 @@
       @scroll.passive="onTableScroll"
     >
       <table class="w-full h-full text-sm text-center align-middle">
-        <thead class="sticky top-0 z-30 bg-gray-100 shadow">
+        <thead class="sticky top-0 z-30 bg-gray-50 shadow-sm">
           <tr style="height: calc(1.9rem + 1px)">
             <th
               v-for="column in columns"
@@ -65,7 +65,7 @@
               :class="
                 'whitespace-nowrap select-none ' +
                 (column.type === 'card'
-                  ? 'sticky left-0 z-40 bg-gray-100 '
+                  ? 'sticky left-0 z-40 bg-gray-50 '
                   : '') +
                 (column.type !== 'bar' ? 'cursor-pointer ' : '') +
                 (tableMode === 'chance' ? 'header-divider' : '')
@@ -82,11 +82,11 @@
             >
               <span
                 v-if="sortKey.key === columnIndex(column)"
-                class="inline-block text-xs pr-1"
+                class="inline-block text-xs pr-1 text-blue-600"
               >
                 {{ sortKey.order === "asc" ? "▲" : "▼" }}
               </span>
-              <span>{{ column.label }}</span>
+              <span class="text-gray-700 font-medium">{{ column.label }}</span>
             </th>
           </tr>
 
@@ -98,7 +98,7 @@
               :class="
                 'header-divider ' +
                 (column.type === 'card'
-                  ? 'sticky left-0 z-40 underline bg-gray-100 '
+                  ? 'sticky left-0 z-40 underline bg-gray-50 text-gray-700 '
                   : 'relative ') +
                 (column.type === 'bar'
                   ? 'pt-[0.3125rem] pb-1 px-1'
@@ -116,7 +116,7 @@
               <template v-else-if="column.type === 'bar'">
                 <div
                   v-if="summary && column.label === 'Strategy'"
-                  class="w-full h-full bg-neutral-800 bg-left bg-no-repeat"
+                  class="w-full h-full bg-gray-200 bg-left bg-no-repeat rounded-md"
                   :style="{
                     'background-image': strategyBarBgImage(summary),
                   }"
@@ -138,6 +138,7 @@
                     :data-set="
                       (strTmp = toFixedAdaptive(summary[columnIndex(column)]))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, strTmp.indexOf(".") + 1) }}</span>
                     <span class="text-xs">{{
@@ -151,6 +152,7 @@
                     :data-set="
                       (strTmp = toFixed1(summary[columnIndex(column)] * 100))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, -1) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-1) }}%</span>
@@ -162,6 +164,7 @@
                         summary[columnIndex(column) - 1] * 100
                       ))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, -1) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-1) }}%</span>
@@ -173,6 +176,7 @@
                         summary[columnIndex(column)]
                       ))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, -evDigits) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-evDigits) }}</span>
@@ -185,7 +189,7 @@
                   summary &&
                   (column.type === 'action' || column.type === 'action-ev')
                 "
-                class="absolute w-12 h-1 bottom-0 inset-x-0 mx-auto"
+                class="absolute w-12 h-1 bottom-0 inset-x-0 mx-auto rounded-sm"
                 :style="{
                   background: actionBarBg(column.index, summary),
                 }"
@@ -212,7 +216,7 @@
             :key="item[0]"
             :class="
               'relative ' +
-              (item[0] === scrollTarget ? 'bg-yellow-200' : 'bg-gray-50')
+              (item[0] === scrollTarget ? 'bg-yellow-100' : 'bg-white')
             "
             style="height: calc(1.9rem + 1px)"
           >
@@ -224,8 +228,9 @@
                 (column.type === 'card'
                   ? 'sticky left-0 z-10 ' +
                     (item[0] === scrollTarget
-                      ? 'bg-yellow-200 '
-                      : 'bg-gray-50 ')
+                      ? 'bg-yellow-100 '
+                      : 'bg-white ') +
+                    'font-medium'
                   : 'relative ') +
                 (column.type === 'bar' ? 'pt-[0.3125rem] pb-1 px-1' : 'pt-0.5')
               "
@@ -245,7 +250,7 @@
 
               <template v-else-if="column.type === 'bar'">
                 <div
-                  class="w-full h-full bg-neutral-800 bg-left bg-no-repeat"
+                  class="w-full h-full bg-gray-200 bg-left bg-no-repeat rounded-md"
                   :style="{
                     'background-image': strategyBarBgImage(item),
                     'background-size': strategyBarBgSize(item),
@@ -264,6 +269,7 @@
                     :data-set="
                       (strTmp = toFixedAdaptive(item[columnIndex(column)]))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, strTmp.indexOf(".") + 1) }}</span>
                     <span class="text-xs">{{
@@ -279,6 +285,7 @@
                     :data-set="
                       (strTmp = toFixed1(item[columnIndex(column)] * 100))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, -1) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-1) }}%</span>
@@ -292,6 +299,7 @@
                         item[columnIndex(column)]
                       ))
                     "
+                    class="text-gray-800"
                   >
                     <span>{{ strTmp.slice(0, -evDigits) }}</span>
                     <span class="text-xs">{{ strTmp.slice(-evDigits) }}</span>
@@ -301,7 +309,7 @@
 
               <div
                 v-if="column.type === 'action' || column.type === 'action-ev'"
-                class="absolute w-12 h-1 bottom-0 inset-x-0 mx-auto"
+                class="absolute w-12 h-1 bottom-0 inset-x-0 mx-auto rounded-sm"
                 :style="{
                   background: actionBarBg(column.index, item),
                 }"
@@ -312,7 +320,7 @@
           <!-- No results -->
           <tr v-if="resultsRendered.length === 0">
             <td
-              class="relative bg-gray-50 row-divider"
+              class="relative bg-white row-divider"
               style="height: calc(1.9rem + 1px)"
               :colspan="columns.length"
             >
@@ -462,7 +470,10 @@ const columnIndex = (column: Column) => {
 };
 
 const yellow500 = "#eab308";
-const neutral800 = "#262626";
+const blue500 = "#3b82f6";  // 蓝色 (blue-500)
+const green500 = "#10b981"; // 绿色 (emerald-500)
+const neutral200 = "#e5e7eb"; // 浅灰色背景
+const neutral800 = "#1f2937"; // 深灰色前景
 
 const cardStr = (card: number) => {
   const rank = ranks[card >>> 2];
@@ -920,7 +931,7 @@ const maxWeight = computed(() => {
 
 const strategyBarBgImage = (row: number[]) => {
   if (!row || row.length === INDEX_STRATEGY_BASE) {
-    return `linear-gradient(${yellow500} 0% 100%)`;
+    return `linear-gradient(to right, ${blue500} 0% 50%, ${green500} 50% 100%)`;
   }
 
   let pos = 0;
@@ -955,7 +966,7 @@ const actionBarBg = (index: number, row: number[]) => {
   const value = row[INDEX_STRATEGY_BASE + index * 2];
   return `linear-gradient(to right, ${color} 0% ${
     value * 100
-  }%, ${neutral800} ${value * 100}% 100%)`;
+  }%, ${neutral200} ${value * 100}% 100%)`;
 };
 
 const exportSummary = async () => {
@@ -1044,11 +1055,11 @@ let strTmp = "";
 <style scoped>
 .header-divider::before {
   content: "";
-  @apply absolute left-0 -bottom-px w-full border-b border-gray-300;
+  @apply absolute left-0 -bottom-px w-full border-b border-gray-200;
 }
 
 .row-divider::before {
   content: "";
-  @apply absolute left-0 top-0 w-full border-t border-gray-300;
+  @apply absolute left-0 top-0 w-full border-t border-gray-200;
 }
 </style>

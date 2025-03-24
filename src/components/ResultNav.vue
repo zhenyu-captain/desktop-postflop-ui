@@ -282,16 +282,12 @@ import {
 } from "@heroicons/vue/20/solid";
 
 const foldColor = { red: 0x3b, green: 0x82, blue: 0xf6 }; // blue-500
-const checkColor = { red: 0x22, green: 0xc5, blue: 0x5e }; // green-500
-const callColor = { red: 0x22, green: 0xc5, blue: 0x5e }; // green-500
+const checkColor = { red: 0x10, green: 0xb9, blue: 0x81 }; // emerald-500
+const callColor = { red: 0x10, green: 0xb9, blue: 0x81 }; // emerald-500
 const betColorGradient = [
-  { red: 0xf5, green: 0x9e, blue: 0x0b }, // amber-500
-  { red: 0xf9, green: 0x73, blue: 0x16 }, // orange-500
-  { red: 0xef, green: 0x44, blue: 0x44 }, // red-500
-  { red: 0xec, green: 0x48, blue: 0x99 }, // pink-500
-  { red: 0xd9, green: 0x46, blue: 0xef }, // fuchsia-500
-  { red: 0xa8, green: 0x55, blue: 0xf7 }, // purple-500
-  { red: 0x8b, green: 0x5c, blue: 0xf6 }, // violet-500
+  { red: 0x60, green: 0xa5, blue: 0xfa }, // blue-400
+  { red: 0x38, green: 0xbf, blue: 0xa8 }, // 中间颜色：蓝绿过渡色
+  { red: 0x34, green: 0xd3, blue: 0x99 }, // emerald-400
 ];
 
 const actionColor = (
@@ -915,6 +911,7 @@ const spotCards = (spot: SpotRoot | SpotChance) => {
 }
 
 .dark .custom-scrollbar {
+  scrollbar-width: thin;
   scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
 }
 
