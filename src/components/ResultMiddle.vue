@@ -28,205 +28,300 @@
       {{ capitalize(chanceMode) }}
     </button>
 
-    <div
-      class="flex ml-auto shrink-0 h-full px-4 items-center justify-start gap-2 snug"
-    >
-      <div
-        v-if="['basics', 'graphs'].includes(displayMode)"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Player:</div>
-        <select
-          v-model="displayOptions.playerBasics"
-          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+    <div class="flex ml-auto h-full items-center gap-1 pr-2">
+      <!-- Player Button -->
+      <div v-if="['basics', 'graphs', 'chance'].includes(displayMode)" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('player')"
         >
-          <option value="auto">
-            Auto ({{ autoPlayerBasics.toUpperCase() }})
-          </option>
-          <option value="oop">OOP</option>
-          <option value="ip">IP</option>
-        </select>
+          <span>Player</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'player'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">{{ displayMode === 'chance' ? 'Player (Chance)' : 'Player' }}</div>
+            
+            <div v-if="displayMode !== 'chance'" class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.playerBasics" value="auto" @change="updateDisplayOptions(); closePopup()">
+                <span>Auto ({{ autoPlayerBasics.toUpperCase() }})</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.playerBasics" value="oop" @change="updateDisplayOptions(); closePopup()">
+                <span>OOP</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.playerBasics" value="ip" @change="updateDisplayOptions(); closePopup()">
+                <span>IP</span>
+              </label>
+            </div>
+            
+            <div v-else class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.playerChance" value="auto" @change="updateDisplayOptions(); closePopup()">
+                <span>Auto ({{ autoPlayerChance.toUpperCase() }})</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.playerChance" value="oop" @change="updateDisplayOptions(); closePopup()">
+                <span>OOP</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.playerChance" value="ip" @change="updateDisplayOptions(); closePopup()">
+                <span>IP</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="displayMode === 'chance'"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Player:</div>
-        <select
-          v-model="displayOptions.playerChance"
-          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+      
+      <!-- Bar Height Button -->
+      <div v-if="['basics', 'compare'].includes(displayMode)" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('barHeight')"
         >
-          <option value="auto">
-            Auto ({{ autoPlayerChance.toUpperCase() }})
-          </option>
-          <option value="oop">OOP</option>
-          <option value="ip">IP</option>
-        </select>
+          <span>Height</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'barHeight'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">Bar Height</div>
+            
+            <div class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.barHeight" value="normalized" @change="updateDisplayOptions(); closePopup()">
+                <span>Normalized</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.barHeight" value="absolute" @change="updateDisplayOptions(); closePopup()">
+                <span>Absolute</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.barHeight" value="full" @change="updateDisplayOptions(); closePopup()">
+                <span>Full</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="['basics', 'compare'].includes(displayMode)"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Bar Height:</div>
-        <select
-          v-model="displayOptions.barHeight"
-          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+      
+      <!-- Suit Button -->
+      <div v-if="['basics', 'compare'].includes(displayMode)" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('suit')"
         >
-          <option value="normalized">Normalized</option>
-          <option value="absolute">Absolute</option>
-          <option value="full">Full</option>
-        </select>
+          <span>Suit</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'suit'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">Suit</div>
+            
+            <div class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.suit" value="grouped" @change="updateDisplayOptions(); closePopup()">
+                <span>Grouped</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.suit" value="individual" @change="updateDisplayOptions(); closePopup()">
+                <span>Individual</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="['basics', 'compare'].includes(displayMode)"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Suit:</div>
-        <select
-          v-model="displayOptions.suit"
-          class="w-[6.25rem] px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+      
+      <!-- Display Button -->
+      <div v-if="['basics', 'compare', 'graphs'].includes(displayMode)" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('display')"
         >
-          <option value="grouped">Grouped</option>
-          <option value="individual">Individual</option>
-        </select>
+          <span>Display</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'display'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">Display</div>
+            
+            <div v-if="['basics', 'compare'].includes(displayMode)" class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="show,default" @change="updateDisplayOptions(); closePopup()">
+                <span>Strategy</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="show,eq" @change="updateDisplayOptions(); closePopup()">
+                <span>Strategy + EQ</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="show,ev" @change="updateDisplayOptions(); closePopup()">
+                <span>Strategy + EV</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="show,eqr" @change="updateDisplayOptions(); closePopup()">
+                <span>Strategy + EQR</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="none,default" @change="updateDisplayOptions(); closePopup()">
+                <span>Weight</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="none,eq" @change="updateDisplayOptions(); closePopup()">
+                <span>EQ</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="none,ev" @change="updateDisplayOptions(); closePopup()">
+                <span>EV</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="strategyContentPair" value="none,eqr" @change="updateDisplayOptions(); closePopup()">
+                <span>EQR</span>
+              </label>
+            </div>
+            
+            <div v-if="displayMode === 'graphs'" class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.contentGraphs" value="eq" @change="updateDisplayOptions(); closePopup()">
+                <span>EQ</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.contentGraphs" value="ev" @change="updateDisplayOptions(); closePopup()">
+                <span>EV</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.contentGraphs" value="eqr" @change="updateDisplayOptions(); closePopup()">
+                <span>EQR</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="['basics', 'compare'].includes(displayMode)"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Display:</div>
-        <select
-          v-model="strategyContentPair"
-          class="w-[8.75rem] px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+      
+      <!-- Chart Button (for Chance mode) -->
+      <div v-if="displayMode === 'chance'" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('chart')"
         >
-          <option value="show,default">Strategy</option>
-          <option value="show,eq">Strategy + EQ</option>
-          <option value="show,ev">Strategy + EV</option>
-          <option value="show,eqr">Strategy + EQR</option>
-          <option value="none,default">Weight</option>
-          <option value="none,eq">EQ</option>
-          <option value="none,ev">EV</option>
-          <option value="none,eqr">EQR</option>
-        </select>
+          <span>Chart</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'chart'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">Chart</div>
+            
+            <div class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.chartChance" value="strategy-combos" @change="updateDisplayOptions(); closePopup()">
+                <span>Strategy (Combos)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.chartChance" value="strategy" @change="updateDisplayOptions(); closePopup()">
+                <span>Strategy (%)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.chartChance" value="eq" @change="updateDisplayOptions(); closePopup()">
+                <span>Equity</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.chartChance" value="ev" @change="updateDisplayOptions(); closePopup()">
+                <span>EV</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.chartChance" value="eqr" @change="updateDisplayOptions(); closePopup()">
+                <span>EQR</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="displayMode === 'graphs'"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Display:</div>
-        <select
-          v-model="displayOptions.contentGraphs"
-          class="w-20 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+      
+      <!-- Bar Width Button -->
+      <div v-if="['basics', 'graphs', 'chance'].includes(displayMode)" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('barWidth')"
         >
-          <option value="eq">EQ</option>
-          <option value="ev">EV</option>
-          <option value="eqr">EQR</option>
-        </select>
+          <span>Width</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'barWidth'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">Bar Width</div>
+            
+            <div class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.barWidth" value="normalized" @change="updateDisplayOptions(); closePopup()">
+                <span>Normalized</span>
+              </label>
+              <label v-if="displayMode !== 'chance'" class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.barWidth" value="absolute" @change="updateDisplayOptions(); closePopup()">
+                <span>Absolute</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.barWidth" value="full" @change="updateDisplayOptions(); closePopup()">
+                <span>Full</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="displayMode === 'chance'"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Chart:</div>
-        <select
-          v-model="displayOptions.chartChance"
-          class="w-[10.25rem] px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
+      
+      <!-- Action Button -->
+      <div v-if="['basics', 'graphs'].includes(displayMode)" class="relative">
+        <button 
+          class="flex h-8 px-2 items-center justify-center rounded-md border border-blue-300 bg-blue-50 hover:bg-blue-100 transition-colors text-sm"
+          @click="togglePopup('action')"
         >
-          <option value="strategy-combos">Strategy (Combos)</option>
-          <option value="strategy">Strategy (%)</option>
-          <option value="eq">Equity</option>
-          <option value="ev">EV</option>
-          <option value="eqr">EQR</option>
-        </select>
+          <span>Action</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        
+        <div v-if="activePopup === 'action'" class="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div class="p-2">
+            <div class="font-medium text-xs pb-1 mb-1 border-b">Action</div>
+            
+            <div class="flex flex-col gap-1">
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.actionContent" value="percentage" @change="updateDisplayOptions(); closePopup()">
+                <span> %</span>
+              </label>
+              <label class="flex items-center gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer text-sm">
+                <input type="radio" v-model="displayOptions.actionContent" value="ev" @change="updateDisplayOptions(); closePopup()">
+                <span> EV</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div
-        v-if="['basics', 'graphs', 'chance'].includes(displayMode)"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Bar width:</div>
-        <select
-          v-model="displayOptions.barWidth"
-          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
-        >
-          <option value="normalized">Normalized</option>
-          <option v-if="displayMode !== 'chance'" value="absolute">
-            Absolute
-          </option>
-          <option value="full">Full</option>
-        </select>
-      </div>
-
-      <div
-        v-if="['basics', 'graphs'].includes(displayMode)"
-        class="flex flex-col items-start justify-center h-full"
-      >
-        <div class="text-sm">Action:</div>
-        <select
-          v-model="displayOptions.actionContent"
-          class="w-28 px-1 py-0.5 border-gray-600 bg-gray-200 rounded-lg shadow cursor-pointer bg-right"
-          @change="updateDisplayOptions"
-        >
-          <option value="percentage">Action %</option>
-          <option value="ev">Action EV</option>
-        </select>
-      </div>
-
-      <!--
-      <div class="flex items-center px-4 gap-4">
-        <Tippy content="Copy range text to clipboard">
-          <button
-            :class="
-              'flex w-8 h-8 items-center justify-center rounded-lg shadow transition-colors border ' +
-              (copySuccess === 1
-                ? 'border-green-600 bg-green-100'
-                : copySuccess === -1
-                ? 'border-red-600 bg-red-100'
-                : 'border-gray-600 bg-gray-200')
-            "
-            @click="copyToClipboard"
-            @mouseleave="onCopyTooltipLeave"
-          >
-            <ClipboardDocumentIcon
-              v-show="copySuccess !== 1"
-              :class="'w-5 h-5 ' + (copySuccess === -1 ? 'text-red-600' : '')"
-            />
-            <ClipboardDocumentCheckIcon
-              v-show="copySuccess === 1"
-              class="w-5 h-5 text-green-600"
-            />
-          </button>
-        </Tippy>
-
-        <Tippy content="Open solver integration menu; not yet implemented">
-          <button
-            class="flex w-8 h-8 items-center justify-center border border-gray-600 bg-gray-200 rounded-lg shadow transition-colors active:bg-gray-300"
-          >
-            <ComputerDesktopIcon class="w-5 h-5" />
-          </button>
-        </Tippy>
-      </div>
-      -->
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, toRefs, watch } from "vue";
+import { reactive, ref, toRefs, watch, computed } from "vue";
 import { capitalize } from "../utils";
 import * as Types from "../result-types";
 
@@ -254,6 +349,74 @@ const emit = defineEmits<{
 
 const { chanceMode } = toRefs(props);
 let displayModeOld = "basics" as Types.DisplayMode;
+const activePopup = ref("");
+
+// 弹出式菜单控制
+const togglePopup = (name: string) => {
+  if (activePopup.value === name) {
+    activePopup.value = "";
+  } else {
+    activePopup.value = name;
+  }
+};
+
+const closePopup = () => {
+  activePopup.value = "";
+};
+
+// 点击外部关闭弹出菜单
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.relative') && activePopup.value) {
+    closePopup();
+  }
+};
+
+// 添加全局点击事件监听
+window.addEventListener('click', handleClickOutside);
+
+// Player 显示标签
+const displayPlayerLabel = computed(() => {
+  if (props.displayMode === 'chance') {
+    return displayOptions.playerChance === 'auto' 
+      ? `Auto (${props.autoPlayerChance.toUpperCase()})` 
+      : displayOptions.playerChance.toUpperCase();
+  } else {
+    return displayOptions.playerBasics === 'auto' 
+      ? `Auto (${props.autoPlayerBasics.toUpperCase()})` 
+      : displayOptions.playerBasics.toUpperCase();
+  }
+});
+
+// Display 显示标签
+const getDisplayLabel = () => {
+  if (['basics', 'compare'].includes(props.displayMode)) {
+    const [strategy, content] = strategyContentPair.value.split(',');
+    if (strategy === 'show') {
+      if (content === 'default') return 'Strategy';
+      if (content === 'eq') return 'Strategy+EQ';
+      if (content === 'ev') return 'Strategy+EV';
+      if (content === 'eqr') return 'Strategy+EQR';
+    } else {
+      if (content === 'default') return 'Weight';
+      return content.toUpperCase();
+    }
+  } else if (props.displayMode === 'graphs') {
+    return displayOptions.contentGraphs.toUpperCase();
+  }
+  return '';
+};
+
+// Chart 显示标签
+const getChartLabel = () => {
+  const chart = displayOptions.chartChance;
+  if (chart === 'strategy-combos') return 'Strategy (Combos)';
+  if (chart === 'strategy') return 'Strategy (%)';
+  if (chart === 'eq') return 'Equity';
+  if (chart === 'ev') return 'EV';
+  if (chart === 'eqr') return 'EQR';
+  return chart;
+};
 
 watch(chanceMode, (newValue, oldValue) => {
   if (newValue && !oldValue) {
@@ -316,6 +479,7 @@ const updateDisplayMode = (displayMode: Types.DisplayMode) => {
     displayModeOld = displayMode;
   }
   emit("update:display-mode", displayMode);
+  closePopup(); // 切换模式时关闭所有弹出菜单
 };
 
 const updateDisplayOptions = () => {
@@ -335,3 +499,9 @@ const updateDisplayOptions = () => {
 //   emit("reset-copy-success");
 // };
 </script>
+
+<style scoped>
+.relative {
+  position: relative;
+}
+</style>
