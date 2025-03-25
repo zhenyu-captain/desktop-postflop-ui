@@ -116,7 +116,13 @@ const showSaveSuccess = ref(false);
 const inTreeEditor = ref(false);
 const header = computed(() => {
   if (store.treeEditMode) {
-    return "Tree Configuration > Tree Preview & Edit";
+    if (inTreeEditor.value) {
+      // 直接从菜单进入Tree Editor
+      return "Tree Editor";
+    } else {
+      // 从Tree Config进入Tree Editor
+      return "Tree Configuration > Tree Preview & Edit";
+    }
   }
   return store.headers[store.sideView].join(" > ");
 });
@@ -151,6 +157,10 @@ const handleMenuItemClick = (item) => {
   } else {
     // 正常导航
     store.sideView = item.view;
+    // 如果当前进入了Tree Config页面，需要记录下来以便支持从Tree Config进入Tree Editor
+    if (item.view === 'tree-config') {
+      inTreeEditor.value = false;
+    }
   }
 };
 
@@ -164,24 +174,28 @@ const handleMenuClick = (view: string) => {
 };
 
 const canToggleTreeEditor = computed(() => {
-  // 只有当前在tree-config页面或者已经在tree editor模式下，才能使用tree editor
-  return store.sideView === 'tree-config' || store.treeEditMode;
+  // 修改为永远返回true，这样从任何页面都可以点击Tree Editor按钮
+  // return store.sideView === 'tree-config' || store.treeEditMode;
+  return true;
 });
 
 const toggleTreeEditor = () => {
   if (store.treeEditMode) {
     // 退出tree editor模式
     cancelTreeEdit();
-  } else if (canToggleTreeEditor.value) {
-    // 进入tree editor模式
+  } else {
+    // 进入tree editor模式 - 移除条件检查
+    // else if (canToggleTreeEditor.value) {
+    // 从任何页面都可以进入Tree Editor
+    inTreeEditor.value = true;
     if (config.expectedBoardLength === 0) {
       config.expectedBoardLength = Math.max(config.board.length, 3);
     }
     store.treeEditMode = true;
-    if (!inTreeEditor.value) {
-      // 如果不是从Tree Editor菜单进入，则是从Tree Config进入
-      store.headers["tree-config"].push("Tree Preview & Edit");
-    }
+    // 不需要加入导航路径，因为是直接从菜单进入
+    // if (!inTreeEditor.value) {
+    //   store.headers["tree-config"].push("Tree Preview & Edit");
+    // }
   }
 };
 
@@ -212,10 +226,16 @@ const cancelTreeEdit = () => {
   if (config.addedLines === "" && config.removedLines === "") {
     config.expectedBoardLength = 0;
   }
+  
   if (!inTreeEditor.value) {
-    // 只有从Tree Config进入时才需要弹出
+    // 如果是从Tree Config进入的，需要弹出导航路径
     store.headers["tree-config"].pop();
+  } else {
+    // 如果是直接从菜单进入的，返回到上一个页面
+    // 这里可以选择返回到一个默认页面，比如Tree Config
+    store.sideView = 'tree-config';
   }
+  
   inTreeEditor.value = false; // 重置标记
 };
 
