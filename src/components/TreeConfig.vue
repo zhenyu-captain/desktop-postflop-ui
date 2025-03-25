@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isEditMode" class="tree-config">
+  <div v-if="!store.treeEditMode" class="tree-config">
     <div class="flex">
       <div class="config-container shrink-0 w-full">
         <!-- Main Two Column Layout -->
@@ -957,8 +957,6 @@ type ConfigValue = {
 const store = useStore();
 const config = useConfigStore();
 
-const isEditMode = ref(false);
-
 const hasEdit = computed(
   () => config.addedLines.length > 0 || config.removedLines.length > 0
 );
@@ -1220,7 +1218,7 @@ const loadConfig = (value: unknown) => {
 };
 
 const startEdit = () => {
-  isEditMode.value = true;
+  store.treeEditMode = true;
   if (config.expectedBoardLength === 0) {
     config.expectedBoardLength = Math.max(config.board.length, 3);
   }
@@ -1234,7 +1232,7 @@ const clearEdit = () => {
 };
 
 const saveEdit = (addedLines: string, removedLines: string) => {
-  isEditMode.value = false;
+  store.treeEditMode = false;
   config.addedLines = addedLines;
   config.removedLines = removedLines;
   if (config.addedLines === "" && config.removedLines === "") {
@@ -1244,7 +1242,7 @@ const saveEdit = (addedLines: string, removedLines: string) => {
 };
 
 const cancelEdit = () => {
-  isEditMode.value = false;
+  store.treeEditMode = false;
   if (config.addedLines === "" && config.removedLines === "") {
     config.expectedBoardLength = 0;
   }

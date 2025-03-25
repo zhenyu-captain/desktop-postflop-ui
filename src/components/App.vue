@@ -13,9 +13,11 @@
           :key="item.view"
           :class="[
             'px-4 h-full transition-colors hover:bg-gray-100',
-            store.sideView === item.view ? 'bg-gray-100 text-blue-600' : ''
+            (store.sideView === item.view && !store.treeEditMode) || 
+            (item.view === 'tree-editor' && store.treeEditMode) ? 'bg-gray-100 text-blue-600' : ''
           ]"
-          @click="store.sideView = item.view"
+          @click="handleMenuItemClick(item)"
+          :disabled="item.view === 'tree-editor' && !canToggleTreeEditor"
         >
           {{ item.label }}
         </button>
@@ -48,27 +50,42 @@
           </div>
         </div>
 
-        <!-- 保留旧版本的组件结构和条件渲染 -->
-        <div v-show="store.sideView === 'oop-range'">
-          <RangeEditor :player="0" />
+        <!-- Tree Editor Component -->
+        <div v-if="store.treeEditMode">
+          <Suspense>
+            <template #default>
+              <TreeEditor @save="saveTreeEdit" @cancel="cancelTreeEdit" />
+            </template>
+            <template #fallback>
+              <div class="flex items-center justify-center h-40">
+                <div class="text-lg">Loading...</div>
+              </div>
+            </template>
+          </Suspense>
         </div>
-        <div v-show="store.sideView === 'ip-range'">
-          <RangeEditor :player="1" />
-        </div>
-        <div v-show="store.sideView === 'board'">
-          <BoardSelector />
-        </div>
-        <div v-show="store.sideView === 'tree-config'">
-          <TreeConfig />
-        </div>
-        <div v-show="store.sideView === 'bunching'">
-          <BunchingEffect />
-        </div>
-        <div v-show="store.sideView === 'run-solver'">
-          <RunSolver />
-        </div>
-        <div v-if="store.sideView === 'about'">
-          <AboutPage />
+        <!-- Regular Components -->
+        <div v-else>
+          <div v-show="store.sideView === 'oop-range'">
+            <RangeEditor :player="0" />
+          </div>
+          <div v-show="store.sideView === 'ip-range'">
+            <RangeEditor :player="1" />
+          </div>
+          <div v-show="store.sideView === 'board'">
+            <BoardSelector />
+          </div>
+          <div v-show="store.sideView === 'tree-config'">
+            <TreeConfig />
+          </div>
+          <div v-show="store.sideView === 'bunching'">
+            <BunchingEffect />
+          </div>
+          <div v-show="store.sideView === 'run-solver'">
+            <RunSolver />
+          </div>
+          <div v-if="store.sideView === 'about'">
+            <AboutPage />
+          </div>
         </div>
       </div>
     </div>
@@ -82,25 +99,33 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useStore } from "../store";
+import { useStore, useConfigStore } from "../store";
 
 import RangeEditor from "./RangeEditor.vue";
 import BoardSelector from "./BoardSelector.vue";
 import TreeConfig from "./TreeConfig.vue";
+import TreeEditor from "./TreeEditor.vue";
 import BunchingEffect from "./BunchingEffect.vue";
 import RunSolver from "./RunSolver.vue";
 import AboutPage from "./AboutPage.vue";
 import ResultViewer from "./ResultViewer.vue";
 
 const store = useStore();
-const header = computed(() => store.headers[store.sideView].join(" > "));
+const config = useConfigStore();
+const header = computed(() => {
+  if (store.treeEditMode) {
+    return "Tree Configuration > Tree Preview & Edit";
+  }
+  return store.headers[store.sideView].join(" > ");
+});
 
-// 添加菜单项配置 - 来自新UI设计
+// 添加菜单项配置 - 添加了tree-editor选项在tree-config后面
 const menuItems = [
   { view: 'oop-range', label: 'OOP Range' },
   { view: 'ip-range', label: 'IP Range' },
   { view: 'board', label: 'Board' },
   { view: 'tree-config', label: 'Tree Config' },
+  { view: 'tree-editor', label: 'Tree Editor' },
   { view: 'bunching', label: 'Bunching' },
   { view: 'run-solver', label: 'Run Solver' },
   { view: 'about', label: 'About' }
@@ -109,6 +134,67 @@ const menuItems = [
 const clientHeight = ref(0);
 const updateClientHeight = () => {
   clientHeight.value = document.documentElement.clientHeight - 0.01;
+};
+
+// 处理菜单项点击
+const handleMenuItemClick = (item) => {
+  if (item.view === 'tree-editor') {
+    // 处理Tree Editor按钮点击
+    toggleTreeEditor();
+  } else if (store.treeEditMode) {
+    // 如果在Tree Editor中，先退出
+    cancelTreeEdit();
+    store.sideView = item.view;
+  } else {
+    // 正常导航
+    store.sideView = item.view;
+  }
+};
+
+// 之前的handleMenuClick函数废弃，保留函数签名避免其他地方报错
+const handleMenuClick = (view: string) => {
+  // 为兼容性保留此函数
+  const item = menuItems.find(i => i.view === view);
+  if (item) {
+    handleMenuItemClick(item);
+  }
+};
+
+const canToggleTreeEditor = computed(() => {
+  // 只有当前在tree-config页面或者已经在tree editor模式下，才能使用tree editor
+  return store.sideView === 'tree-config' || store.treeEditMode;
+});
+
+const toggleTreeEditor = () => {
+  if (store.treeEditMode) {
+    // 退出tree editor模式
+    cancelTreeEdit();
+  } else if (canToggleTreeEditor.value) {
+    // 进入tree editor模式
+    if (config.expectedBoardLength === 0) {
+      config.expectedBoardLength = Math.max(config.board.length, 3);
+    }
+    store.treeEditMode = true;
+    store.headers["tree-config"].push("Tree Preview & Edit");
+  }
+};
+
+const saveTreeEdit = (addedLines: string, removedLines: string) => {
+  store.treeEditMode = false;
+  config.addedLines = addedLines;
+  config.removedLines = removedLines;
+  if (config.addedLines === "" && config.removedLines === "") {
+    config.expectedBoardLength = 0;
+  }
+  store.headers["tree-config"].pop();
+};
+
+const cancelTreeEdit = () => {
+  store.treeEditMode = false;
+  if (config.addedLines === "" && config.removedLines === "") {
+    config.expectedBoardLength = 0;
+  }
+  store.headers["tree-config"].pop();
 };
 
 updateClientHeight();

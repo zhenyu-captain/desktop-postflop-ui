@@ -84,6 +84,7 @@ export const useStore = defineStore("app", {
   state: () => ({
     navView: "solver" as NavView,
     sideView: "oop-range" as SideView,
+    treeEditMode: false,
     headers: {
       about: ["About"],
       "oop-range": ["OOP Range"],
