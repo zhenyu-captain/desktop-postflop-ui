@@ -201,30 +201,40 @@
       Finish Editing
     </h3>
 
-    <div class="flex gap-3">
-      <button
-        class="flex items-center justify-center px-4 py-2 min-w-[120px] rounded-lg font-medium transition-all shadow-sm hover:shadow
-          bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-          disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none"
-        :disabled="isTreeError || invalidLinesArray.length > 0"
-        @click="saveEdit"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-        </svg>
-        Save Edit
-      </button>
+    <div class="flex flex-col">
+      <div class="flex gap-3">
+        <button
+          class="flex items-center justify-center px-4 py-2 min-w-[120px] rounded-lg font-medium transition-all shadow-sm hover:shadow
+            bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+            disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none"
+          :disabled="isTreeError || invalidLinesArray.length > 0"
+          @click="saveEdit"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+          Save Edit
+        </button>
 
-      <button 
-        class="flex items-center justify-center px-4 py-2 min-w-[120px] rounded-lg font-medium transition-all shadow-sm hover:shadow
-          bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-        @click="cancelEdit"
-      >
+        <button 
+          class="flex items-center justify-center px-4 py-2 min-w-[120px] rounded-lg font-medium transition-all shadow-sm hover:shadow
+            bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          @click="cancelEdit"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+          Cancel Edit
+        </button>
+      </div>
+      
+      <!-- 保存成功提示 -->
+      <div v-if="showSaveSuccess" class="mt-3 flex items-center text-green-600 font-medium">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
         </svg>
-        Cancel Edit
-      </button>
+        保存成功！
+      </div>
     </div>
   </div>
 
@@ -314,6 +324,10 @@ import { TrashIcon } from "@heroicons/vue/24/outline";
 const emit = defineEmits<{
   (event: "save", addedLines: string, removedLines: string): void;
   (event: "cancel"): void;
+}>();
+
+const props = defineProps<{
+  showSaveSuccess?: boolean;
 }>();
 
 const navDiv = ref(null as HTMLDivElement | null);

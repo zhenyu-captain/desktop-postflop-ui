@@ -54,7 +54,7 @@
         <div v-if="store.treeEditMode">
           <Suspense>
             <template #default>
-              <TreeEditor @save="saveTreeEdit" @cancel="cancelTreeEdit" />
+              <TreeEditor @save="saveTreeEdit" @cancel="cancelTreeEdit" :showSaveSuccess="showSaveSuccess" />
             </template>
             <template #fallback>
               <div class="flex items-center justify-center h-40">
@@ -112,6 +112,8 @@ import ResultViewer from "./ResultViewer.vue";
 
 const store = useStore();
 const config = useConfigStore();
+const showSaveSuccess = ref(false);
+const inTreeEditor = ref(false);
 const header = computed(() => {
   if (store.treeEditMode) {
     return "Tree Configuration > Tree Preview & Edit";
@@ -140,6 +142,7 @@ const updateClientHeight = () => {
 const handleMenuItemClick = (item) => {
   if (item.view === 'tree-editor') {
     // 处理Tree Editor按钮点击
+    inTreeEditor.value = true;
     toggleTreeEditor();
   } else if (store.treeEditMode) {
     // 如果在Tree Editor中，先退出
@@ -175,18 +178,33 @@ const toggleTreeEditor = () => {
       config.expectedBoardLength = Math.max(config.board.length, 3);
     }
     store.treeEditMode = true;
-    store.headers["tree-config"].push("Tree Preview & Edit");
+    if (!inTreeEditor.value) {
+      // 如果不是从Tree Editor菜单进入，则是从Tree Config进入
+      store.headers["tree-config"].push("Tree Preview & Edit");
+    }
   }
 };
 
 const saveTreeEdit = (addedLines: string, removedLines: string) => {
-  store.treeEditMode = false;
   config.addedLines = addedLines;
   config.removedLines = removedLines;
   if (config.addedLines === "" && config.removedLines === "") {
     config.expectedBoardLength = 0;
   }
-  store.headers["tree-config"].pop();
+  
+  if (inTreeEditor.value) {
+    // 如果是直接从Tree Editor菜单进入的，保存后保持在Tree Editor页面
+    // 只显示保存成功提示
+    showSaveSuccess.value = true;
+    setTimeout(() => {
+      showSaveSuccess.value = false;
+    }, 3000); // 3秒后自动隐藏提示
+  } else {
+    // 如果是从Tree Config进入的，保存后返回Tree Config
+    store.treeEditMode = false;
+    store.headers["tree-config"].pop();
+    // 不显示保存成功提示，因为已经返回到Tree Config页面
+  }
 };
 
 const cancelTreeEdit = () => {
@@ -194,7 +212,11 @@ const cancelTreeEdit = () => {
   if (config.addedLines === "" && config.removedLines === "") {
     config.expectedBoardLength = 0;
   }
-  store.headers["tree-config"].pop();
+  if (!inTreeEditor.value) {
+    // 只有从Tree Config进入时才需要弹出
+    store.headers["tree-config"].pop();
+  }
+  inTreeEditor.value = false; // 重置标记
 };
 
 updateClientHeight();
