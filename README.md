@@ -1,3 +1,8 @@
+### 下一步
+1. ooprange和iprange的Range Analysis，Quick Templates图表信息区域应该实际工作
+2. Board的Combo Statistics，Board Strength，Equity Distribution区域也应该实际工作
+3. 增加一个操作软件以前的状态判断，如果小于某个系统日期则直接登录允许用户操作，如果大于某个日期则弹出一个登录框，必须输入用户名称才能登录。
+
 ### 说明
 1. clean.sh
 2. npm install
