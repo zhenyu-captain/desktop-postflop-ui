@@ -840,9 +840,10 @@
             <!-- Debug按钮 -->
             <div class="mt-4">
               <button 
-                class="w-full px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
+                class="w-full px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-medium flex items-center justify-center"
                 @click="showDebugInfo"
               >
+                <CodeBracketIcon class="w-5 h-5 mr-2" />
                 Debug Configuration
               </button>
             </div>
@@ -921,7 +922,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useStore, useConfigStore } from "../store";
 import {
   MAX_AMOUNT,
@@ -931,11 +932,12 @@ import {
   readableLineString,
   cardText
 } from "../utils";
+import eventBus from "../eventBus";
 
 import DbItemPicker from "./DbItemPicker.vue";
 import TreeEditor from "./TreeEditor.vue";
 import { Tippy } from "vue-tippy";
-import { QuestionMarkCircleIcon } from "@heroicons/vue/20/solid";
+import { QuestionMarkCircleIcon, CodeBracketIcon } from "@heroicons/vue/20/solid";
 
 type ConfigValue = {
   startingPot: number;
@@ -1320,8 +1322,7 @@ const showDebugInfo = async () => {
       warnings: warningMisc.value
     },
     board: config.board.length > 0 ? config.board.map(cardId => {
-      // 获取卡牌的字符串表示
-      // 假设使用了相同的cardText函数
+      // Convert card IDs to string representation
       try {
         const { rank, suitLetter } = cardText(cardId);
         return rank.toLowerCase() + suitLetter;
@@ -1331,14 +1332,14 @@ const showDebugInfo = async () => {
     }) : []
   };
   
-  // 格式化为JSON字符串
+  // Format as JSON string
   const jsonFormat = JSON.stringify(configData, null, 2);
   
   try {
-    // 复制到剪贴板
+    // Copy to clipboard
     await navigator.clipboard.writeText(jsonFormat);
     
-    // 创建弹窗显示JSON数据
+    // Create popup dialog
     const dialog = document.createElement('div');
     dialog.style.cssText = `
       position: fixed;
@@ -1357,7 +1358,7 @@ const showDebugInfo = async () => {
       flex-direction: column;
     `;
     
-    // 创建弹窗标题
+    // Create dialog header
     const header = document.createElement('div');
     header.style.cssText = `
       display: flex;
@@ -1368,11 +1369,11 @@ const showDebugInfo = async () => {
       padding-bottom: 10px;
     `;
     header.innerHTML = `
-      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">树配置调试数据 (JSON已复制到剪贴板)</h3>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Tree Configuration Debug Data (JSON copied to clipboard)</h3>
       <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 16px;">×</button>
     `;
     
-    // 创建JSON内容显示区域
+    // Create JSON content display area
     const content = document.createElement('div');
     content.style.cssText = `
       overflow-y: auto;
@@ -1386,7 +1387,7 @@ const showDebugInfo = async () => {
     `;
     content.textContent = jsonFormat;
     
-    // 创建按钮区域
+    // Create buttons area
     const actions = document.createElement('div');
     actions.style.cssText = `
       display: flex;
@@ -1395,9 +1396,9 @@ const showDebugInfo = async () => {
       margin-top: 15px;
     `;
     
-    // 复制按钮
+    // Copy button
     const copyJsonBtn = document.createElement('button');
-    copyJsonBtn.textContent = "复制JSON";
+    copyJsonBtn.textContent = "Copy JSON";
     copyJsonBtn.style.cssText = `
       padding: 6px 12px;
       background: #e6f7ff;
@@ -1409,26 +1410,26 @@ const showDebugInfo = async () => {
     `;
     copyJsonBtn.addEventListener('click', async () => {
       await navigator.clipboard.writeText(jsonFormat);
-      copyJsonBtn.textContent = "✓ 已复制";
+      copyJsonBtn.textContent = "✓ Copied";
       setTimeout(() => {
-        copyJsonBtn.textContent = "复制JSON";
+        copyJsonBtn.textContent = "Copy JSON";
       }, 2000);
     });
     
-    // 组装弹窗
+    // Assemble dialog
     actions.appendChild(copyJsonBtn);
     dialog.appendChild(header);
     dialog.appendChild(content);
     dialog.appendChild(actions);
     document.body.appendChild(dialog);
     
-    // 添加关闭事件
+    // Add close event
     document.getElementById('closeDialog').addEventListener('click', () => {
       document.body.removeChild(dialog);
       document.body.removeChild(overlay);
     });
     
-    // 创建背景遮罩
+    // Create background overlay
     const overlay = document.createElement('div');
     overlay.style.cssText = `
       position: fixed;
@@ -1441,16 +1442,100 @@ const showDebugInfo = async () => {
     `;
     document.body.appendChild(overlay);
     
-    // 点击遮罩关闭弹窗
+    // Click overlay to close dialog
     overlay.addEventListener('click', () => {
       document.body.removeChild(dialog);
       document.body.removeChild(overlay);
     });
   } catch (err) {
-    // 如果剪贴板API失败，使用alert显示
-    alert("无法使用剪贴板API，请尝试手动复制调试数据。");
-    console.log("树配置调试数据:", jsonFormat);
+    // If clipboard API fails, use alert
+    alert("Failed to use clipboard API. Please try to copy the debug data manually.");
+    console.log("Tree configuration debug data:", jsonFormat);
   }
+};
+
+// 添加事件总线监听
+onMounted(() => {
+  eventBus.on('request-debug-data', handleRequestDebugData);
+});
+
+onUnmounted(() => {
+  eventBus.off('request-debug-data', handleRequestDebugData);
+});
+
+// 响应debug数据请求
+const handleRequestDebugData = () => {
+  // 收集当前配置的所有信息 - 与showDebugInfo函数内的代码相同
+  const configData = {
+    basicSettings: {
+      startingPot: config.startingPot,
+      effectiveStack: config.effectiveStack,
+      rakePercent: config.rakePercent,
+      rakeCap: config.rakeCap,
+      donkOption: config.donkOption
+    },
+    oopBetSizes: {
+      flop: {
+        bet: config.oopFlopBet,
+        raise: config.oopFlopRaise
+      },
+      turn: {
+        bet: config.oopTurnBet,
+        raise: config.oopTurnRaise,
+        donk: config.donkOption ? config.oopTurnDonk : null
+      },
+      river: {
+        bet: config.oopRiverBet,
+        raise: config.oopRiverRaise,
+        donk: config.donkOption ? config.oopRiverDonk : null
+      }
+    },
+    ipBetSizes: {
+      flop: {
+        bet: config.ipFlopBet,
+        raise: config.ipFlopRaise
+      },
+      turn: {
+        bet: config.ipTurnBet,
+        raise: config.ipTurnRaise
+      },
+      river: {
+        bet: config.ipRiverBet,
+        raise: config.ipRiverRaise
+      }
+    },
+    thresholds: {
+      addAllInThreshold: config.addAllInThreshold,
+      forceAllInThreshold: config.forceAllInThreshold,
+      mergingThreshold: config.mergingThreshold
+    },
+    treeEdit: {
+      expectedBoardLength: config.expectedBoardLength,
+      addedLines: config.addedLines ? config.addedLines.split(",").map(readableLineString) : [],
+      removedLines: config.removedLines ? config.removedLines.split(",").map(readableLineString) : [],
+      valid: isInputValid.value,
+      errors: {
+        basicSettings: errorBasics.value,
+        oop: errorOop.value,
+        ip: errorIp.value,
+        misc: errorMisc.value,
+        lines: errorLines.value
+      },
+      warnings: warningMisc.value
+    },
+    board: config.board.length > 0 ? config.board.map(cardId => {
+      // Convert card IDs to string representation
+      try {
+        const { rank, suitLetter } = cardText(cardId);
+        return rank.toLowerCase() + suitLetter;
+      } catch (e) {
+        return `card_${cardId}`;
+      }
+    }) : []
+  };
+  
+  // 通过事件总线发送配置数据
+  eventBus.emit('tree-config-debug-data', configData);
 };
 </script>
 

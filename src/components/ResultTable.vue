@@ -357,6 +357,7 @@ import {
   toFixed,
   toFixedAdaptive,
   capitalize,
+  readableLineString
 } from "../utils";
 
 import {
@@ -1146,6 +1147,65 @@ const showBeforeSolvingInfo = async () => {
         },
         "_originalRange": "22+"
       }
+    },
+    // Add tree configuration data
+    treeConfig: {
+      basicSettings: {
+        startingPot: configStore.startingPot,
+        effectiveStack: configStore.effectiveStack,
+        rakePercent: configStore.rakePercent,
+        rakeCap: configStore.rakeCap,
+        donkOption: configStore.donkOption
+      },
+      oopBetSizes: {
+        flop: {
+          bet: configStore.oopFlopBet,
+          raise: configStore.oopFlopRaise
+        },
+        turn: {
+          bet: configStore.oopTurnBet,
+          raise: configStore.oopTurnRaise,
+          donk: configStore.donkOption ? configStore.oopTurnDonk : null
+        },
+        river: {
+          bet: configStore.oopRiverBet,
+          raise: configStore.oopRiverRaise,
+          donk: configStore.donkOption ? configStore.oopRiverDonk : null
+        }
+      },
+      ipBetSizes: {
+        flop: {
+          bet: configStore.ipFlopBet,
+          raise: configStore.ipFlopRaise
+        },
+        turn: {
+          bet: configStore.ipTurnBet,
+          raise: configStore.ipTurnRaise
+        },
+        river: {
+          bet: configStore.ipRiverBet,
+          raise: configStore.ipRiverRaise
+        }
+      },
+      thresholds: {
+        addAllInThreshold: configStore.addAllInThreshold,
+        forceAllInThreshold: configStore.forceAllInThreshold,
+        mergingThreshold: configStore.mergingThreshold
+      },
+      treeEdit: {
+        expectedBoardLength: configStore.expectedBoardLength,
+        addedLines: configStore.addedLines ? configStore.addedLines.split(",").map(readableLineString) : [],
+        removedLines: configStore.removedLines ? configStore.removedLines.split(",").map(readableLineString) : [],
+        valid: true,
+        errors: {
+          basicSettings: [],
+          oop: [],
+          ip: [],
+          misc: [],
+          lines: []
+        },
+        warnings: []
+      }
     }
   };
   
@@ -1275,6 +1335,30 @@ const showBeforeSolvingInfo = async () => {
         ['9', '8', '7', '6'].includes(card[0])).length;
       debugData.board.boardFeatures.lowCards = boardStrings.filter(card => 
         ['5', '4', '3', '2'].includes(card[0])).length;
+    }
+    
+    // 获取TreeConfig组件的完整debug数据
+    eventBus.emit('request-debug-data');
+    
+    // 等待TreeConfig组件的响应，设置1秒超时
+    const treeConfigData = await new Promise(resolve => {
+      const handler = (data) => {
+        eventBus.off('tree-config-debug-data', handler);
+        resolve(data);
+      };
+      
+      eventBus.on('tree-config-debug-data', handler);
+      
+      // 添加超时处理
+      setTimeout(() => {
+        eventBus.off('tree-config-debug-data', handler);
+        resolve(null);
+      }, 1000);
+    });
+    
+    // 如果收到TreeConfig数据，更新debugData
+    if (treeConfigData) {
+      debugData.treeConfig = treeConfigData;
     }
   } catch (err) {
     console.error("Error getting debug data:", err);
