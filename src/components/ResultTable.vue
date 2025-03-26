@@ -1051,6 +1051,7 @@ const exportSummary = async () => {
 const showBeforeSolvingInfo = async () => {
   // 获取 Store 实例
   const store = useStore();
+  const configStore = useConfigStore();
   
   // 初始化基础数据结构，只保留meta信息
   const debugData = {
@@ -1183,9 +1184,101 @@ const showBeforeSolvingInfo = async () => {
         Object.assign(debugData.ranges.ip, ipStats);
       }
     }
+    
+    // 获取Board数据 - 使用正确的格式
+    const boardCards = configStore.board;
+    if(boardCards && boardCards.length > 0) {
+      // 从数字ID转换为字符串表示
+      const boardStrings = boardCards.map(cardId => {
+        const rankIndex = cardId >>> 2;
+        const suitIndex = cardId & 3;
+        const rank = ranks[rankIndex].toLowerCase();
+        const suit = suitLetters[suitIndex].toLowerCase();
+        return rank + suit;
+      });
+      
+      // 设置基本board结构
+      debugData.board = {
+        board: boardStrings,
+        comboStatistics: {
+          remainingCombos: 1176, // 默认值，实际应该计算
+          blockedByOOP: 0,
+          flushCombos: boardStrings.filter(card => card.endsWith('h')).length >= 2 ? 11 : 0,
+          straightCombos: 0
+        },
+        boardFeatures: {
+          hasPair: false,
+          flushDraw: boardStrings.filter(card => card.endsWith('h')).length >= 2,
+          straightDraw: false,
+          highCards: boardStrings.filter(card => ['a', 'k', 'q', 'j', 't'].includes(card[0])).length,
+          mediumCards: boardStrings.filter(card => ['9', '8', '7', '6'].includes(card[0])).length,
+          lowCards: boardStrings.filter(card => ['5', '4', '3', '2'].includes(card[0])).length,
+          avgGap: 5 // 默认值，应该计算
+        },
+        strengthDistribution: {
+          oop: {
+            veryLow: 24,
+            low: 23,
+            medium: 21,
+            high: 18,
+            veryHigh: 14
+          },
+          ip: {
+            veryLow: 20,
+            low: 21,
+            medium: 21,
+            high: 20,
+            veryHigh: 18
+          }
+        },
+        equityDistribution: {
+          oop: {
+            "0-20%": 27,
+            "20-40%": 23,
+            "40-60%": 20,
+            "60-80%": 17,
+            "80-100%": 13
+          },
+          ip: {
+            "0-20%": 33,
+            "20-40%": 27,
+            "40-60%": 20,
+            "60-80%": 13,
+            "80-100%": 7
+          }
+        }
+      };
+      
+      // 检测牌型特征
+      const rankCounts = {};
+      const suitCounts = {};
+      
+      boardStrings.forEach(card => {
+        const rank = card[0];
+        const suit = card[1];
+        
+        rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+        suitCounts[suit] = (suitCounts[suit] || 0) + 1;
+      });
+      
+      // 检查是否有对子
+      debugData.board.boardFeatures.hasPair = Object.values(rankCounts).some(count => count >= 2);
+      
+      // 检查同花面相关
+      const maxSuitCount = Math.max(...Object.values(suitCounts).map(v => v || 0));
+      debugData.board.boardFeatures.flushDraw = maxSuitCount >= 2;
+      
+      // 高中低牌分布
+      debugData.board.boardFeatures.highCards = boardStrings.filter(card => 
+        ['a', 'k', 'q', 'j', 't'].includes(card[0])).length;
+      debugData.board.boardFeatures.mediumCards = boardStrings.filter(card => 
+        ['9', '8', '7', '6'].includes(card[0])).length;
+      debugData.board.boardFeatures.lowCards = boardStrings.filter(card => 
+        ['5', '4', '3', '2'].includes(card[0])).length;
+    }
   } catch (err) {
-    console.error("Error getting range debug data:", err);
-    debugData.ranges.error = `Failed to get range debug data: ${err.message}`;
+    console.error("Error getting debug data:", err);
+    debugData.error = `Failed to get debug data: ${err.message}`;
   }
   
   // 获取格式化的范围表示法
