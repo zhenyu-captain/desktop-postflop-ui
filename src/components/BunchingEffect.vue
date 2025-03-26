@@ -198,6 +198,14 @@
             >
               Clear
             </button>
+            <!-- Debug按钮 -->
+            <button
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-yellow-500
+                     hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              @click="showDebugInfo"
+            >
+              Debug
+            </button>
             <button
               v-if="!isBunchingPaused"
               class="px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600
@@ -287,6 +295,7 @@ import { ref, onMounted } from "vue";
 import { useStore, useConfigStore } from "../store";
 import { trimRegex, rangeRegex, cardText } from "../utils";
 import * as invokes from "../invokes";
+import eventBus from "../eventBus";
 
 import RangeEditor from "./RangeEditor.vue";
 import RangeMiniViewer from "./RangeMiniViewer.vue";
@@ -494,6 +503,168 @@ const cancelEdit = async () => {
   await onUpdate(editingPlayer.value);
   store.headers["bunching"].pop();
   editingPlayer.value = -1;
+};
+
+const showDebugInfo = async () => {
+  // 收集当前 Bunching 配置的所有信息
+  const bunchingData = {
+    status: {
+      enabled: store.isBunchingEnabled,
+      uiEnabled: isBunchingEnabledUI.value,
+      isRunning: store.isBunchingRunning,
+      isPaused: isBunchingPaused.value,
+      statusText: statusText.value,
+      hasBunchingRun: hasBunchingRun.value,
+      elapsedTimeMs: elapsedTimeMs.value,
+      numThreads: numThreads.value
+    },
+    foldRanges: rangeTexts.value.map((text, index) => ({
+      index: index + 1,
+      text: text,
+      hasError: isRangeTextError.value[index],
+      combos: numCombos.value[index],
+      percentage: numCombos.value[index] >= 0.9995 * ((52 * 51) / 2)
+        ? 100
+        : ((numCombos.value[index] * 100) / ((52 * 51) / 2))
+    })),
+    statistics: {
+      totalRanges: numCombos.value.filter(x => x > 0).length,
+      totalCombos: numCombos.value.reduce((a, b) => a + b, 0),
+      coverage: ((numCombos.value.reduce((a, b) => a + b, 0) * 100) / (52 * 51 / 2))
+    },
+    flop: store.bunchingFlop.length > 0 ? store.bunchingFlop.map(cardId => {
+      const { rank, suitLetter } = cardText(cardId);
+      return rank.toLowerCase() + suitLetter;
+    }) : [],
+    board: configStore.board.length > 0 ? configStore.board.map(cardId => {
+      const { rank, suitLetter } = cardText(cardId);
+      return rank.toLowerCase() + suitLetter;
+    }) : [],
+    memory: {
+      estimatedUsage: ["-", "60MB", "60MB", "190MB", "3.5GB"][numCombos.value.filter((x) => x > 0).length]
+    }
+  };
+  
+  // 格式化为JSON字符串
+  const jsonFormat = JSON.stringify(bunchingData, null, 2);
+  
+  try {
+    // 复制到剪贴板
+    await navigator.clipboard.writeText(jsonFormat);
+    
+    // 创建弹窗显示JSON数据
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      max-width: 800px;
+      max-height: 80vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    `;
+    
+    // 创建弹窗标题
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    `;
+    header.innerHTML = `
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Bunching 数据 (JSON已复制到剪贴板)</h3>
+      <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 16px;">×</button>
+    `;
+    
+    // 创建JSON内容显示区域
+    const content = document.createElement('div');
+    content.style.cssText = `
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      flex-grow: 1;
+      font-size: 14px;
+    `;
+    content.textContent = jsonFormat;
+    
+    // 创建按钮区域
+    const actions = document.createElement('div');
+    actions.style.cssText = `
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    `;
+    
+    // 复制按钮
+    const copyJsonBtn = document.createElement('button');
+    copyJsonBtn.textContent = "复制JSON";
+    copyJsonBtn.style.cssText = `
+      padding: 6px 12px;
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1890ff;
+    `;
+    copyJsonBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(jsonFormat);
+      copyJsonBtn.textContent = "✓ 已复制";
+      setTimeout(() => {
+        copyJsonBtn.textContent = "复制JSON";
+      }, 2000);
+    });
+    
+    // 组装弹窗
+    actions.appendChild(copyJsonBtn);
+    dialog.appendChild(header);
+    dialog.appendChild(content);
+    dialog.appendChild(actions);
+    document.body.appendChild(dialog);
+    
+    // 添加关闭事件
+    document.getElementById('closeDialog').addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+    
+    // 创建背景遮罩
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    `;
+    document.body.appendChild(overlay);
+    
+    // 点击遮罩关闭弹窗
+    overlay.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+  } catch (err) {
+    // 如果剪贴板API失败，使用alert显示
+    alert("无法使用剪贴板API，请尝试手动复制调试数据。");
+    console.log("Bunching 调试数据:", jsonFormat);
+  }
 };
 </script>
 
