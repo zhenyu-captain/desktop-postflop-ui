@@ -1551,11 +1551,6 @@ const showDebugInfo = async () => {
                           rangeNotation.byType.offsuit;
   
   // 添加到指标对象
-  metrics["_matrix"] = {
-    formatted: matrixData
-  };
-  
-  // 添加范围表示（包含权重信息）
   metrics["_rangeNotation"] = rangeNotation;
   
   // 添加原始范围文本
