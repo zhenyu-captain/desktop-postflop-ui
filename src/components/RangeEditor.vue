@@ -1414,8 +1414,156 @@ const showDebugInfo = async () => {
     "Bluff Ratio": bluffRatio()
   };
   
+  // 添加范围矩阵数据
+  // 格式化矩阵数据为更有结构的格式
+  const matrixData = {
+    pocketPairs: {},
+    suited: {},
+    offsuit: {}
+  };
+  
+  // 遍历所有单元格，添加到相应的分类
+  for (let row = 1; row <= 13; row++) {
+    for (let col = 1; col <= 13; col++) {
+      const handText = cellText(row, col);
+      const weight = cellValue(row, col);
+      
+      // 只添加有权重的手牌
+      if (weight > 0) {
+        if (row === col) {
+          // 口袋对
+          matrixData.pocketPairs[handText] = weight;
+        } else if (row > col) {
+          // 同花
+          matrixData.suited[handText] = weight;
+        } else {
+          // 非同花
+          matrixData.offsuit[handText] = weight;
+        }
+      }
+    }
+  }
+  
+  // 将原始矩阵数据也添加
+  const rawMatrix = [];
+  for (let i = 0; i < 13 * 13; i++) {
+    rawMatrix.push(store.ranges[props.player][i]);
+  }
+  
+  // 添加区间表示法和明细表示法
+  const rangeNotation = {
+    compact: "", // 紧凑格式 KK-33
+    detailed: "", // 详细列表 22,A2s,K2s...
+    byType: {
+      pocketPairs: "",
+      suited: "",
+      offsuit: ""
+    }
+  };
+  
+  // 1. 生成按类型分组的范围
+  // 处理口袋对区间
+  const pocketPairKeys = Object.keys(matrixData.pocketPairs).sort((a, b) => {
+    // 按照牌力排序 (AA > KK > QQ...)
+    const rankA = ranks.indexOf(a[0]);
+    const rankB = ranks.indexOf(b[0]);
+    return rankB - rankA; // 降序排列
+  });
+  
+  // 处理口袋对区间表示
+  if (pocketPairKeys.length > 0) {
+    let currentStart = pocketPairKeys[0];
+    let currentEnd = pocketPairKeys[0];
+    let pairRanges = [];
+    
+    for (let i = 1; i < pocketPairKeys.length; i++) {
+      const currentPair = pocketPairKeys[i];
+      const prevPair = pocketPairKeys[i-1];
+      
+      // 检查是否连续
+      const currentRank = ranks.indexOf(currentPair[0]);
+      const prevRank = ranks.indexOf(prevPair[0]);
+      
+      if (prevRank - currentRank === 1) {
+        // 连续区间
+        currentEnd = currentPair;
+      } else {
+        // 区间中断，保存当前区间
+        if (currentStart === currentEnd) {
+          pairRanges.push(currentStart);
+        } else {
+          pairRanges.push(`${currentStart}-${currentEnd}`);
+        }
+        // 开始新区间
+        currentStart = currentPair;
+        currentEnd = currentPair;
+      }
+    }
+    
+    // 添加最后一个区间
+    if (currentStart === currentEnd) {
+      pairRanges.push(currentStart);
+    } else {
+      pairRanges.push(`${currentStart}-${currentEnd}`);
+    }
+    
+    rangeNotation.byType.pocketPairs = pairRanges.join(",");
+  }
+  
+  // 处理同花牌
+  const suitedKeys = Object.keys(matrixData.suited).sort((a, b) => {
+    // 先按第一张牌排序，相同时按第二张牌排序
+    const rankA1 = ranks.indexOf(a[0]);
+    const rankB1 = ranks.indexOf(b[0]);
+    if (rankA1 !== rankB1) return rankB1 - rankA1;
+    
+    const rankA2 = ranks.indexOf(a[1]);
+    const rankB2 = ranks.indexOf(b[1]);
+    return rankB2 - rankA2;
+  });
+  
+  rangeNotation.byType.suited = suitedKeys.join(",");
+  
+  // 处理非同花牌
+  const offsuitKeys = Object.keys(matrixData.offsuit).sort((a, b) => {
+    // 先按第一张牌排序，相同时按第二张牌排序
+    const rankA1 = ranks.indexOf(a[0]);
+    const rankB1 = ranks.indexOf(b[0]);
+    if (rankA1 !== rankB1) return rankB1 - rankA1;
+    
+    const rankA2 = ranks.indexOf(a[1]);
+    const rankB2 = ranks.indexOf(b[1]);
+    return rankB2 - rankA2;
+  });
+  
+  rangeNotation.byType.offsuit = offsuitKeys.join(",");
+  
+  // 2. 生成综合范围表示
+  rangeNotation.detailed = [
+    ...pocketPairKeys,
+    ...suitedKeys,
+    ...offsuitKeys
+  ].join(",");
+  
+  // 紧凑格式：组合口袋对、同花和非同花的区间表示
+  rangeNotation.compact = rangeNotation.byType.pocketPairs + "," + 
+                          rangeNotation.byType.suited + "," + 
+                          rangeNotation.byType.offsuit;
+  
+  // 添加到指标对象
+  metrics["_matrix"] = {
+    formatted: matrixData
+  };
+  
+  // 添加范围表示（包含权重信息）
+  metrics["_rangeNotation"] = rangeNotation;
+  
+  // 添加原始范围文本
+  metrics["_originalRange"] = rangeText.value;
+  
   // 创建格式化的文本输出，用于显示和复制
   const textOutput = Object.entries(metrics)
+    .filter(([key]) => !key.startsWith('_')) // 排除内部数据
     .map(([key, value]) => `${key}: ${value}%`)
     .join('\n');
   
@@ -1455,7 +1603,7 @@ const showDebugInfo = async () => {
       padding-bottom: 10px;
     `;
     header.innerHTML = `
-      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">当前范围的指标值（JSON已复制到剪贴板）</h3>
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">当前范围的指标值与矩阵数据（JSON已复制到剪贴板）</h3>
       <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 16px;">×</button>
     `;
     
