@@ -361,8 +361,8 @@ const formattedDebugData = computed(() => {
   // 创建一个包含所有计算数据的对象
   const data = {
     board: config.board.map(cardId => {
-      const { rank, suit } = cardText(cardId);
-      return rank + suit;
+      const { rank, suitLetter } = cardText(cardId);
+      return rank.toLowerCase() + suitLetter;
     }),
     comboStatistics: {
       remainingCombos: remainingCombos.value,
