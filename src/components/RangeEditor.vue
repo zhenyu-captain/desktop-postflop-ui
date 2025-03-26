@@ -483,13 +483,6 @@
             <span class="ml-1 text-xs text-gray-500 inline-flex items-center" title="评估范围的平衡性和策略价值">
               (?)
             </span>
-            <!-- 添加Debug按钮 -->
-            <button 
-              class="ml-auto px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-              @click="showDebugInfo"
-            >
-              Debug
-            </button>
           </h4>
           <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div class="grid grid-cols-2 gap-6">
@@ -551,6 +544,16 @@
                 </div>
               </div>
             </div>
+          </div>
+          
+          <!-- Debug按钮 - 调整到指标区域下方 -->
+          <div class="flex justify-center mt-3">
+            <button 
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg text-sm transition-colors duration-150 shadow-sm"
+              @click="showDebugInfo"
+            >
+              Debug Range Data
+            </button>
           </div>
         </div>
       </div>
