@@ -159,6 +159,109 @@
             <span class="text-gray-700">Offsuit</span>
             <span class="font-medium text-emerald-600">{{ calculateOffsuit() }}%</span>
           </div>
+          <!-- 新增指标 -->
+          <div class="border-t border-gray-200 pt-3 mt-2"></div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-700">Broadway Cards</span>
+            <span class="font-medium text-amber-600">{{ calculateBroadwayHands() }}%</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-700">Connected Cards</span>
+            <span class="font-medium text-red-600">{{ calculateConnected() }}%</span>
+          </div>
+        </div>
+
+        <!-- 新增的Advanced Analysis面板 -->
+        <div class="border-t border-gray-200 pt-4 mb-5">
+          <h4 class="text-sm font-medium text-gray-800 mb-3">Advanced Analysis</h4>
+          
+          <!-- 牌力分层 -->
+          <div class="mb-4">
+            <h5 class="text-xs font-medium text-gray-600 mb-2">Hand Strength</h5>
+            <div class="space-y-2">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-600">Premium</span>
+                  <span class="font-medium text-blue-600">{{ calculatePremiumHands() }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                  <div class="bg-blue-600 h-1.5 rounded-full" :style="{ width: calculatePremiumHands() + '%' }"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-600">Strong</span>
+                  <span class="font-medium text-indigo-600">{{ calculateStrongHands() }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                  <div class="bg-indigo-600 h-1.5 rounded-full" :style="{ width: calculateStrongHands() + '%' }"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-600">Medium</span>
+                  <span class="font-medium text-purple-600">{{ calculateMediumHands() }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                  <div class="bg-purple-600 h-1.5 rounded-full" :style="{ width: calculateMediumHands() + '%' }"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-600">Marginal</span>
+                  <span class="font-medium text-amber-600">{{ calculateMarginalHands() }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                  <div class="bg-amber-600 h-1.5 rounded-full" :style="{ width: calculateMarginalHands() + '%' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 高牌分析 -->
+          <div class="mb-4">
+            <h5 class="text-xs font-medium text-gray-600 mb-2">Card Distribution</h5>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-gray-100 p-2 rounded text-center">
+                <div class="text-sm font-bold text-red-600">{{ calculateAceHands() }}%</div>
+                <div class="text-xs text-gray-500">Ace</div>
+              </div>
+              <div class="bg-gray-100 p-2 rounded text-center">
+                <div class="text-sm font-bold text-red-600">{{ calculateKingHands() }}%</div>
+                <div class="text-xs text-gray-500">King</div>
+              </div>
+              <div class="bg-gray-100 p-2 rounded text-center">
+                <div class="text-sm font-bold text-red-600">{{ calculateQueenHands() }}%</div>
+                <div class="text-xs text-gray-500">Queen</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 连接性分析 -->
+          <div>
+            <h5 class="text-xs font-medium text-gray-600 mb-2">Connectivity</h5>
+            <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
+              <div class="text-xs text-gray-600 flex justify-between">
+                <span>Connected</span>
+                <span class="font-medium text-indigo-600">{{ calculateConnected() }}%</span>
+              </div>
+              <div class="text-xs text-gray-600 flex justify-between">
+                <span>1-Gap</span>
+                <span class="font-medium text-indigo-600">{{ calculateOneGap() }}%</span>
+              </div>
+              <div class="text-xs text-gray-600 flex justify-between">
+                <span>2-Gap</span>
+                <span class="font-medium text-indigo-600">{{ calculateTwoGap() }}%</span>
+              </div>
+              <div class="text-xs text-gray-600 flex justify-between">
+                <span>Unconnected</span>
+                <span class="font-medium text-indigo-600">{{ calculateUnconnected() }}%</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 快速模板 -->
@@ -395,6 +498,183 @@ const calculateOffsuit = () => {
     }
   }
   return (total / 1300 * 100).toFixed(1);
+};
+
+// 新增指标计算方法
+// 计算百分比时的总和函数
+const sumOfRange = () => {
+  let sum = 0;
+  for (let i = 0; i < 13 * 13; i++) {
+    sum += store.ranges[props.player][i];
+  }
+  return sum || 1; // 防止除以0
+};
+
+// Broadway牌型占比
+const calculateBroadwayHands = () => {
+  let total = 0;
+  // Broadway牌型:AKQJT相关
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 5; j++) {
+      if (i !== j) { // 排除对子
+        total += store.ranges[props.player][Math.min(i, j) * 13 + Math.max(i, j)];
+      }
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+// 连牌占比
+const calculateConnected = () => {
+  let total = 0;
+  // 检查相邻牌
+  for (let i = 0; i < 13; i++) {
+    for (let j = 0; j < 13; j++) {
+      if (Math.abs(i - j) === 1) {
+        total += store.ranges[props.player][Math.min(i, j) * 13 + Math.max(i, j)];
+      }
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+// 单缺口牌占比
+const calculateOneGap = () => {
+  let total = 0;
+  // 检查单缺口
+  for (let i = 0; i < 13; i++) {
+    for (let j = 0; j < 13; j++) {
+      if (Math.abs(i - j) === 2) {
+        total += store.ranges[props.player][Math.min(i, j) * 13 + Math.max(i, j)];
+      }
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+// 双缺口牌占比
+const calculateTwoGap = () => {
+  let total = 0;
+  // 检查双缺口
+  for (let i = 0; i < 13; i++) {
+    for (let j = 0; j < 13; j++) {
+      if (Math.abs(i - j) === 3) {
+        total += store.ranges[props.player][Math.min(i, j) * 13 + Math.max(i, j)];
+      }
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+// 未连接牌占比
+const calculateUnconnected = () => {
+  let total = 0;
+  for (let i = 0; i < 13; i++) {
+    for (let j = 0; j < 13; j++) {
+      if (Math.abs(i - j) > 3 || i === j) { // 间隔大于3或者对子
+        total += store.ranges[props.player][Math.min(i, j) * 13 + Math.max(i, j)];
+      }
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+// 高牌系列分析
+const calculateAceHands = () => {
+  let total = 0;
+  // A开头的牌
+  for (let i = 0; i < 13; i++) {
+    total += store.ranges[props.player][Math.min(0, i) * 13 + Math.max(0, i)];
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+const calculateKingHands = () => {
+  let total = 0;
+  // K开头的牌，不含A
+  for (let i = 1; i < 13; i++) {
+    if (i !== 0) { // 排除AK
+      total += store.ranges[props.player][Math.min(1, i) * 13 + Math.max(1, i)];
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+const calculateQueenHands = () => {
+  let total = 0;
+  // Q开头的牌，不含AQ和KQ
+  for (let i = 2; i < 13; i++) {
+    if (i !== 0 && i !== 1) { // 排除AQ和KQ
+      total += store.ranges[props.player][Math.min(2, i) * 13 + Math.max(2, i)];
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+// 牌力分层计算
+const calculatePremiumHands = () => {
+  let total = 0;
+  // 检查AA-QQ
+  for (let i = 0; i < 3; i++) {
+    total += store.ranges[props.player][i * 13 + i];
+  }
+  // 检查AKs
+  total += store.ranges[props.player][0 * 13 + 1];
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+const calculateStrongHands = () => {
+  let total = 0;
+  // JJ-TT
+  for (let i = 3; i < 5; i++) {
+    total += store.ranges[props.player][i * 13 + i];
+  }
+  // AQs-AJs, AKo
+  total += store.ranges[props.player][0 * 13 + 2];
+  total += store.ranges[props.player][0 * 13 + 3];
+  total += store.ranges[props.player][1 * 13 + 0]; // AKo
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+const calculateMediumHands = () => {
+  let total = 0;
+  // 99-77
+  for (let i = 5; i < 8; i++) {
+    total += store.ranges[props.player][i * 13 + i];
+  }
+  // ATs-A5s, KQs-KTs
+  for (let i = 4; i < 10; i++) {
+    total += store.ranges[props.player][0 * 13 + i]; // Axs
+  }
+  for (let i = 2; i < 5; i++) {
+    total += store.ranges[props.player][1 * 13 + i]; // Kxs
+  }
+  // AQo-ATo
+  for (let i = 2; i < 5; i++) {
+    total += store.ranges[props.player][i * 13 + 0]; // Axo
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
+};
+
+const calculateMarginalHands = () => {
+  let total = 0;
+  // 66-22
+  for (let i = 8; i < 13; i++) {
+    total += store.ranges[props.player][i * 13 + i];
+  }
+  // A4s-A2s, KTs以下的中高同花连接
+  for (let i = 10; i < 13; i++) {
+    total += store.ranges[props.player][0 * 13 + i]; // Axs
+  }
+  // 其他连接同花
+  for (let i = 1; i < 10; i++) {
+    for (let j = i + 1; j < 11; j++) {
+      if (j - i === 1) { // 相邻
+        total += store.ranges[props.player][i * 13 + j]; // 只计算同花
+      }
+    }
+  }
+  return (total / sumOfRange() * 100).toFixed(1);
 };
 
 // 快速模板加载
