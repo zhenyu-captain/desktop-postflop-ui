@@ -1360,6 +1360,30 @@ const showBeforeSolvingInfo = async () => {
     if (treeConfigData) {
       debugData.treeConfig = treeConfigData;
     }
+    
+    // 获取Bunching组件的debug数据
+    eventBus.emit('request-debug-data');
+    
+    // 等待Bunching组件的响应，设置1秒超时
+    const bunchingData = await new Promise(resolve => {
+      const handler = (data) => {
+        eventBus.off('bunching-debug-data', handler);
+        resolve(data);
+      };
+      
+      eventBus.on('bunching-debug-data', handler);
+      
+      // 添加超时处理
+      setTimeout(() => {
+        eventBus.off('bunching-debug-data', handler);
+        resolve(null);
+      }, 1000);
+    });
+    
+    // 如果收到Bunching数据，添加到debugData
+    if (bunchingData) {
+      debugData.bunching = bunchingData;
+    }
   } catch (err) {
     console.error("Error getting debug data:", err);
     debugData.error = `Failed to get debug data: ${err.message}`;

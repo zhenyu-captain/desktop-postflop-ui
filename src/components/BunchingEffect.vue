@@ -291,7 +291,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useStore, useConfigStore } from "../store";
 import { trimRegex, rangeRegex, cardText } from "../utils";
 import * as invokes from "../invokes";
@@ -323,7 +323,60 @@ onMounted(() => {
     // 否则，功能状态总是false
     store.isBunchingEnabled = false;
   }
+  
+  // 添加事件总线监听器，用于响应Debug数据请求
+  eventBus.on('request-debug-data', handleRequestDebugData);
 });
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  eventBus.off('request-debug-data', handleRequestDebugData);
+});
+
+// 响应debug数据请求 - 与showDebugInfo函数逻辑相同
+const handleRequestDebugData = () => {
+  // 收集当前 Bunching 配置的所有信息
+  const bunchingData = {
+    status: {
+      enabled: store.isBunchingEnabled,
+      uiEnabled: isBunchingEnabledUI.value,
+      isRunning: store.isBunchingRunning,
+      isPaused: isBunchingPaused.value,
+      statusText: statusText.value,
+      hasBunchingRun: hasBunchingRun.value,
+      elapsedTimeMs: elapsedTimeMs.value,
+      numThreads: numThreads.value
+    },
+    foldRanges: rangeTexts.value.map((text, index) => ({
+      index: index + 1,
+      text: text,
+      hasError: isRangeTextError.value[index],
+      combos: numCombos.value[index],
+      percentage: numCombos.value[index] >= 0.9995 * ((52 * 51) / 2)
+        ? 100
+        : ((numCombos.value[index] * 100) / ((52 * 51) / 2))
+    })),
+    statistics: {
+      totalRanges: numCombos.value.filter(x => x > 0).length,
+      totalCombos: numCombos.value.reduce((a, b) => a + b, 0),
+      coverage: ((numCombos.value.reduce((a, b) => a + b, 0) * 100) / (52 * 51 / 2))
+    },
+    flop: store.bunchingFlop.length > 0 ? store.bunchingFlop.map(cardId => {
+      const { rank, suitLetter } = cardText(cardId);
+      return rank.toLowerCase() + suitLetter;
+    }) : [],
+    board: configStore.board.length > 0 ? configStore.board.map(cardId => {
+      const { rank, suitLetter } = cardText(cardId);
+      return rank.toLowerCase() + suitLetter;
+    }) : [],
+    memory: {
+      estimatedUsage: ["-", "60MB", "60MB", "190MB", "3.5GB"][numCombos.value.filter((x) => x > 0).length]
+    }
+  };
+  
+  // 通过事件总线发送Bunching数据
+  eventBus.emit('bunching-debug-data', bunchingData);
+};
 
 // 更新bunching状态
 const updateBunchingState = () => {
