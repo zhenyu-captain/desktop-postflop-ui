@@ -836,6 +836,16 @@
                 Clear Edit & Unlock
               </button>
             </div>
+            
+            <!-- Debug按钮 -->
+            <div class="mt-4">
+              <button 
+                class="w-full px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
+                @click="showDebugInfo"
+              >
+                Debug Configuration
+              </button>
+            </div>
           </div>
         </div>
         
@@ -919,6 +929,7 @@ import {
   ROOT_LINE_STRING,
   INVALID_LINE_STRING,
   readableLineString,
+  cardText
 } from "../utils";
 
 import DbItemPicker from "./DbItemPicker.vue";
@@ -1247,6 +1258,199 @@ const cancelEdit = () => {
     config.expectedBoardLength = 0;
   }
   store.headers["tree-config"].pop();
+};
+
+const showDebugInfo = async () => {
+  // 收集当前配置的所有信息
+  const configData = {
+    basicSettings: {
+      startingPot: config.startingPot,
+      effectiveStack: config.effectiveStack,
+      rakePercent: config.rakePercent,
+      rakeCap: config.rakeCap,
+      donkOption: config.donkOption
+    },
+    oopBetSizes: {
+      flop: {
+        bet: config.oopFlopBet,
+        raise: config.oopFlopRaise
+      },
+      turn: {
+        bet: config.oopTurnBet,
+        raise: config.oopTurnRaise,
+        donk: config.donkOption ? config.oopTurnDonk : null
+      },
+      river: {
+        bet: config.oopRiverBet,
+        raise: config.oopRiverRaise,
+        donk: config.donkOption ? config.oopRiverDonk : null
+      }
+    },
+    ipBetSizes: {
+      flop: {
+        bet: config.ipFlopBet,
+        raise: config.ipFlopRaise
+      },
+      turn: {
+        bet: config.ipTurnBet,
+        raise: config.ipTurnRaise
+      },
+      river: {
+        bet: config.ipRiverBet,
+        raise: config.ipRiverRaise
+      }
+    },
+    thresholds: {
+      addAllInThreshold: config.addAllInThreshold,
+      forceAllInThreshold: config.forceAllInThreshold,
+      mergingThreshold: config.mergingThreshold
+    },
+    treeEdit: {
+      expectedBoardLength: config.expectedBoardLength,
+      addedLines: config.addedLines ? config.addedLines.split(",").map(readableLineString) : [],
+      removedLines: config.removedLines ? config.removedLines.split(",").map(readableLineString) : [],
+      valid: isInputValid.value,
+      errors: {
+        basicSettings: errorBasics.value,
+        oop: errorOop.value,
+        ip: errorIp.value,
+        misc: errorMisc.value,
+        lines: errorLines.value
+      },
+      warnings: warningMisc.value
+    },
+    board: config.board.length > 0 ? config.board.map(cardId => {
+      // 获取卡牌的字符串表示
+      // 假设使用了相同的cardText函数
+      try {
+        const { rank, suitLetter } = cardText(cardId);
+        return rank.toLowerCase() + suitLetter;
+      } catch (e) {
+        return `card_${cardId}`;
+      }
+    }) : []
+  };
+  
+  // 格式化为JSON字符串
+  const jsonFormat = JSON.stringify(configData, null, 2);
+  
+  try {
+    // 复制到剪贴板
+    await navigator.clipboard.writeText(jsonFormat);
+    
+    // 创建弹窗显示JSON数据
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      max-width: 800px;
+      max-height: 80vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    `;
+    
+    // 创建弹窗标题
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    `;
+    header.innerHTML = `
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">树配置调试数据 (JSON已复制到剪贴板)</h3>
+      <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 16px;">×</button>
+    `;
+    
+    // 创建JSON内容显示区域
+    const content = document.createElement('div');
+    content.style.cssText = `
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      flex-grow: 1;
+      font-size: 14px;
+    `;
+    content.textContent = jsonFormat;
+    
+    // 创建按钮区域
+    const actions = document.createElement('div');
+    actions.style.cssText = `
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    `;
+    
+    // 复制按钮
+    const copyJsonBtn = document.createElement('button');
+    copyJsonBtn.textContent = "复制JSON";
+    copyJsonBtn.style.cssText = `
+      padding: 6px 12px;
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1890ff;
+    `;
+    copyJsonBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(jsonFormat);
+      copyJsonBtn.textContent = "✓ 已复制";
+      setTimeout(() => {
+        copyJsonBtn.textContent = "复制JSON";
+      }, 2000);
+    });
+    
+    // 组装弹窗
+    actions.appendChild(copyJsonBtn);
+    dialog.appendChild(header);
+    dialog.appendChild(content);
+    dialog.appendChild(actions);
+    document.body.appendChild(dialog);
+    
+    // 添加关闭事件
+    document.getElementById('closeDialog').addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+    
+    // 创建背景遮罩
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    `;
+    document.body.appendChild(overlay);
+    
+    // 点击遮罩关闭弹窗
+    overlay.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+  } catch (err) {
+    // 如果剪贴板API失败，使用alert显示
+    alert("无法使用剪贴板API，请尝试手动复制调试数据。");
+    console.log("树配置调试数据:", jsonFormat);
+  }
 };
 </script>
 
