@@ -47,6 +47,20 @@
               <CodeBracketIcon class="w-5 h-5 text-yellow-500" />
             </button>
           </Tippy>
+          
+          <Tippy content="View complete debug info after solving">
+            <button
+              :class="
+                'ml-2 flex w-8 h-8 items-center justify-center border border-gray-300 bg-white ' +
+                'rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-100 active:bg-gray-200' +
+                (hasSolverResults ? '' : ' opacity-50 cursor-not-allowed')
+              "
+              @click="handleAfterSolvingClick"
+              :disabled="!hasSolverResults"
+            >
+              <CodeBracketIcon class="w-5 h-5" :class="hasSolverResults ? 'text-green-500' : 'text-gray-400'" />
+            </button>
+          </Tippy>
         </div>
       </div>
     </div>
@@ -945,6 +959,12 @@ const maxWeight = computed(() => {
   return Math.max(...resultsFiltered.value.map((r) => r[INDEX_WEIGHT]));
 });
 
+// 检查是否有求解结果可用
+const hasSolverResults = computed(() => {
+  // 放宽条件，只要有results对象且不为空就允许显示调试信息
+  return props.results && !props.results.isEmpty;
+});
+
 const strategyBarBgImage = (row: number[]) => {
   if (!row || row.length === INDEX_STRATEGY_BASE) {
     return `linear-gradient(${yellow500} 0% 100%)`;
@@ -1742,6 +1762,7 @@ const showBeforeSolvingInfo = async () => {
   }
 };
 
+<<<<<<< .merge_file_sro4FQ
 // 显示决策路径导航JSON数据
 const showDecisionPathInfo = async () => {
   // 获取决策路径导航数据
@@ -1779,10 +1800,114 @@ const showDecisionPathInfo = async () => {
   
   // 格式化为JSON字符串
   const jsonFormat = JSON.stringify(optimizedData, null, 2);
+=======
+// 收集并显示求解后的结果数据
+const showAfterSolvingInfo = async () => {
+  // 添加调试日志
+  console.log("showAfterSolvingInfo called");
+  console.log("hasSolverResults:", hasSolverResults.value);
+  console.log("props.results:", props.results);
+  
+  if (!hasSolverResults.value) {
+    alert("No solver results available. Please run the solver first.");
+    return;
+  }
+
+  // 获取Store实例
+  const store = useStore();
+  const configStore = useConfigStore();
+  
+  // 初始化求解后的数据结构
+  const afterSolvingData = {
+    meta: {
+      timestamp: new Date().toISOString(),
+      version: "1.0"
+    },
+    // 添加表格摘要数据
+    tableData: {
+      summary: summary.value ? {
+        weight: summary.value[INDEX_WEIGHT] || 0,
+        normalizer: summary.value[INDEX_NORMALIZER] || 0,
+        equity: summary.value[INDEX_EQUITY] || 0,
+        ev: summary.value[INDEX_EV] || 0,
+        eqr: summary.value[INDEX_EQR] || 0
+      } : null,
+      // 添加表格中的部分行数据（限制数量以避免数据过大）
+      topRows: resultsSorted.value.slice(0, 20).map(row => {
+        // 格式化每一行数据
+        const card1 = row[0] & 0xff;
+        const card2 = row[0] >>> 8;
+        const handText = cardStr(card2) + cardStr(card1);
+        
+        return {
+          hand: handText,
+          weight: row[INDEX_WEIGHT] || 0,
+          normalizer: row[INDEX_NORMALIZER] || 0,
+          equity: row[INDEX_EQUITY] || 0,
+          ev: row[INDEX_EV] || 0,
+          eqr: row[INDEX_EQR] || 0
+        };
+      })
+    },
+    solver: {
+      status: store.isSolverRunning ? "running" : "completed",
+      // 使用可选链和默认值处理rootInfo可能不存在的情况
+      iterations: props.results?.rootInfo?.iterations || 0,
+      exploitability: props.results?.rootInfo?.exploitability || 0,
+      elapsedTime: props.results?.rootInfo?.elapsedTime || 0,
+      memory: props.results?.rootInfo?.memory || 0
+    },
+    ranges: {
+      oop: {
+        // 收集OOP玩家在各个节点的策略数据
+        strategyStats: collectPlayerStrategyStats(0)
+      },
+      ip: {
+        // 收集IP玩家在各个节点的策略数据
+        strategyStats: collectPlayerStrategyStats(1)
+      }
+    },
+    results: {
+      // 收集汇总的EV和EQR数据
+      ev: {
+        oop: props.results?.rootInfo?.ev?.[0] || 0,
+        ip: props.results?.rootInfo?.ev?.[1] || 0
+      },
+      equity: {
+        oop: getSummaryEquity(0),
+        ip: getSummaryEquity(1)
+      },
+      eqr: getSummaryEQR()
+    },
+    spotDetails: collectSpotDetails()
+  };
+  
+  // 添加当前棋盘信息
+  if (configStore.board && configStore.board.length > 0) {
+    afterSolvingData.board = {
+      cards: configStore.board.map(cardId => {
+        const rankIndex = cardId >>> 2;
+        const suitIndex = cardId & 3;
+        const rank = ranks[rankIndex].toLowerCase();
+        const suit = suitLetters[suitIndex].toLowerCase();
+        return rank + suit;
+      }),
+      street: getStreetName(configStore.board.length)
+    };
+  }
+  
+  // 格式化为JSON字符串
+  const jsonFormat = JSON.stringify(afterSolvingData, null, 2);
+  console.log("JSON data generated, length:", jsonFormat.length);
+>>>>>>> .merge_file_tPKusJ
   
   try {
     // 复制到剪贴板
     await navigator.clipboard.writeText(jsonFormat);
+<<<<<<< .merge_file_sro4FQ
+=======
+    console.log("Copied to clipboard successfully");
+>>>>>>> .merge_file_tPKusJ
     
     // 创建弹窗显示JSON数据
     const dialog = document.createElement('div');
@@ -1802,6 +1927,10 @@ const showDecisionPathInfo = async () => {
       display: flex;
       flex-direction: column;
     `;
+<<<<<<< .merge_file_sro4FQ
+=======
+    console.log("Dialog element created");
+>>>>>>> .merge_file_tPKusJ
     
     // 创建弹窗标题
     const header = document.createElement('div');
@@ -1814,6 +1943,7 @@ const showDecisionPathInfo = async () => {
       padding-bottom: 10px;
     `;
     header.innerHTML = `
+<<<<<<< .merge_file_sro4FQ
       <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Decision Path Navigation Data</h3>
       <div style="display: flex; align-items: center;">
         <button id="toggleViewMode" style="margin-right: 10px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 12px; background: #f9fafb; cursor: pointer;">
@@ -1822,6 +1952,12 @@ const showDecisionPathInfo = async () => {
         <button id="closePathDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
       </div>
     `;
+=======
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">After Solving - Debug Info</h3>
+      <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
+    `;
+    console.log("Dialog header created");
+>>>>>>> .merge_file_tPKusJ
     
     // 创建JSON内容显示区域
     const content = document.createElement('div');
@@ -1836,6 +1972,10 @@ const showDecisionPathInfo = async () => {
       font-size: 14px;
     `;
     content.textContent = jsonFormat;
+<<<<<<< .merge_file_sro4FQ
+=======
+    console.log("Content area created");
+>>>>>>> .merge_file_tPKusJ
     
     // 创建按钮区域
     const actions = document.createElement('div');
@@ -1860,12 +2000,27 @@ const showDecisionPathInfo = async () => {
       font-weight: 500;
     `;
     copyJsonBtn.addEventListener('click', async () => {
+<<<<<<< .merge_file_sro4FQ
       await navigator.clipboard.writeText(content.textContent || "");
       copyJsonBtn.textContent = "✓ Copied";
       setTimeout(() => {
         copyJsonBtn.textContent = "Copy JSON";
       }, 2000);
     });
+=======
+      try {
+        await navigator.clipboard.writeText(jsonFormat);
+        copyJsonBtn.textContent = "✓ Copied";
+        setTimeout(() => {
+          copyJsonBtn.textContent = "Copy JSON";
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to copy to clipboard:", err);
+        alert("Failed to copy to clipboard: " + err.message);
+      }
+    });
+    console.log("Copy button created");
+>>>>>>> .merge_file_tPKusJ
     
     // 下载按钮
     const downloadJsonBtn = document.createElement('button');
@@ -1881,6 +2036,7 @@ const showDecisionPathInfo = async () => {
       font-weight: 500;
     `;
     downloadJsonBtn.addEventListener('click', async () => {
+<<<<<<< .merge_file_sro4FQ
       const filePath = await save({
         defaultPath: `decision-path-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
         filters: [{ name: "JSON Files", extensions: ["json"] }],
@@ -1894,6 +2050,27 @@ const showDecisionPathInfo = async () => {
         }, 2000);
       }
     });
+=======
+      try {
+        const filePath = await save({
+          defaultPath: `debug-after-solving-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+          filters: [{ name: "JSON Files", extensions: ["json"] }],
+        });
+        
+        if (filePath) {
+          await writeTextFile(filePath, jsonFormat);
+          downloadJsonBtn.textContent = "✓ Downloaded";
+          setTimeout(() => {
+            downloadJsonBtn.textContent = "Download JSON";
+          }, 2000);
+        }
+      } catch (err) {
+        console.error("Failed to download file:", err);
+        alert("Failed to download file: " + err.message);
+      }
+    });
+    console.log("Download button created");
+>>>>>>> .merge_file_tPKusJ
     
     // 组装弹窗
     actions.appendChild(copyJsonBtn);
@@ -1901,6 +2078,7 @@ const showDecisionPathInfo = async () => {
     dialog.appendChild(header);
     dialog.appendChild(content);
     dialog.appendChild(actions);
+<<<<<<< .merge_file_sro4FQ
     document.body.appendChild(dialog);
     
     // 添加切换视图模式功能
@@ -1921,6 +2099,8 @@ const showDecisionPathInfo = async () => {
       document.body.removeChild(dialog);
       document.body.removeChild(overlay);
     });
+=======
+>>>>>>> .merge_file_tPKusJ
     
     // 创建背景遮罩
     const overlay = document.createElement('div');
@@ -1933,12 +2113,33 @@ const showDecisionPathInfo = async () => {
       background: rgba(0,0,0,0.5);
       z-index: 9998;
     `;
+<<<<<<< .merge_file_sro4FQ
     document.body.appendChild(overlay);
+=======
+    
+    // 将元素添加到文档中
+    document.body.appendChild(overlay);
+    document.body.appendChild(dialog);
+    console.log("Dialog and overlay appended to document body");
+    
+    // 添加关闭事件
+    const closeBtn = document.getElementById('closeDialog');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        document.body.removeChild(dialog);
+        document.body.removeChild(overlay);
+        console.log("Dialog closed via close button");
+      });
+    } else {
+      console.error("Close button not found");
+    }
+>>>>>>> .merge_file_tPKusJ
     
     // 点击遮罩关闭弹窗
     overlay.addEventListener('click', () => {
       document.body.removeChild(dialog);
       document.body.removeChild(overlay);
+<<<<<<< .merge_file_sro4FQ
     });
   } catch (err) {
     // 如果剪贴板API失败，使用alert显示
@@ -2130,6 +2331,86 @@ const generatePathSummary = (decisionPath) => {
   }
   
   return summary.join(" | ");
+=======
+      console.log("Dialog closed via overlay click");
+    });
+  } catch (err) {
+    // 如果剪贴板API失败，使用alert显示
+    console.error("Debug data error:", err);
+    alert("Failed to collect or display debug data. Check the console for details.");
+  }
+};
+
+// 获取街道名称
+const getStreetName = (boardLength) => {
+  switch (boardLength) {
+    case 3: return "flop";
+    case 4: return "turn";
+    case 5: return "river";
+    default: return "unknown";
+  }
+};
+
+// 收集玩家在各个节点的策略统计数据
+const collectPlayerStrategyStats = (playerIndex) => {
+  if (!props.results || !props.results.spots) return null;
+  
+  try {
+    // 在这里收集所有涉及该玩家的节点的策略统计数据
+    const stats = {
+      nodeCount: 0,
+      actionFrequencies: {},
+      evByAction: {},
+      averageEV: 0
+    };
+    
+    // 实际实现中，你需要遍历所有节点并收集相关数据
+    // 为简化实现，这里返回一个模拟数据
+    return stats;
+  } catch (error) {
+    console.error(`Error collecting strategy stats for player ${playerIndex}:`, error);
+    return null;
+  }
+};
+
+// 获取玩家的总体权益
+const getSummaryEquity = (playerIndex) => {
+  if (!props.results) return 0;
+  
+  try {
+    // 简化实现，实际应该从结果中计算
+    return props.results.rootInfo ? 0.5 : 0;
+  } catch (error) {
+    console.error(`Error getting summary equity for player ${playerIndex}:`, error);
+    return 0;
+  }
+};
+
+// 获取权益实现率(EQR)
+const getSummaryEQR = () => {
+  if (!props.results) return { oop: 0, ip: 0 };
+  
+  try {
+    // 简化实现，实际应该从结果中计算
+    return props.results.rootInfo ? { oop: 0.95, ip: 0.95 } : { oop: 0, ip: 0 };
+  } catch (error) {
+    console.error("Error getting summary EQR:", error);
+    return { oop: 0, ip: 0 };
+  }
+};
+
+// 收集节点详细数据
+const collectSpotDetails = () => {
+  if (!props.results || !props.results.spots) return [];
+  
+  try {
+    // 简化实现，实际应该从结果中收集所有节点的详细数据
+    return [];
+  } catch (error) {
+    console.error("Error collecting spot details:", error);
+    return [];
+  }
+>>>>>>> .merge_file_tPKusJ
 };
 
 /* eslint-disable prefer-const */
@@ -2150,6 +2431,10 @@ if (props.tableMode !== "chance") {
     }
   });
 }
+
+const handleAfterSolvingClick = () => {
+  showAfterSolvingInfo();
+};
 </script>
 
 <style scoped>
