@@ -258,10 +258,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, toRefs, ref, watch } from "vue";
+import { computed, nextTick, toRefs, ref, watch, onMounted, onUnmounted } from "vue";
 import { useSavedConfigStore } from "../store";
 import { cardText, average, colorString } from "../utils";
 import * as invokes from "../invokes";
+import eventBus from "../eventBus";
 
 import {
   Results,
@@ -875,6 +876,36 @@ const spotCards = (spot: SpotRoot | SpotChance) => {
   } else {
     return [cardText(spot.selectedIndex)];
   }
+};
+
+// 添加事件监听器以响应决策路径数据请求
+onMounted(() => {
+  eventBus.on('request-decision-path-data', provideDecisionPathData);
+});
+
+onUnmounted(() => {
+  eventBus.off('request-decision-path-data', provideDecisionPathData);
+});
+
+// 提供决策路径导航数据
+const provideDecisionPathData = () => {
+  const pathData = {
+    spots: spots.value,
+    currentState: {
+      selectedSpotIndex: selectedSpotIndex.value,
+      selectedChanceIndex: selectedChanceIndex.value,
+      currentBoard: currentBoard.value,
+      isSelectedChanceSkipped: isSelectedChanceSkipped.value
+    },
+    navigation: {
+      selectedSpot: selectedSpot.value,
+      selectedChance: selectedChance.value,
+      canChanceReports: canChanceReports.value
+    },
+    betAmounts: totalBetAmount
+  };
+  
+  eventBus.emit('decision-path-data', pathData);
 };
 </script>
 
