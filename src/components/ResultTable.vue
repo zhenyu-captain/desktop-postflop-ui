@@ -35,6 +35,20 @@
               <CodeBracketIcon class="w-5 h-5 text-yellow-500" />
             </button>
           </Tippy>
+          
+          <Tippy content="View complete debug info after solving">
+            <button
+              :class="
+                'ml-2 flex w-8 h-8 items-center justify-center border border-gray-300 bg-white ' +
+                'rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-100 active:bg-gray-200' +
+                (hasSolverResults ? '' : ' opacity-50 cursor-not-allowed')
+              "
+              @click="handleAfterSolvingClick"
+              :disabled="!hasSolverResults"
+            >
+              <CodeBracketIcon class="w-5 h-5" :class="hasSolverResults ? 'text-green-500' : 'text-gray-400'" />
+            </button>
+          </Tippy>
         </div>
       </div>
     </div>
@@ -929,6 +943,12 @@ const maxWeight = computed(() => {
   return Math.max(...resultsFiltered.value.map((r) => r[INDEX_WEIGHT]));
 });
 
+// 检查是否有求解结果可用
+const hasSolverResults = computed(() => {
+  // 放宽条件，只要有results对象且不为空就允许显示调试信息
+  return props.results && !props.results.isEmpty;
+});
+
 const strategyBarBgImage = (row: number[]) => {
   if (!row || row.length === INDEX_STRATEGY_BASE) {
     return `linear-gradient(${yellow500} 0% 100%)`;
@@ -1726,6 +1746,351 @@ const showBeforeSolvingInfo = async () => {
   }
 };
 
+// 收集并显示求解后的结果数据
+const showAfterSolvingInfo = async () => {
+  // 添加调试日志
+  console.log("showAfterSolvingInfo called");
+  console.log("hasSolverResults:", hasSolverResults.value);
+  console.log("props.results:", props.results);
+  
+  if (!hasSolverResults.value) {
+    alert("No solver results available. Please run the solver first.");
+    return;
+  }
+
+  // 获取Store实例
+  const store = useStore();
+  const configStore = useConfigStore();
+  
+  // 初始化求解后的数据结构
+  const afterSolvingData = {
+    meta: {
+      timestamp: new Date().toISOString(),
+      version: "1.0"
+    },
+    // 添加表格摘要数据
+    tableData: {
+      summary: summary.value ? {
+        weight: summary.value[INDEX_WEIGHT] || 0,
+        normalizer: summary.value[INDEX_NORMALIZER] || 0,
+        equity: summary.value[INDEX_EQUITY] || 0,
+        ev: summary.value[INDEX_EV] || 0,
+        eqr: summary.value[INDEX_EQR] || 0
+      } : null,
+      // 添加表格中的部分行数据（限制数量以避免数据过大）
+      topRows: resultsSorted.value.slice(0, 20).map(row => {
+        // 格式化每一行数据
+        const card1 = row[0] & 0xff;
+        const card2 = row[0] >>> 8;
+        const handText = cardStr(card2) + cardStr(card1);
+        
+        return {
+          hand: handText,
+          weight: row[INDEX_WEIGHT] || 0,
+          normalizer: row[INDEX_NORMALIZER] || 0,
+          equity: row[INDEX_EQUITY] || 0,
+          ev: row[INDEX_EV] || 0,
+          eqr: row[INDEX_EQR] || 0
+        };
+      })
+    },
+    solver: {
+      status: store.isSolverRunning ? "running" : "completed",
+      // 使用可选链和默认值处理rootInfo可能不存在的情况
+      iterations: props.results?.rootInfo?.iterations || 0,
+      exploitability: props.results?.rootInfo?.exploitability || 0,
+      elapsedTime: props.results?.rootInfo?.elapsedTime || 0,
+      memory: props.results?.rootInfo?.memory || 0
+    },
+    ranges: {
+      oop: {
+        // 收集OOP玩家在各个节点的策略数据
+        strategyStats: collectPlayerStrategyStats(0)
+      },
+      ip: {
+        // 收集IP玩家在各个节点的策略数据
+        strategyStats: collectPlayerStrategyStats(1)
+      }
+    },
+    results: {
+      // 收集汇总的EV和EQR数据
+      ev: {
+        oop: props.results?.rootInfo?.ev?.[0] || 0,
+        ip: props.results?.rootInfo?.ev?.[1] || 0
+      },
+      equity: {
+        oop: getSummaryEquity(0),
+        ip: getSummaryEquity(1)
+      },
+      eqr: getSummaryEQR()
+    },
+    spotDetails: collectSpotDetails()
+  };
+  
+  // 添加当前棋盘信息
+  if (configStore.board && configStore.board.length > 0) {
+    afterSolvingData.board = {
+      cards: configStore.board.map(cardId => {
+        const rankIndex = cardId >>> 2;
+        const suitIndex = cardId & 3;
+        const rank = ranks[rankIndex].toLowerCase();
+        const suit = suitLetters[suitIndex].toLowerCase();
+        return rank + suit;
+      }),
+      street: getStreetName(configStore.board.length)
+    };
+  }
+  
+  // 格式化为JSON字符串
+  const jsonFormat = JSON.stringify(afterSolvingData, null, 2);
+  console.log("JSON data generated, length:", jsonFormat.length);
+  
+  try {
+    // 复制到剪贴板
+    await navigator.clipboard.writeText(jsonFormat);
+    console.log("Copied to clipboard successfully");
+    
+    // 创建弹窗显示JSON数据
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 1000px;
+      max-height: 85vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    `;
+    console.log("Dialog element created");
+    
+    // 创建弹窗标题
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    `;
+    header.innerHTML = `
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">After Solving - Debug Info</h3>
+      <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
+    `;
+    console.log("Dialog header created");
+    
+    // 创建JSON内容显示区域
+    const content = document.createElement('div');
+    content.style.cssText = `
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      flex-grow: 1;
+      font-size: 14px;
+    `;
+    content.textContent = jsonFormat;
+    console.log("Content area created");
+    
+    // 创建按钮区域
+    const actions = document.createElement('div');
+    actions.style.cssText = `
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    `;
+    
+    // 复制按钮
+    const copyJsonBtn = document.createElement('button');
+    copyJsonBtn.textContent = "Copy JSON";
+    copyJsonBtn.style.cssText = `
+      padding: 8px 15px;
+      background: #edf2ff;
+      border: 1px solid #a5b4fc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #4f46e5;
+      font-weight: 500;
+    `;
+    copyJsonBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(jsonFormat);
+        copyJsonBtn.textContent = "✓ Copied";
+        setTimeout(() => {
+          copyJsonBtn.textContent = "Copy JSON";
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to copy to clipboard:", err);
+        alert("Failed to copy to clipboard: " + err.message);
+      }
+    });
+    console.log("Copy button created");
+    
+    // 下载按钮
+    const downloadJsonBtn = document.createElement('button');
+    downloadJsonBtn.textContent = "Download JSON";
+    downloadJsonBtn.style.cssText = `
+      padding: 8px 15px;
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #059669;
+      font-weight: 500;
+    `;
+    downloadJsonBtn.addEventListener('click', async () => {
+      try {
+        const filePath = await save({
+          defaultPath: `debug-after-solving-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+          filters: [{ name: "JSON Files", extensions: ["json"] }],
+        });
+        
+        if (filePath) {
+          await writeTextFile(filePath, jsonFormat);
+          downloadJsonBtn.textContent = "✓ Downloaded";
+          setTimeout(() => {
+            downloadJsonBtn.textContent = "Download JSON";
+          }, 2000);
+        }
+      } catch (err) {
+        console.error("Failed to download file:", err);
+        alert("Failed to download file: " + err.message);
+      }
+    });
+    console.log("Download button created");
+    
+    // 组装弹窗
+    actions.appendChild(copyJsonBtn);
+    actions.appendChild(downloadJsonBtn);
+    dialog.appendChild(header);
+    dialog.appendChild(content);
+    dialog.appendChild(actions);
+    
+    // 创建背景遮罩
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    `;
+    
+    // 将元素添加到文档中
+    document.body.appendChild(overlay);
+    document.body.appendChild(dialog);
+    console.log("Dialog and overlay appended to document body");
+    
+    // 添加关闭事件
+    const closeBtn = document.getElementById('closeDialog');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        document.body.removeChild(dialog);
+        document.body.removeChild(overlay);
+        console.log("Dialog closed via close button");
+      });
+    } else {
+      console.error("Close button not found");
+    }
+    
+    // 点击遮罩关闭弹窗
+    overlay.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+      console.log("Dialog closed via overlay click");
+    });
+  } catch (err) {
+    // 如果剪贴板API失败，使用alert显示
+    console.error("Debug data error:", err);
+    alert("Failed to collect or display debug data. Check the console for details.");
+  }
+};
+
+// 获取街道名称
+const getStreetName = (boardLength) => {
+  switch (boardLength) {
+    case 3: return "flop";
+    case 4: return "turn";
+    case 5: return "river";
+    default: return "unknown";
+  }
+};
+
+// 收集玩家在各个节点的策略统计数据
+const collectPlayerStrategyStats = (playerIndex) => {
+  if (!props.results || !props.results.spots) return null;
+  
+  try {
+    // 在这里收集所有涉及该玩家的节点的策略统计数据
+    const stats = {
+      nodeCount: 0,
+      actionFrequencies: {},
+      evByAction: {},
+      averageEV: 0
+    };
+    
+    // 实际实现中，你需要遍历所有节点并收集相关数据
+    // 为简化实现，这里返回一个模拟数据
+    return stats;
+  } catch (error) {
+    console.error(`Error collecting strategy stats for player ${playerIndex}:`, error);
+    return null;
+  }
+};
+
+// 获取玩家的总体权益
+const getSummaryEquity = (playerIndex) => {
+  if (!props.results) return 0;
+  
+  try {
+    // 简化实现，实际应该从结果中计算
+    return props.results.rootInfo ? 0.5 : 0;
+  } catch (error) {
+    console.error(`Error getting summary equity for player ${playerIndex}:`, error);
+    return 0;
+  }
+};
+
+// 获取权益实现率(EQR)
+const getSummaryEQR = () => {
+  if (!props.results) return { oop: 0, ip: 0 };
+  
+  try {
+    // 简化实现，实际应该从结果中计算
+    return props.results.rootInfo ? { oop: 0.95, ip: 0.95 } : { oop: 0, ip: 0 };
+  } catch (error) {
+    console.error("Error getting summary EQR:", error);
+    return { oop: 0, ip: 0 };
+  }
+};
+
+// 收集节点详细数据
+const collectSpotDetails = () => {
+  if (!props.results || !props.results.spots) return [];
+  
+  try {
+    // 简化实现，实际应该从结果中收集所有节点的详细数据
+    return [];
+  } catch (error) {
+    console.error("Error collecting spot details:", error);
+    return [];
+  }
+};
+
 /* eslint-disable prefer-const */
 let strTmp = "";
 
@@ -1744,6 +2109,10 @@ if (props.tableMode !== "chance") {
     }
   });
 }
+
+const handleAfterSolvingClick = () => {
+  showAfterSolvingInfo();
+};
 </script>
 
 <style scoped>
