@@ -1762,45 +1762,6 @@ const showBeforeSolvingInfo = async () => {
   }
 };
 
-<<<<<<< .merge_file_sro4FQ
-// 显示决策路径导航JSON数据
-const showDecisionPathInfo = async () => {
-  // 获取决策路径导航数据
-  // 通过eventBus请求当前的spots数据
-  eventBus.emit('request-decision-path-data');
-  
-  // 等待ResultNav组件的响应，设置1秒超时
-  const pathData = await new Promise(resolve => {
-    const handler = (data) => {
-      eventBus.off('decision-path-data', handler);
-      resolve(data);
-    };
-    
-    eventBus.on('decision-path-data', handler);
-    
-    // 添加超时处理
-    setTimeout(() => {
-      eventBus.off('decision-path-data', handler);
-      // 如果没有收到响应，尝试从props中获取
-      resolve(props.selectedSpot ? {
-        currentSpot: props.selectedSpot,
-        pathData: "Complete path data not available"
-      } : null);
-    }, 1000);
-  });
-  
-  // 如果没有获取到数据
-  if (!pathData) {
-    alert("Unable to retrieve decision path data");
-    return;
-  }
-  
-  // 优化和精简数据
-  const optimizedData = optimizePathData(pathData);
-  
-  // 格式化为JSON字符串
-  const jsonFormat = JSON.stringify(optimizedData, null, 2);
-=======
 // 收集并显示求解后的结果数据
 const showAfterSolvingInfo = async () => {
   // 添加调试日志
@@ -1899,15 +1860,11 @@ const showAfterSolvingInfo = async () => {
   // 格式化为JSON字符串
   const jsonFormat = JSON.stringify(afterSolvingData, null, 2);
   console.log("JSON data generated, length:", jsonFormat.length);
->>>>>>> .merge_file_tPKusJ
   
   try {
     // 复制到剪贴板
     await navigator.clipboard.writeText(jsonFormat);
-<<<<<<< .merge_file_sro4FQ
-=======
     console.log("Copied to clipboard successfully");
->>>>>>> .merge_file_tPKusJ
     
     // 创建弹窗显示JSON数据
     const dialog = document.createElement('div');
@@ -1927,10 +1884,7 @@ const showAfterSolvingInfo = async () => {
       display: flex;
       flex-direction: column;
     `;
-<<<<<<< .merge_file_sro4FQ
-=======
     console.log("Dialog element created");
->>>>>>> .merge_file_tPKusJ
     
     // 创建弹窗标题
     const header = document.createElement('div');
@@ -1943,21 +1897,10 @@ const showAfterSolvingInfo = async () => {
       padding-bottom: 10px;
     `;
     header.innerHTML = `
-<<<<<<< .merge_file_sro4FQ
-      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Decision Path Navigation Data</h3>
-      <div style="display: flex; align-items: center;">
-        <button id="toggleViewMode" style="margin-right: 10px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 12px; background: #f9fafb; cursor: pointer;">
-          Optimized View
-        </button>
-        <button id="closePathDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
-      </div>
-    `;
-=======
       <h3 style="margin: 0; font-size: 18px; font-weight: 600;">After Solving - Debug Info</h3>
       <button id="closeDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
     `;
     console.log("Dialog header created");
->>>>>>> .merge_file_tPKusJ
     
     // 创建JSON内容显示区域
     const content = document.createElement('div');
@@ -1972,10 +1915,7 @@ const showAfterSolvingInfo = async () => {
       font-size: 14px;
     `;
     content.textContent = jsonFormat;
-<<<<<<< .merge_file_sro4FQ
-=======
     console.log("Content area created");
->>>>>>> .merge_file_tPKusJ
     
     // 创建按钮区域
     const actions = document.createElement('div');
@@ -2000,14 +1940,6 @@ const showAfterSolvingInfo = async () => {
       font-weight: 500;
     `;
     copyJsonBtn.addEventListener('click', async () => {
-<<<<<<< .merge_file_sro4FQ
-      await navigator.clipboard.writeText(content.textContent || "");
-      copyJsonBtn.textContent = "✓ Copied";
-      setTimeout(() => {
-        copyJsonBtn.textContent = "Copy JSON";
-      }, 2000);
-    });
-=======
       try {
         await navigator.clipboard.writeText(jsonFormat);
         copyJsonBtn.textContent = "✓ Copied";
@@ -2020,7 +1952,6 @@ const showAfterSolvingInfo = async () => {
       }
     });
     console.log("Copy button created");
->>>>>>> .merge_file_tPKusJ
     
     // 下载按钮
     const downloadJsonBtn = document.createElement('button');
@@ -2036,21 +1967,6 @@ const showAfterSolvingInfo = async () => {
       font-weight: 500;
     `;
     downloadJsonBtn.addEventListener('click', async () => {
-<<<<<<< .merge_file_sro4FQ
-      const filePath = await save({
-        defaultPath: `decision-path-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
-        filters: [{ name: "JSON Files", extensions: ["json"] }],
-      });
-      
-      if (filePath) {
-        await writeTextFile(filePath, content.textContent || "");
-        downloadJsonBtn.textContent = "✓ Downloaded";
-        setTimeout(() => {
-          downloadJsonBtn.textContent = "Download JSON";
-        }, 2000);
-      }
-    });
-=======
       try {
         const filePath = await save({
           defaultPath: `debug-after-solving-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
@@ -2070,7 +1986,6 @@ const showAfterSolvingInfo = async () => {
       }
     });
     console.log("Download button created");
->>>>>>> .merge_file_tPKusJ
     
     // 组装弹窗
     actions.appendChild(copyJsonBtn);
@@ -2078,44 +1993,6 @@ const showAfterSolvingInfo = async () => {
     dialog.appendChild(header);
     dialog.appendChild(content);
     dialog.appendChild(actions);
-<<<<<<< .merge_file_sro4FQ
-    document.body.appendChild(dialog);
-    
-    // 添加切换视图模式功能
-    let isOptimizedView = true;
-    const toggleViewBtn = document.getElementById('toggleViewMode');
-    if (toggleViewBtn) {
-      toggleViewBtn.addEventListener('click', () => {
-        isOptimizedView = !isOptimizedView;
-        toggleViewBtn.textContent = isOptimizedView ? 'Optimized View' : 'Full View';
-        content.textContent = isOptimizedView 
-          ? JSON.stringify(optimizedData, null, 2)
-          : JSON.stringify(pathData, null, 2);
-      });
-    }
-    
-    // 添加关闭事件
-    document.getElementById('closePathDialog')?.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      document.body.removeChild(overlay);
-    });
-=======
->>>>>>> .merge_file_tPKusJ
-    
-    // 创建背景遮罩
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 9998;
-    `;
-<<<<<<< .merge_file_sro4FQ
-    document.body.appendChild(overlay);
-=======
     
     // 将元素添加到文档中
     document.body.appendChild(overlay);
@@ -2133,18 +2010,17 @@ const showAfterSolvingInfo = async () => {
     } else {
       console.error("Close button not found");
     }
->>>>>>> .merge_file_tPKusJ
     
     // 点击遮罩关闭弹窗
     overlay.addEventListener('click', () => {
       document.body.removeChild(dialog);
       document.body.removeChild(overlay);
-<<<<<<< .merge_file_sro4FQ
+      console.log("Dialog closed via overlay click");
     });
   } catch (err) {
     // 如果剪贴板API失败，使用alert显示
-    console.error("Decision path data error:", err);
-    alert("Failed to display decision path data. Check the console for details.");
+    console.error("Debug data error:", err);
+    alert("Failed to collect or display debug data. Check the console for details.");
   }
 };
 
@@ -2331,14 +2207,6 @@ const generatePathSummary = (decisionPath) => {
   }
   
   return summary.join(" | ");
-=======
-      console.log("Dialog closed via overlay click");
-    });
-  } catch (err) {
-    // 如果剪贴板API失败，使用alert显示
-    console.error("Debug data error:", err);
-    alert("Failed to collect or display debug data. Check the console for details.");
-  }
 };
 
 // 获取街道名称
@@ -2410,7 +2278,6 @@ const collectSpotDetails = () => {
     console.error("Error collecting spot details:", error);
     return [];
   }
->>>>>>> .merge_file_tPKusJ
 };
 
 /* eslint-disable prefer-const */
@@ -2434,6 +2301,206 @@ if (props.tableMode !== "chance") {
 
 const handleAfterSolvingClick = () => {
   showAfterSolvingInfo();
+};
+
+// 优化决策路径数据
+// 显示决策路径导航JSON数据
+const showDecisionPathInfo = async () => {
+  eventBus.emit('request-decision-path-data');
+  
+  // 等待ResultNav组件的响应，设置1秒超时
+  const pathData = await new Promise(resolve => {
+    const handler = (data) => {
+      eventBus.off('decision-path-data', handler);
+      resolve(data);
+    };
+    
+    eventBus.on('decision-path-data', handler);
+    
+    // 添加超时处理
+    setTimeout(() => {
+      eventBus.off('decision-path-data', handler);
+      // 如果没有收到响应，尝试从props中获取
+      resolve(props.selectedSpot ? {
+        currentSpot: props.selectedSpot,
+        pathData: "Complete path data not available"
+      } : null);
+    }, 1000);
+  });
+  
+  // 如果没有获取到数据
+  if (!pathData) {
+    alert("Unable to retrieve decision path data");
+    return;
+  }
+  
+  // 优化和精简数据
+  const optimizedData = optimizePathData(pathData);
+  
+  // 格式化为JSON字符串
+  const jsonFormat = JSON.stringify(optimizedData, null, 2);
+  
+  try {
+    // 复制到剪贴板
+    await navigator.clipboard.writeText(jsonFormat);
+    
+    // 创建弹窗显示JSON数据
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 1000px;
+      max-height: 85vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    `;
+    
+    // 创建弹窗标题
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    `;
+    header.innerHTML = `
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Decision Path Navigation Data</h3>
+      <div style="display: flex; align-items: center;">
+        <button id="toggleViewMode" style="margin-right: 10px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 12px; background: #f9fafb; cursor: pointer;">
+          Optimized View
+        </button>
+        <button id="closePathDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
+      </div>
+    `;
+    
+    // 创建JSON内容显示区域
+    const content = document.createElement('pre');
+    content.style.cssText = `
+      flex: 1;
+      overflow: auto;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    `;
+    content.textContent = jsonFormat;
+    
+    // 创建按钮区域
+    const actions = document.createElement('div');
+    actions.style.cssText = `
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    `;
+    
+    // 复制按钮
+    const copyJsonBtn = document.createElement('button');
+    copyJsonBtn.style.cssText = `
+      padding: 8px 12px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    copyJsonBtn.textContent = "Copy JSON";
+    copyJsonBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(content.textContent || "");
+      copyJsonBtn.textContent = "✓ Copied";
+      setTimeout(() => {
+        copyJsonBtn.textContent = "Copy JSON";
+      }, 2000);
+    });
+    
+    // 下载按钮
+    const downloadJsonBtn = document.createElement('button');
+    downloadJsonBtn.style.cssText = `
+      padding: 8px 12px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    downloadJsonBtn.textContent = "Download JSON";
+    downloadJsonBtn.addEventListener('click', async () => {
+      const filePath = await save({
+        defaultPath: `decision-path-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+      
+      if (filePath) {
+        await writeTextFile(filePath, content.textContent || "");
+        downloadJsonBtn.textContent = "✓ Downloaded";
+        setTimeout(() => {
+          downloadJsonBtn.textContent = "Download JSON";
+        }, 2000);
+      }
+    });
+    
+    // 组装弹窗
+    actions.appendChild(copyJsonBtn);
+    actions.appendChild(downloadJsonBtn);
+    dialog.appendChild(header);
+    dialog.appendChild(content);
+    dialog.appendChild(actions);
+    document.body.appendChild(dialog);
+    
+    // 添加切换视图模式功能
+    let isOptimizedView = true;
+    const toggleViewBtn = document.getElementById('toggleViewMode');
+    if (toggleViewBtn) {
+      toggleViewBtn.addEventListener('click', () => {
+        isOptimizedView = !isOptimizedView;
+        toggleViewBtn.textContent = isOptimizedView ? 'Optimized View' : 'Full View';
+        content.textContent = isOptimizedView 
+          ? JSON.stringify(optimizedData, null, 2)
+          : JSON.stringify(pathData, null, 2);
+      });
+    }
+    
+    // 添加关闭事件
+    document.getElementById('closePathDialog')?.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+    
+    // 创建背景遮罩
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    `;
+    document.body.appendChild(overlay);
+    
+    // 点击遮罩关闭弹窗
+    overlay.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+  } catch (err) {
+    // 如果剪贴板API失败，使用alert显示
+    console.error("Decision path data error:", err);
+    alert("Failed to display decision path data. Check the console for details.");
+  }
 };
 </script>
 
