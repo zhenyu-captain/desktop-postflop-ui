@@ -44,21 +44,7 @@
               "
               @click="showBeforeSolvingInfo"
             >
-              <CodeBracketIcon class="w-5 h-5 text-yellow-500" />
-            </button>
-          </Tippy>
-          
-          <Tippy content="View complete debug info after solving">
-            <button
-              :class="
-                'ml-2 flex w-8 h-8 items-center justify-center border border-gray-300 bg-white ' +
-                'rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-100 active:bg-gray-200' +
-                (hasSolverResults ? '' : ' opacity-50 cursor-not-allowed')
-              "
-              @click="handleAfterSolvingClick"
-              :disabled="!hasSolverResults"
-            >
-              <CodeBracketIcon class="w-5 h-5" :class="hasSolverResults ? 'text-green-500' : 'text-gray-400'" />
+              <DocumentTextIcon class="w-5 h-5 text-blue-500" />
             </button>
           </Tippy>
         </div>
@@ -406,7 +392,8 @@ import { Tippy } from "vue-tippy";
 import { 
   ArrowTopRightOnSquareIcon, 
   CodeBracketIcon,
-  MapIcon 
+  MapIcon,
+  DocumentTextIcon
 } from "@heroicons/vue/24/solid";
 
 const barWidthListBasics = ["normalized", "absolute", "full"] as const;
