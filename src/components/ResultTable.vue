@@ -2324,11 +2324,11 @@ const showDecisionPathInfo = async () => {
   // 优化和精简数据
   const optimizedData = optimizePathData(pathData);
   
-  // 格式化为JSON字符串
+  // 格式化为JSON字符串 - 只使用优化后的数据
   const jsonFormat = JSON.stringify(optimizedData, null, 2);
   
   try {
-    // 复制到剪贴板
+    // 复制到剪贴板 - 只复制优化后的数据
     await navigator.clipboard.writeText(jsonFormat);
     
     // 创建弹窗显示JSON数据
@@ -2363,9 +2363,6 @@ const showDecisionPathInfo = async () => {
     header.innerHTML = `
       <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Decision Path Navigation Data</h3>
       <div style="display: flex; align-items: center;">
-        <button id="toggleViewMode" style="margin-right: 10px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 12px; background: #f9fafb; cursor: pointer;">
-          Optimized View
-        </button>
         <button id="closePathDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
       </div>
     `;
@@ -2446,18 +2443,8 @@ const showDecisionPathInfo = async () => {
     dialog.appendChild(actions);
     document.body.appendChild(dialog);
     
-    // 添加切换视图模式功能
-    let isOptimizedView = true;
-    const toggleViewBtn = document.getElementById('toggleViewMode');
-    if (toggleViewBtn) {
-      toggleViewBtn.addEventListener('click', () => {
-        isOptimizedView = !isOptimizedView;
-        toggleViewBtn.textContent = isOptimizedView ? 'Optimized View' : 'Full View';
-        content.textContent = isOptimizedView 
-          ? JSON.stringify(optimizedData, null, 2)
-          : JSON.stringify(pathData, null, 2);
-      });
-    }
+    // 始终使用优化视图
+    content.textContent = JSON.stringify(optimizedData, null, 2);
     
     // 添加关闭事件
     document.getElementById('closePathDialog')?.addEventListener('click', () => {
