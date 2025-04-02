@@ -48,6 +48,19 @@
             </button>
           </Tippy>
           
+          <!-- 添加新按钮：查看完整决策路径数据(包含Summary) -->
+          <Tippy content="View complete decision path with summary data">
+            <button
+              :class="
+                'flex w-8 h-8 items-center justify-center border border-gray-300 bg-white ' +
+                'rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-100 active:bg-gray-200'
+              "
+              @click="showEnhancedDecisionPathInfo"
+            >
+              <ChartBarIcon class="w-5 h-5 text-green-500" />
+            </button>
+          </Tippy>
+          
           <!-- 删除GTO决策树数据调试按钮 -->
         </div>
       </div>
@@ -395,7 +408,8 @@ import { Tippy } from "vue-tippy";
 import { 
   ArrowTopRightOnSquareIcon, 
   MapIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChartBarIcon
 } from "@heroicons/vue/24/solid";
 
 const barWidthListBasics = ["normalized", "absolute", "full"] as const;
@@ -2013,7 +2027,7 @@ const showAfterSolvingInfo = async () => {
   }
 };
 
-// 优化和精简决策路径数据
+// 优化和精简决策路径数据 - 将函数移到showDecisionPathInfo外部以便其他函数调用
 const optimizePathData = (data) => {
   if (!data || !data.spots) return data;
   
@@ -2292,7 +2306,6 @@ const handleAfterSolvingClick = () => {
   showAfterSolvingInfo();
 };
 
-// 优化决策路径数据
 // 显示决策路径导航JSON数据
 const showDecisionPathInfo = async () => {
   eventBus.emit('request-decision-path-data');
@@ -2478,6 +2491,922 @@ const showDecisionPathInfo = async () => {
     alert("Failed to display decision path data. Check the console for details.");
   }
 };
+
+// 显示增强版决策路径数据(包含Summary数据)
+const showEnhancedDecisionPathInfo = async () => {
+  try {
+    console.log("启动增强版决策路径数据生成...");
+    
+    // 创建弹窗和背景遮罩
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 1200px;
+      max-height: 85vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    `;
+    
+    // 显示加载状态
+    dialog.innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <div style="font-size: 18px; color: #3b82f6; margin-bottom: 10px;">正在收集决策路径数据...</div>
+        <div style="width: 40px; height: 40px; border: 4px solid #ddd; border-top: 4px solid #3b82f6; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+      </div>
+      <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+    `;
+    
+    // 创建背景遮罩
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    `;
+    
+    // 添加到DOM
+    document.body.appendChild(overlay);
+    document.body.appendChild(dialog);
+    
+    // 点击遮罩关闭弹窗
+    overlay.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      document.body.removeChild(overlay);
+    });
+
+    // 使用新方法直接获取完整的决策路径和Summary数据
+    try {
+      // 更新加载信息
+      dialog.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <div style="font-size: 18px; color: #3b82f6; margin-bottom: 10px;">正在直接收集完整决策路径数据...</div>
+          <div style="width: 40px; height: 40px; border: 4px solid #ddd; border-top: 4px solid #3b82f6; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+          <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">这可能需要几秒钟时间</div>
+        </div>
+      `;
+      
+      // 获取完整数据
+      const completeData = await getDirectDecisionPathWithSummary();
+      
+      if (!completeData) {
+        throw new Error("无法获取决策路径数据");
+      }
+      
+      // 格式化为JSON字符串
+      const jsonFormat = JSON.stringify(completeData, null, 2);
+      
+      // 更新弹窗内容
+      dialog.innerHTML = '';
+      
+      // 创建弹窗标题
+      const header = document.createElement('div');
+      header.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      `;
+      header.innerHTML = `
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Enhanced Decision Path with Summary Data</h3>
+        <div style="display: flex; align-items: center;">
+          <button id="toggleView" style="margin-right: 10px; padding: 4px 8px; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-size: 14px;">
+            Visual View
+          </button>
+          <button id="closeEnhancedPathDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
+        </div>
+      `;
+      
+      // 创建JSON内容显示区域
+      const content = document.createElement('pre');
+      content.style.cssText = `
+        flex: 1;
+        overflow: auto;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      `;
+      content.textContent = jsonFormat;
+      
+      // 创建可视化视图区域(初始隐藏)
+      const visualView = document.createElement('div');
+      visualView.style.cssText = `
+        flex: 1;
+        overflow: auto;
+        background: white;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: none;
+      `;
+      
+      // 填充可视化视图
+      try {
+        visualView.innerHTML = generateVisualDecisionPath(completeData);
+      } catch (error) {
+        console.error("Error generating visual view:", error);
+        visualView.innerHTML = `
+          <div class="p-4 bg-red-50 text-red-800 rounded">
+            <p>Error generating visual view: ${error.message}</p>
+          </div>
+        `;
+      }
+      
+      // 创建按钮区域
+      const actions = document.createElement('div');
+      actions.style.cssText = `
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      `;
+      
+      // 复制按钮
+      const copyJsonBtn = document.createElement('button');
+      copyJsonBtn.style.cssText = `
+        padding: 8px 12px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      `;
+      copyJsonBtn.textContent = "Copy JSON";
+      copyJsonBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(content.textContent || "");
+          copyJsonBtn.textContent = "✓ Copied";
+          setTimeout(() => {
+            copyJsonBtn.textContent = "Copy JSON";
+          }, 2000);
+        } catch (err) {
+          console.error("Copy failed:", err);
+          copyJsonBtn.textContent = "Copy failed";
+          setTimeout(() => {
+            copyJsonBtn.textContent = "Copy JSON";
+          }, 2000);
+        }
+      });
+      
+      // 下载按钮
+      const downloadJsonBtn = document.createElement('button');
+      downloadJsonBtn.style.cssText = `
+        padding: 8px 12px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      `;
+      downloadJsonBtn.textContent = "Download JSON";
+      downloadJsonBtn.addEventListener('click', async () => {
+        try {
+          const filePath = await save({
+            defaultPath: `enhanced-decision-path-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+            filters: [{ name: "JSON Files", extensions: ["json"] }],
+          });
+          
+          if (filePath) {
+            await writeTextFile(filePath, content.textContent || "");
+            downloadJsonBtn.textContent = "✓ Downloaded";
+            setTimeout(() => {
+              downloadJsonBtn.textContent = "Download JSON";
+            }, 2000);
+          }
+        } catch (err) {
+          console.error("Download failed:", err);
+          downloadJsonBtn.textContent = "Download failed";
+          setTimeout(() => {
+            downloadJsonBtn.textContent = "Download JSON";
+          }, 2000);
+        }
+      });
+      
+      // 组装弹窗
+      actions.appendChild(copyJsonBtn);
+      actions.appendChild(downloadJsonBtn);
+      dialog.appendChild(header);
+      dialog.appendChild(content);
+      dialog.appendChild(visualView);
+      dialog.appendChild(actions);
+      
+      // 复制到剪贴板
+      try {
+        await navigator.clipboard.writeText(jsonFormat);
+        console.log("Data copied to clipboard");
+      } catch (error) {
+        console.warn("Failed to copy data to clipboard:", error);
+      }
+      
+      // 添加视图切换功能
+      document.getElementById('toggleView')?.addEventListener('click', () => {
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          visualView.style.display = 'none';
+          document.getElementById('toggleView').textContent = 'Visual View';
+        } else {
+          content.style.display = 'none';
+          visualView.style.display = 'block';
+          document.getElementById('toggleView').textContent = 'JSON View';
+        }
+      });
+      
+      // 添加关闭事件
+      document.getElementById('closeEnhancedPathDialog')?.addEventListener('click', () => {
+        document.body.removeChild(dialog);
+        document.body.removeChild(overlay);
+      });
+      
+    } catch (error) {
+      console.error("Error collecting path data with summary:", error);
+      dialog.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <div style="font-size: 18px; color: #ef4444; margin-bottom: 10px;">
+            获取决策路径数据失败
+          </div>
+          <div style="color: #6b7280;">${error.message || '未知错误'}</div>
+          <button id="closeErrorBtn" style="margin-top: 20px; padding: 8px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; cursor: pointer;">
+            关闭
+          </button>
+        </div>
+      `;
+      
+      document.getElementById('closeErrorBtn')?.addEventListener('click', () => {
+        document.body.removeChild(dialog);
+        document.body.removeChild(overlay);
+      });
+    }
+  } catch (err) {
+    // 全局错误处理
+    console.error("决策路径处理关键错误:", err);
+    alert(`无法显示增强决策路径数据: ${err.message}`);
+  }
+};
+
+// 直接获取完整决策路径和Summary数据的新方法
+const getDirectDecisionPathWithSummary = async () => {
+  // 获取决策路径基础数据
+  console.log("直接请求决策路径数据...");
+  eventBus.emit('request-decision-path-data');
+  
+  let pathData = null;
+  
+  // 等待ResultNav组件的响应，设置1秒超时
+  try {
+    pathData = await new Promise((resolve, reject) => {
+      const handler = (data) => {
+        console.log("收到决策路径数据响应");
+        eventBus.off('decision-path-data', handler);
+        if (data) {
+          resolve(data);
+        } else {
+          reject(new Error("从事件总线接收到空数据"));
+        }
+      };
+      
+      eventBus.on('decision-path-data', handler);
+      
+      // 添加超时处理
+      setTimeout(() => {
+        console.log("决策路径数据响应超时");
+        eventBus.off('decision-path-data', handler);
+        
+        // 尝试从props中获取备用数据
+        const fallbackData = props.selectedSpot ? {
+          decisionPath: [props.selectedSpot],
+          currentPosition: {
+            selectedSpotIndex: 0
+          },
+          board: props.selectedSpot.board || []
+        } : null;
+        
+        if (fallbackData) {
+          console.log("使用props中的备用数据");
+          resolve(fallbackData);
+        } else {
+          reject(new Error("决策路径数据获取超时"));
+        }
+      }, 1000);
+    });
+  } catch (error) {
+    console.error("获取决策路径数据错误:", error);
+    throw error;
+  }
+  
+  if (!pathData) {
+    console.error("未收到路径数据");
+    throw new Error("未能获取决策路径数据");
+  }
+  
+  // 处理决策路径数据
+  console.log("处理决策路径数据...");
+  const optimizedData = optimizePathData(pathData);
+  
+  if (!optimizedData || !optimizedData.decisionPath || optimizedData.decisionPath.length === 0) {
+    console.error("路径数据优化失败");
+    throw new Error("决策路径数据处理失败");
+  }
+  
+  // 直接从store或API中获取Summary数据
+  console.log("从数据源获取Summary数据...");
+  
+  // 卡牌转换函数
+  const convertCardToReadable = (cardId) => {
+    if (cardId === undefined || cardId === null) return null;
+    try {
+      // 一般卡牌ID格式: 高8位是第一张牌，低8位是第二张牌
+      const card1 = cardId & 0xff;
+      const card2 = cardId >>> 8;
+      
+      // 调用cardStr函数转换(如果可用)
+      if (typeof cardStr === 'function') {
+        return cardStr(card2) + cardStr(card1);
+      }
+      
+      // 备用转换方法
+      const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+      const suits = ['c', 'd', 'h', 's'];
+      
+      const rank1 = ranks[Math.floor(card1 / 4)];
+      const suit1 = suits[card1 % 4];
+      const rank2 = ranks[Math.floor(card2 / 4)];
+      const suit2 = suits[card2 % 4];
+      
+      return rank2 + suit2 + rank1 + suit1;
+    } catch (e) {
+      console.warn(`卡牌ID ${cardId} 转换失败:`, e);
+      return `Unknown(${cardId})`;
+    }
+  };
+  
+  // 从DOM表格中提取Summary数据
+  const extractSummaryFromTable = () => {
+    try {
+      // 查找表格，首先找到Summary字段
+      const summaryElements = document.querySelectorAll('.text-lg.font-semibold');
+      let summaryTable = null;
+      
+      for (const element of summaryElements) {
+        if (element.textContent.includes('Summary')) {
+          // 找到了Summary标题，现在寻找附近的表格
+          let current = element;
+          while (current && !summaryTable) {
+            current = current.parentElement;
+            if (current) {
+              const table = current.querySelector('table');
+              if (table) {
+                summaryTable = table;
+                break;
+              }
+            }
+          }
+          break;
+        }
+      }
+      
+      if (!summaryTable) {
+        console.warn("无法在DOM中找到Summary表格");
+        return null;
+      }
+      
+      // 提取表格中的数据
+      const rows = summaryTable.querySelectorAll('tbody tr');
+      const summaryData = {
+        equity: 0,
+        ev: 0
+      };
+      
+      // 遍历行找到EQ和EV值
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 2) {
+          const label = cells[0].textContent.trim().toLowerCase();
+          const value = parseFloat(cells[1].textContent.trim());
+          
+          if (label.includes('eq') && !isNaN(value)) {
+            summaryData.equity = value;
+          } else if (label.includes('ev') && !isNaN(value)) {
+            summaryData.ev = value;
+          }
+        }
+      });
+      
+      console.log("从DOM表格提取的Summary数据:", summaryData);
+      return summaryData;
+    } catch (error) {
+      console.error("从DOM中提取Summary数据时出错:", error);
+      return null;
+    }
+  };
+  
+  // 创建从所有结果数据中提取完整表格数据的函数
+  const extractFullTableData = (player) => {
+    const playerIndex = player === 'oop' ? 0 : 1;
+    
+    try {
+      if (!props.results || props.results.isEmpty) {
+        console.warn(`Player ${player} 没有可用的结果数据`);
+        return null;
+      }
+      
+      // 记录诊断信息
+      console.log(`提取 ${player} 数据，displayPlayer: ${props.displayPlayer}, displayPlayerIndex: ${props.displayPlayerIndex}`);
+      console.log(`props.results.equity 结构:`, props.results.equity);
+      console.log(`props.results.ev 结构:`, props.results.ev);
+      
+      // 检查resultsSorted是否有值，这是表格实际显示的数据
+      if (resultsSorted.value) {
+        console.log(`resultsSorted 包含 ${resultsSorted.value.length} 行数据`);
+        if (resultsSorted.value.length > 0) {
+          console.log(`第一行数据: `, resultsSorted.value[0]);
+        }
+      }
+      
+      // 尝试从DOM中获取Summary数据（更准确反映实际表格值）
+      const tableSummary = extractSummaryFromTable();
+      
+      // 如果从DOM获取不到，就用props数据，但要确保索引正确
+      // 使用当前显示的玩家索引，而不是固定的playerIndex
+      const actualPlayerIndex = props.displayPlayerIndex !== undefined ? props.displayPlayerIndex : playerIndex;
+      
+      // 创建全新的数据结构，以手牌为中心组织数据
+      const tableData = {
+        // 手牌数据将成为主要内容
+        hands: [],
+        // 基本统计数据 - 优先使用DOM中提取的数据
+        summary: tableSummary || {
+          equity: props.results.equity?.[actualPlayerIndex]?.[0] || 0,
+          ev: props.results.ev?.[actualPlayerIndex]?.[0] || 0
+        },
+        // 动作相关数据
+        actions: {}
+      };
+      
+      console.log(`${player}的Summary数据:`, tableData.summary);
+      
+      // 提取动作信息(如果有)
+      if (props.selectedSpot && props.selectedSpot.actions) {
+        props.selectedSpot.actions.forEach(action => {
+          tableData.actions[action.name] = {
+            amount: action.amount,
+            isSelected: action.isSelected || false
+          };
+        });
+      }
+      
+      // 获取手牌数据并重新组织为清晰的结构
+      // 首先尝试从resultsSorted获取（表格实际显示的数据）
+      let handSourceData = [];
+      
+      if (resultsSorted.value && resultsSorted.value.length > 0) {
+        // 从排序后的表格数据获取
+        handSourceData = resultsSorted.value;
+        console.log(`使用resultsSorted作为手牌数据源，包含${handSourceData.length}行`);
+      } else if (props.cards && props.cards[playerIndex]) {
+        // 从原始卡牌数据获取
+        const cards = props.cards[playerIndex];
+        handSourceData = Array.from({ length: cards.length }, (_, i) => {
+          return [
+            cards[i],
+            props.results.weights?.[playerIndex]?.[i] || 0,
+            props.results.normalizers?.[playerIndex]?.[i] || 0,
+            props.results.equity?.[playerIndex]?.[i] || 0,
+            props.results.ev?.[playerIndex]?.[i] || 0
+          ];
+        });
+        console.log(`使用props.cards作为手牌数据源，包含${handSourceData.length}行`);
+      }
+      
+      // 确保我们有手牌数据
+      if (handSourceData.length > 0) {
+        // 遍历所有手牌，不再过滤权重为0的手牌
+        handSourceData.forEach((row, index) => {
+          try {
+            const cardId = row[0];
+            // 转换为可读格式
+            const readableCard = convertCardToReadable(cardId);
+            
+            if (readableCard) {
+              // 创建手牌对象
+              const handData = {
+                hand: readableCard,
+                equity: row[INDEX_EQUITY] || 0,
+                ev: row[INDEX_EV] || 0
+              };
+              
+              // 添加策略数据(如果有)
+              if (props.results.strategy && props.selectedSpot && props.selectedSpot.actions) {
+                const strategies = {};
+                
+                // 为每个动作提取策略概率
+                props.selectedSpot.actions.forEach((action, actionIndex) => {
+                  const strategyIndex = actionIndex * handSourceData.length + index;
+                  if (props.results.strategy[strategyIndex] !== undefined) {
+                    strategies[action.name] = {
+                      probability: props.results.strategy[strategyIndex],
+                      amount: action.amount
+                    };
+                  }
+                });
+                
+                // 只有当有策略数据时才添加
+                if (Object.keys(strategies).length > 0) {
+                  handData.strategies = strategies;
+                }
+              }
+              
+              // 添加到手牌列表
+              tableData.hands.push(handData);
+            }
+          } catch (e) {
+            console.warn(`处理手牌索引 ${index} 失败:`, e);
+          }
+        });
+        
+        // 按照权益值(EQ)排序手牌，让用户更容易查看
+        tableData.hands.sort((a, b) => b.equity - a.equity);
+        
+        // 限制手牌数量，避免数据过大
+        if (tableData.hands.length > 100) {
+          console.log(`限制手牌数量从 ${tableData.hands.length} 到 100`);
+          tableData.hands = tableData.hands.slice(0, 100);
+        }
+      } else {
+        console.warn(`没有可用的手牌数据来源`);
+      }
+      
+      console.log(`最终提取了 ${tableData.hands.length} 张手牌数据`);
+      return tableData;
+    } catch (error) {
+      console.error(`提取 ${player} 表格数据时出错:`, error);
+      return null;
+    }
+  };
+  
+  // 所有节点的当前状态数据
+  const nodesState = {};
+  
+  // 为每个节点获取状态数据
+  for (let i = 0; i < optimizedData.decisionPath.length; i++) {
+    const spot = optimizedData.decisionPath[i];
+    
+    // 收集当前节点的状态
+    if (spot.type === 'player' || spot.type === 'terminal') {
+      try {
+        // 为每个视角获取数据
+        const oopData = extractFullTableData('oop');
+        const ipData = extractFullTableData('ip');
+        
+        if (oopData || ipData) {
+          nodesState[spot.index] = {
+            oop: oopData,
+            ip: ipData,
+            spotType: spot.type,
+            player: spot.player,
+            timestamp: new Date().toISOString()
+          };
+        }
+      } catch (error) {
+        console.warn(`获取节点 ${spot.index} 状态数据时出错:`, error);
+      }
+    }
+  }
+  
+  // 构建增强版决策路径数据
+  console.log("构建增强版决策路径数据...");
+  const enhancedPath = optimizedData.decisionPath.map(spot => {
+    // 复制原始节点数据
+    const enhancedSpot = { ...spot };
+    
+    // 添加Summary数据(如果存在)
+    if ((spot.type === 'player' || spot.type === 'terminal') && nodesState[spot.index]) {
+      enhancedSpot.summaryData = nodesState[spot.index];
+    }
+    
+    return enhancedSpot;
+  });
+  
+  // 创建最终的增强数据
+  const enhancedData = {
+    ...optimizedData,
+    decisionPath: enhancedPath,
+    dataStats: {
+      totalNodes: optimizedData.decisionPath.length,
+      nodesWithSummary: Object.keys(nodesState).length,
+      activePlayer: props.displayPlayer,
+      timestamp: new Date().toISOString(),
+      dataSource: 'direct-extraction'
+    }
+  };
+  
+  return enhancedData;
+};
+
+// 增强决策路径数据，添加Summary数据
+const enhancePathDataWithSummary = async (data) => {
+  if (!data || !data.spots) return optimizePathData(data);
+  
+  // 首先获取优化后的基础路径数据
+  const optimized = optimizePathData(data);
+  
+  // 为每个决策点添加Summary数据
+  const enhanced = {
+    ...optimized,
+    decisionPath: await Promise.all(optimized.decisionPath.map(async (spot, index) => {
+      // 复制原始spot数据
+      const enhancedSpot = { ...spot };
+      
+      // 对于玩家行动点和终端节点，尝试获取Summary数据
+      if (spot.type === 'player' || spot.type === 'terminal') {
+        try {
+          // 请求该节点的OOP视角Summary数据
+          eventBus.emit('request-spot-summary', { 
+            spotIndex: data.spots[index].index,
+            player: 'oop'
+          });
+          
+          // 等待Summary数据响应
+          const oopSummary = await new Promise(resolve => {
+            const handler = (summaryData) => {
+              if (summaryData && summaryData.spotIndex === data.spots[index].index) {
+                eventBus.off('spot-summary-data', handler);
+                resolve(summaryData.summary);
+              }
+            };
+            
+            eventBus.on('spot-summary-data', handler);
+            
+            // 添加超时处理
+            setTimeout(() => {
+              eventBus.off('spot-summary-data', handler);
+              resolve(null);
+            }, 500); // 较短的超时时间以避免长时间等待
+          });
+          
+          // 请求该节点的IP视角Summary数据
+          eventBus.emit('request-spot-summary', { 
+            spotIndex: data.spots[index].index,
+            player: 'ip'
+          });
+          
+          // 等待Summary数据响应
+          const ipSummary = await new Promise(resolve => {
+            const handler = (summaryData) => {
+              if (summaryData && summaryData.spotIndex === data.spots[index].index) {
+                eventBus.off('spot-summary-data', handler);
+                resolve(summaryData.summary);
+              }
+            };
+            
+            eventBus.on('spot-summary-data', handler);
+            
+            // 添加超时处理
+            setTimeout(() => {
+              eventBus.off('spot-summary-data', handler);
+              resolve(null);
+            }, 500);
+          });
+          
+          // 添加Summary数据到增强spot
+          enhancedSpot.summaryData = {
+            oop: oopSummary ? processSummaryData(oopSummary) : null,
+            ip: ipSummary ? processSummaryData(ipSummary) : null
+          };
+        } catch (error) {
+          console.error(`Error getting summary data for spot ${index}:`, error);
+          enhancedSpot.summaryData = { error: error.message };
+        }
+      }
+      
+      return enhancedSpot;
+    }))
+  };
+  
+  // 如果任何节点有获取到的Summary数据，添加数据统计信息
+  const spotWithSummary = enhanced.decisionPath.find(spot => spot.summaryData && 
+    (spot.summaryData.oop || spot.summaryData.ip));
+  
+  if (spotWithSummary) {
+    enhanced.dataStats = {
+      nodesWithSummaryData: enhanced.decisionPath.filter(spot => 
+        spot.summaryData && (spot.summaryData.oop || spot.summaryData.ip)).length,
+      totalNodes: enhanced.decisionPath.length,
+      activePlayer: props.displayPlayer,
+      timestamp: new Date().toISOString()
+    };
+  }
+  
+  return enhanced;
+};
+
+// 处理Summary数据，选择性保留关键信息，避免数据过大
+const processSummaryData = (summary) => {
+  if (!summary) return null;
+  
+  // 提取重要的Summary字段
+  return {
+    weight: summary[INDEX_WEIGHT] || 0,
+    normalizer: summary[INDEX_NORMALIZER] || 0,
+    equity: summary[INDEX_EQUITY] || 0,
+    ev: summary[INDEX_EV] || 0,
+    eqr: summary[INDEX_EQR] || 0,
+    // 获取策略数据（如果存在）
+    strategy: summary.slice(INDEX_STRATEGY_BASE).filter((_, i) => i % 2 === 0)
+  };
+};
+
+// 生成可视化决策路径HTML
+const generateVisualDecisionPath = (enhancedData) => {
+  if (!enhancedData || !enhancedData.decisionPath) {
+    return '<div class="text-red-500">No valid decision path data available</div>';
+  }
+  
+  let html = `
+    <div class="flex flex-col space-y-6">
+      <div class="bg-blue-50 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold text-blue-800 mb-2">Path Summary</h2>
+        <p class="text-gray-700">${enhancedData.pathSummary || 'No path summary available'}</p>
+        
+        <div class="mt-3 grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-sm font-medium text-gray-500">Board:</span>
+            <span class="ml-2">${enhancedData.board ? enhancedData.board.join(' ') : 'N/A'}</span>
+          </div>
+          <div>
+            <span class="text-sm font-medium text-gray-500">Pot Size:</span>
+            <span class="ml-2">${enhancedData.bettingInfo?.potSize || 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex flex-col">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">Decision Path Nodes</h2>
+        <div class="space-y-4">
+  `;
+  
+  // 为每个节点生成HTML
+  enhancedData.decisionPath.forEach((spot, index) => {
+    let spotHtml = `
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <div class="bg-gray-50 px-4 py-2 flex justify-between items-center border-b border-gray-200">
+          <div class="font-medium">${getSpotTypeLabel(spot)} (${index})</div>
+          <div class="text-sm text-gray-500">${spot.player}</div>
+        </div>
+        <div class="p-4">
+    `;
+    
+    // 根据节点类型添加不同的内容
+    if (spot.type === 'root') {
+      spotHtml += `
+        <div class="grid grid-cols-2 gap-3">
+          <div><span class="text-gray-600">Pot:</span> ${spot.pot}</div>
+          <div><span class="text-gray-600">Stack:</span> ${spot.stack}</div>
+          <div><span class="text-gray-600">Board:</span> ${spot.board ? spot.board.join(' ') : 'N/A'}</div>
+        </div>
+      `;
+    } else if (spot.type === 'player') {
+      spotHtml += `
+        <div class="mb-3">
+          <span class="text-gray-600">Action:</span> 
+          <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+            ${spot.action ? `${spot.action.name} ${spot.action.amount !== "0" ? spot.action.amount : ""}` : 'N/A'}
+          </span>
+        </div>
+      `;
+      
+      // 添加Summary数据(如果存在)
+      if (spot.summaryData && (spot.summaryData.oop || spot.summaryData.ip)) {
+        spotHtml += generateSummaryDataHTML(spot.summaryData);
+      }
+    } else if (spot.type === 'chance') {
+      spotHtml += `
+        <div class="grid grid-cols-2 gap-3">
+          <div><span class="text-gray-600">Card:</span> 
+            <span class="px-2 py-1 ${getCardColorClass(spot.cardDisplay)} rounded font-medium">${spot.cardDisplay || 'N/A'}</span>
+          </div>
+          <div><span class="text-gray-600">Pot:</span> ${spot.pot}</div>
+        </div>
+      `;
+    } else if (spot.type === 'terminal') {
+      spotHtml += `
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div><span class="text-gray-600">Pot:</span> ${spot.pot}</div>
+          <div><span class="text-gray-600">Equity OOP:</span> ${spot.equityPercentage?.oop || 'N/A'}</div>
+          <div><span class="text-gray-600">Equity IP:</span> ${spot.equityPercentage?.ip || 'N/A'}</div>
+        </div>
+      `;
+      
+      // 添加Summary数据(如果存在)
+      if (spot.summaryData && (spot.summaryData.oop || spot.summaryData.ip)) {
+        spotHtml += generateSummaryDataHTML(spot.summaryData);
+      }
+    }
+    
+    spotHtml += `
+        </div>
+      </div>
+    `;
+    
+    html += spotHtml;
+  });
+  
+  html += `
+        </div>
+      </div>
+    </div>
+  `;
+  
+  return html;
+};
+
+// 获取扑克牌的颜色类
+const getCardColorClass = (card) => {
+  if (!card || card.length < 2) return 'bg-gray-100 text-gray-800';
+  
+  const suit = card[1];
+  switch(suit) {
+    case 'h': // hearts
+    case 'd': // diamonds
+      return 'bg-red-100 text-red-700';
+    case 's': // spades
+    case 'c': // clubs
+      return 'bg-gray-700 text-white';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+// 获取节点类型标签
+const getSpotTypeLabel = (spot) => {
+  switch(spot.type) {
+    case 'root': return 'Initial State';
+    case 'player': return 'Player Action';
+    case 'chance': return 'Chance Node';
+    case 'terminal': return 'Terminal Node';
+    default: return spot.type;
+  }
+};
+
+// 生成Summary数据的HTML
+const generateSummaryDataHTML = (summaryData) => {
+  let html = `<div class="mt-3 border-t border-gray-200 pt-3">
+    <h3 class="text-sm font-semibold text-gray-700 mb-2">Summary Data</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+  `;
+  
+  if (summaryData.oop) {
+    html += `
+      <div>
+        <h4 class="text-xs font-medium text-gray-500 mb-1">OOP Summary</h4>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div><span class="text-gray-600">EQ:</span> ${(summaryData.oop.equity * 100).toFixed(2)}%</div>
+          <div><span class="text-gray-600">EV:</span> ${summaryData.oop.ev.toFixed(2)}</div>
+          <div><span class="text-gray-600">EQR:</span> ${isNaN(summaryData.oop.eqr) ? 'N/A' : summaryData.oop.eqr.toFixed(2)}</div>
+          <div><span class="text-gray-600">Weight:</span> ${summaryData.oop.weight.toFixed(2)}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  if (summaryData.ip) {
+    html += `
+      <div>
+        <h4 class="text-xs font-medium text-gray-500 mb-1">IP Summary</h4>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div><span class="text-gray-600">EQ:</span> ${(summaryData.ip.equity * 100).toFixed(2)}%</div>
+          <div><span class="text-gray-600">EV:</span> ${summaryData.ip.ev.toFixed(2)}</div>
+          <div><span class="text-gray-600">EQR:</span> ${isNaN(summaryData.ip.eqr) ? 'N/A' : summaryData.ip.eqr.toFixed(2)}</div>
+          <div><span class="text-gray-600">Weight:</span> ${summaryData.ip.weight.toFixed(2)}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  html += `
+    </div>
+  </div>`;
+  
+  return html;
+};
+
+// ... existing code ...
 </script>
 
 <style scoped>
