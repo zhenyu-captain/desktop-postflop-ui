@@ -61,6 +61,19 @@
             </button>
           </Tippy>
           
+          <!-- 添加决策树按钮 -->
+          <Tippy content="View GTO Decision Tree">
+            <button
+              :class="
+                'flex w-8 h-8 items-center justify-center border border-gray-300 bg-white ' +
+                'rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-100 active:bg-gray-200'
+              "
+              @click="showDecisionTree"
+            >
+              <MapPinIcon class="w-5 h-5 text-red-500" />
+            </button>
+          </Tippy>
+          
           <!-- 删除GTO决策树数据调试按钮 -->
         </div>
       </div>
@@ -409,7 +422,8 @@ import {
   ArrowTopRightOnSquareIcon, 
   MapIcon,
   DocumentTextIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  MapPinIcon
 } from "@heroicons/vue/24/solid";
 
 const barWidthListBasics = ["normalized", "absolute", "full"] as const;
@@ -1734,15 +1748,16 @@ const showBeforeSolvingInfo = async () => {
     dialog.appendChild(actions);
     document.body.appendChild(dialog);
     
-    // 添加关闭事件
-    document.getElementById('closeDialog').addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      document.body.removeChild(overlay);
-    });
+    // 关闭弹窗逻辑
+    const closeDialog = () => {
+      dialog.remove();
+      backdrop.remove();
+    };
+    document.getElementById('closeDialog').addEventListener('click', closeDialog);
     
-    // 创建背景遮罩
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
+    // 添加遮罩层
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = `
       position: fixed;
       top: 0;
       left: 0;
@@ -1751,17 +1766,10 @@ const showBeforeSolvingInfo = async () => {
       background: rgba(0,0,0,0.5);
       z-index: 9998;
     `;
-    document.body.appendChild(overlay);
-    
-    // 点击遮罩关闭弹窗
-    overlay.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      document.body.removeChild(overlay);
-    });
-  } catch (err) {
-    // 如果剪贴板API失败，使用alert显示
-    console.error("Debug data error:", err);
-    alert("Failed to collect or display debug data. Check the console for details.");
+    backdrop.addEventListener('click', closeDialog);
+    document.body.appendChild(backdrop);
+  } catch(err) {
+    console.error('Failed to display before solving info:', err);
   }
 };
 
@@ -3491,6 +3499,246 @@ const generateSummaryDataHTML = (summaryData) => {
 };
 
 // ... existing code ...
+
+// 显示决策树信息弹窗 - 调试版本（仅输出日志和基本信息，不渲染树）
+async function showDecisionTree() {
+  try {
+    // 显示简单的调试弹窗
+    const debugDialog = document.createElement('div');
+    debugDialog.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      max-height: 80vh;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 9999;
+      padding: 20px;
+      overflow-y: auto;
+      font-family: monospace;
+    `;
+    
+    // 创建弹窗标题
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    `;
+    header.innerHTML = `
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">GTO Decision Tree - 调试模式</h3>
+      <button id="closeDebugDialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
+    `;
+    
+    // 创建日志内容区域
+    const logArea = document.createElement('div');
+    logArea.id = 'debug-log-area';
+    logArea.style.cssText = `
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.5;
+    `;
+    logArea.textContent = "调试日志：\n";
+    
+    const addLog = (message) => {
+      const timestamp = new Date().toLocaleTimeString();
+      logArea.textContent += `[${timestamp}] ${message}\n`;
+      console.log(`[调试] ${message}`);
+    };
+    
+    // 将弹窗添加到文档
+    debugDialog.appendChild(header);
+    debugDialog.appendChild(logArea);
+    document.body.appendChild(debugDialog);
+    
+    // 关闭弹窗按钮事件
+    document.getElementById('closeDebugDialog').addEventListener('click', () => {
+      document.body.removeChild(debugDialog);
+      if (backdrop) document.body.removeChild(backdrop);
+    });
+    
+    // 添加遮罩层
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    `;
+    backdrop.addEventListener('click', () => {
+      document.body.removeChild(debugDialog);
+      document.body.removeChild(backdrop);
+    });
+    document.body.appendChild(backdrop);
+    
+    // 获取Store对象
+    const store = useStore();
+    addLog(`Store状态: isSolverPrepared=${store.isSolverPrepared}, isSolverRunning=${store.isSolverRunning}`);
+    
+    // 创建执行按钮
+    const getTreeBtn = document.createElement('button');
+    getTreeBtn.textContent = "获取决策树数据";
+    getTreeBtn.style.cssText = `
+      padding: 8px 15px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    `;
+    
+    const getCurrentNodeBtn = document.createElement('button');
+    getCurrentNodeBtn.textContent = "获取当前节点";
+    getCurrentNodeBtn.style.cssText = `
+      padding: 8px 15px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    
+    // 创建结果显示区域
+    const resultArea = document.createElement('div');
+    resultArea.style.cssText = `
+      margin-top: 15px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 12px;
+    `;
+    resultArea.innerHTML = "<div style='color: #888;'>点击上方按钮获取数据...</div>";
+    
+    // 按钮点击事件
+    getTreeBtn.onclick = async () => {
+      addLog("尝试获取决策树数据...");
+      resultArea.innerHTML = "<div style='color: #888;'>加载中...</div>";
+      
+      try {
+        // 获取决策树数据 (最大深度限制为1，只获取根节点和一层子节点)
+        addLog("调用invokes.getDecisionTree(1)...");
+        const startTime = performance.now();
+        const treeData = await invokes.getDecisionTree(1);
+        const endTime = performance.now();
+        
+        addLog(`获取数据成功! 耗时: ${(endTime - startTime).toFixed(2)}ms`);
+        
+        // 简单展示树的根节点信息
+        let info = `<div style="margin-bottom: 10px; color: green; font-weight: bold;">✓ 获取成功</div>`;
+        
+        info += `<div style="margin-bottom: 5px;"><b>节点ID:</b> ${treeData.node_id}</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>玩家:</b> ${treeData.current_player}</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>动作数量:</b> ${treeData.actions.length}</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>策略数组长度:</b> ${treeData.strategy.length}</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>子节点数量:</b> ${Object.keys(treeData.children).length}</div>`;
+        
+        info += `<div style="margin-top: 10px;"><b>JSON结构预览:</b></div>`;
+        info += `<pre style="background: #f8f8f8; padding: 5px; overflow: auto; max-height: 150px;">${JSON.stringify(treeData, null, 2).substring(0, 500)}...</pre>`;
+        
+        resultArea.innerHTML = info;
+      } catch (err) {
+        addLog(`获取数据失败: ${err.message || err}`);
+        
+        let errorInfo = `<div style="color: red; font-weight: bold;">✗ 获取失败</div>`;
+        errorInfo += `<div style="margin-top: 5px;"><b>错误信息:</b> ${err.message || '未知错误'}</div>`;
+        
+        if (err.message && err.message.includes("Normalized weights are not cached")) {
+          errorInfo += `<div style="margin-top: 10px; padding: 8px; background: #fff8e6; border-left: 4px solid #f59e0b;">
+            <b>提示:</b> 需要先运行求解器并等待一些迭代完成。请点击"Run Solver"按钮运行求解器。
+          </div>`;
+        }
+        
+        resultArea.innerHTML = errorInfo;
+      }
+    };
+    
+    getCurrentNodeBtn.onclick = async () => {
+      addLog("尝试获取当前节点数据...");
+      resultArea.innerHTML = "<div style='color: #888;'>加载中...</div>";
+      
+      try {
+        addLog("调用invokes.getCurrentNodeWithChildren()...");
+        const startTime = performance.now();
+        const nodeData = await invokes.getCurrentNodeWithChildren();
+        const endTime = performance.now();
+        
+        addLog(`获取当前节点成功! 耗时: ${(endTime - startTime).toFixed(2)}ms`);
+        
+        // 简单展示当前节点信息
+        let info = `<div style="margin-bottom: 10px; color: green; font-weight: bold;">✓ 获取成功</div>`;
+        
+        info += `<div style="margin-bottom: 5px;"><b>节点ID:</b> ${nodeData.node_id}</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>玩家:</b> ${nodeData.current_player}</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>动作数量:</b> ${nodeData.actions.length}</div>`;
+        
+        info += `<div style="margin-top: 10px;"><b>JSON结构预览:</b></div>`;
+        info += `<pre style="background: #f8f8f8; padding: 5px; overflow: auto; max-height: 150px;">${JSON.stringify(nodeData, null, 2).substring(0, 500)}...</pre>`;
+        
+        resultArea.innerHTML = info;
+      } catch (err) {
+        addLog(`获取当前节点失败: ${err.message || err}`);
+        
+        let errorInfo = `<div style="color: red; font-weight: bold;">✗ 获取失败</div>`;
+        errorInfo += `<div style="margin-top: 5px;"><b>错误信息:</b> ${err.message || '未知错误'}</div>`;
+        
+        if (err.message && err.message.includes("Normalized weights are not cached")) {
+          errorInfo += `<div style="margin-top: 10px; padding: 8px; background: #fff8e6; border-left: 4px solid #f59e0b;">
+            <b>提示:</b> 需要先运行求解器并等待一些迭代完成。请点击"Run Solver"按钮运行求解器。
+          </div>`;
+        }
+        
+        resultArea.innerHTML = errorInfo;
+      }
+    };
+    
+    // 添加按钮和结果区域
+    const btnContainer = document.createElement('div');
+    btnContainer.style.cssText = "display: flex; gap: 10px; margin-top: 15px;";
+    btnContainer.appendChild(getTreeBtn);
+    btnContainer.appendChild(getCurrentNodeBtn);
+    
+    debugDialog.appendChild(btnContainer);
+    debugDialog.appendChild(resultArea);
+    
+    // 记录初始状态信息
+    addLog("调试弹窗已打开");
+    addLog(`当前时间: ${new Date().toLocaleString()}`);
+    
+  } catch (err) {
+    console.error("调试对话框错误:", err);
+    alert(`调试功能发生错误: ${err.message || err}`);
+  }
+}
+
+// 在script的结尾，确保defineExpose包含showDecisionTree方法
+
+defineExpose({
+  sortBy,
+  exportSummary,
+  showEnhancedDecisionPathInfo,
+  showDecisionPathInfo,
+  showBeforeSolvingInfo,
+  showDecisionTree  // 添加这一行
+});
 </script>
 
 <style scoped>

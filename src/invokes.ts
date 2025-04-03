@@ -348,3 +348,11 @@ export const gameGetChanceReports = async (
     strategy: reports.strategy,
   };
 };
+
+export const getDecisionTree = async (maxDepth: number) => {
+  return await invoke("get_decision_tree", { maxDepth });
+};
+
+export const getCurrentNodeWithChildren = async () => {
+  return await invoke("get_current_node_with_children");
+};

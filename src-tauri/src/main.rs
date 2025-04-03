@@ -6,10 +6,12 @@
 mod bunching;
 mod range;
 mod solver;
+mod test;
 mod tree;
 use crate::bunching::*;
 use crate::range::*;
 use crate::solver::*;
+use crate::test::*;
 use crate::tree::*;
 
 use postflop_solver::*;
@@ -68,7 +70,9 @@ fn main() {
             game_actions_after,
             game_possible_cards,
             game_get_results,
-            game_get_chance_reports
+            game_get_chance_reports,
+            get_decision_tree,
+            get_current_node_with_children
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
