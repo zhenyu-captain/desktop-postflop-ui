@@ -3510,8 +3510,9 @@ async function showDecisionTree() {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 600px;
-      max-height: 80vh;
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
       background: white;
       border-radius: 8px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
@@ -3547,13 +3548,24 @@ async function showDecisionTree() {
       white-space: pre-wrap;
       font-size: 12px;
       line-height: 1.5;
+      max-height: 300px;
+      overflow-y: auto;
     `;
     logArea.textContent = "调试日志：\n";
     
-    const addLog = (message) => {
+    const addLog = (message, type = 'info') => {
       const timestamp = new Date().toLocaleTimeString();
-      logArea.textContent += `[${timestamp}] ${message}\n`;
-      console.log(`[调试] ${message}`);
+      const typeMarker = type === 'error' ? '[错误]' : 
+                        type === 'warning' ? '[警告]' : 
+                        type === 'success' ? '[成功]' : '[信息]';
+      
+      const color = type === 'error' ? '#ef4444' : 
+                   type === 'warning' ? '#f59e0b' : 
+                   type === 'success' ? '#10b981' : '#6b7280';
+                
+      logArea.innerHTML += `<span style="color: ${color}">[${timestamp}] ${typeMarker} ${message}</span>\n`;
+      logArea.scrollTop = logArea.scrollHeight;
+      console.log(`[调试] ${typeMarker} ${message}`);
     };
     
     // 将弹窗添加到文档
@@ -3586,32 +3598,43 @@ async function showDecisionTree() {
     
     // 获取Store对象
     const store = useStore();
-    addLog(`Store状态: isSolverPrepared=${store.isSolverPrepared}, isSolverRunning=${store.isSolverRunning}`);
+    const config = useConfigStore();
     
-    // 创建执行按钮
-    const getTreeBtn = document.createElement('button');
-    getTreeBtn.textContent = "获取决策树数据";
-    getTreeBtn.style.cssText = `
-      padding: 8px 15px;
-      background: #3b82f6;
+    // === 统一状态诊断部分 ===
+    // 记录状态信息到日志
+    addLog(`当前系统状态信息`, 'info');
+    addLog(`求解器状态: ${store.isSolverRunning ? '运行中' : (store.isSolverPrepared ? '就绪' : '未准备')}`, 'info');
+    addLog(`历史长度: ${store.history ? store.history.length : 0}, 历史内容: ${JSON.stringify(store.history || [])}`, 'info');
+    addLog(`路径长度: ${store.path ? store.path.length : 0}, 选中索引: ${store.selectedSpotIndex}`, 'info');
+    addLog(`当前模式: ${store.spotMode || 'undefined'}, 状态: ${store.state || 'undefined'}`, 'info');
+    
+    if (store.path && store.path.length > 0) {
+      addLog(`路径包含 ${store.path.length} 个点`, 'info');
+      
+      // 检查路径最后一个点是否与selectedSpotIndex匹配
+      if (store.selectedSpotIndex !== undefined && store.selectedSpotIndex < store.path.length) {
+        addLog(`当前选中点: ${JSON.stringify(store.path[store.selectedSpotIndex])}`, 'info');
+      } else {
+        addLog(`选中索引(${store.selectedSpotIndex})与路径长度(${store.path.length})不匹配`, 'warning');
+      }
+    } else {
+      addLog(`路径为空或未定义`, 'warning');
+    }
+    
+    // 获取完整行动路径按钮
+    const getPathBtn = document.createElement('button');
+    getPathBtn.textContent = "获取完整行动路径";
+    getPathBtn.style.cssText = `
+      padding: 10px 20px;
+      background: #8b5cf6;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
+      font-weight: 500;
       margin-right: 10px;
-    `;
-    
-    const getCurrentNodeBtn = document.createElement('button');
-    getCurrentNodeBtn.textContent = "获取当前节点";
-    getCurrentNodeBtn.style.cssText = `
-      padding: 8px 15px;
-      background: #10b981;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     `;
     
     // 创建结果显示区域
@@ -3622,106 +3645,166 @@ async function showDecisionTree() {
       border: 1px solid #ddd;
       border-radius: 4px;
       padding: 10px;
-      max-height: 300px;
+      max-height: 500px;
       overflow-y: auto;
       font-size: 12px;
     `;
-    resultArea.innerHTML = "<div style='color: #888;'>点击上方按钮获取数据...</div>";
+    resultArea.innerHTML = "<div style='color: #888; text-align: center; padding: 20px;'>点击上方按钮获取数据...</div>";
     
-    // 按钮点击事件
-    getTreeBtn.onclick = async () => {
-      addLog("尝试获取决策树数据...");
-      resultArea.innerHTML = "<div style='color: #888;'>加载中...</div>";
+    // 获取完整行动路径按钮的事件处理
+    getPathBtn.onclick = async () => {
+      addLog("开始获取行动路径...", 'info');
+      resultArea.innerHTML = "<div style='color: #888; text-align: center; padding: 20px;'>加载中...<div class='spinner'></div></div>";
+      
+      // 设置超时处理，避免长时间卡死
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("操作超时，请检查日志")), 5000);
+      });
       
       try {
-        // 获取决策树数据 (最大深度限制为1，只获取根节点和一层子节点)
-        addLog("调用invokes.getDecisionTree(1)...");
-        const startTime = performance.now();
-        const treeData = await invokes.getDecisionTree(1);
-        const endTime = performance.now();
+        // 尝试使用API获取决策路径
+        addLog("调用getCompleteDecisionPath API...", 'info');
         
-        addLog(`获取数据成功! 耗时: ${(endTime - startTime).toFixed(2)}ms`);
+        // 使用Promise.race实现超时处理
+        const pathData = await Promise.race([
+          invokes.getCompleteDecisionPath(),
+          timeoutPromise
+        ]);
         
-        // 简单展示树的根节点信息
+        // 记录成功信息
+        addLog(`获取成功! 路径长度: ${pathData.decision_path.length}`, 'success');
+        
+        // 只显示关键信息，避免渲染大量JSON造成卡顿
         let info = `<div style="margin-bottom: 10px; color: green; font-weight: bold;">✓ 获取成功</div>`;
+        info += `<div style="margin-bottom: 5px;"><b>路径长度:</b> ${pathData.decision_path.length}</div>`;
         
-        info += `<div style="margin-bottom: 5px;"><b>节点ID:</b> ${treeData.node_id}</div>`;
-        info += `<div style="margin-bottom: 5px;"><b>玩家:</b> ${treeData.current_player}</div>`;
-        info += `<div style="margin-bottom: 5px;"><b>动作数量:</b> ${treeData.actions.length}</div>`;
-        info += `<div style="margin-bottom: 5px;"><b>策略数组长度:</b> ${treeData.strategy.length}</div>`;
-        info += `<div style="margin-bottom: 5px;"><b>子节点数量:</b> ${Object.keys(treeData.children).length}</div>`;
-        
-        info += `<div style="margin-top: 10px;"><b>JSON结构预览:</b></div>`;
-        info += `<pre style="background: #f8f8f8; padding: 5px; overflow: auto; max-height: 150px;">${JSON.stringify(treeData, null, 2).substring(0, 500)}...</pre>`;
-        
-        resultArea.innerHTML = info;
-      } catch (err) {
-        addLog(`获取数据失败: ${err.message || err}`);
-        
-        let errorInfo = `<div style="color: red; font-weight: bold;">✗ 获取失败</div>`;
-        errorInfo += `<div style="margin-top: 5px;"><b>错误信息:</b> ${err.message || '未知错误'}</div>`;
-        
-        if (err.message && err.message.includes("Normalized weights are not cached")) {
-          errorInfo += `<div style="margin-top: 10px; padding: 8px; background: #fff8e6; border-left: 4px solid #f59e0b;">
-            <b>提示:</b> 需要先运行求解器并等待一些迭代完成。请点击"Run Solver"按钮运行求解器。
+        if (pathData.decision_path.length > 0) {
+          info += `<div style="margin-bottom: 5px;"><b>牌面:</b> ${pathData.board.join(' ')}</div>`;
+          info += `<div style="margin-bottom: 5px;"><b>底池:</b> 起始=${pathData.betting_info.starting_pot}, 当前=${pathData.betting_info.pot_size}</div>`;
+          
+          // 显示路径摘要而不是完整JSON
+          info += `<div style="margin-bottom: 10px;"><b>路径摘要:</b> ${pathData.path_summary}</div>`;
+          
+          // 添加节点类型统计
+          const nodeTypes = pathData.decision_path.reduce((acc, node) => {
+            const type = typeof node === 'object' && node !== null ? node.type : 'unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {});
+          
+          info += `<div style="margin-bottom: 10px;"><b>节点统计:</b> `;
+          Object.entries(nodeTypes).forEach(([type, count]) => {
+            info += `${type}: ${count} | `;
+          });
+          info = info.slice(0, -3) + '</div>';
+          
+          // 显示所有节点的简要信息
+          info += `<div style="margin-top: 10px;"><b>所有${pathData.decision_path.length}个节点:</b></div>`;
+          info += `<pre style="background: #f8f8f8; padding: 10px; overflow: auto; max-height: 400px; margin-top: 5px; white-space: pre-wrap; word-break: break-all;">`;
+          
+          // 默认显示所有节点
+          for (let i = 0; i < pathData.decision_path.length; i++) {
+            const node = pathData.decision_path[i];
+            info += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #ddd;">`;
+            info += `<b>节点 ${i}:</b> ${node.type} (${node.player})\n`;
+            info += JSON.stringify(node, null, 2);
+            info += `</div>`;
+          }
+          
+          info += `</pre>`;
+          
+          // 添加收起/展开控制按钮
+          info += `<div style="margin-top: 5px; text-align: center;">
+            <button id="toggleNodes" style="padding: 5px 10px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer;">
+              收起节点详情
+            </button>
           </div>`;
+        } else {
+          info += `<div style="color: orange; margin: 10px 0;">警告: 决策路径为空</div>`;
         }
         
-        resultArea.innerHTML = errorInfo;
+        resultArea.innerHTML = info;
+        
+        // 添加收起/展开控制的事件处理
+        const toggleBtn = document.getElementById('toggleNodes');
+        if (toggleBtn) {
+          let isExpanded = true;
+          toggleBtn.addEventListener('click', () => {
+            const pre = resultArea.querySelector('pre');
+            if (!pre) return;
+            
+            if (isExpanded) {
+              // 收起详情，只显示节点标题
+              const nodes = pre.querySelectorAll('div');
+              for (const node of nodes) {
+                const nodeContent = node.innerHTML.split('\n');
+                if (nodeContent.length > 1) {
+                  node.setAttribute('data-full-content', node.innerHTML);
+                  node.innerHTML = nodeContent[0]; // 只保留标题行
+                }
+              }
+              toggleBtn.textContent = "展开节点详情";
+            } else {
+              // 恢复完整内容
+              const nodes = pre.querySelectorAll('div');
+              for (const node of nodes) {
+                const fullContent = node.getAttribute('data-full-content');
+                if (fullContent) {
+                  node.innerHTML = fullContent;
+                }
+              }
+              toggleBtn.textContent = "收起节点详情";
+            }
+            isExpanded = !isExpanded;
+          });
+        }
+      } catch (err) {
+        addLog(`获取失败: ${err.message || err}`, 'error');
+        
+        // 显示错误信息
+        resultArea.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">
+          获取失败: ${err.message || err}
+        </div>
+        <div style="margin-top: 10px; text-align: center;">
+          <button id="retryBtn" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">重试</button>
+        </div>`;
+        
+        // 添加重试按钮事件处理
+        document.getElementById("retryBtn")?.addEventListener("click", getPathBtn.onclick);
       }
     };
     
-    getCurrentNodeBtn.onclick = async () => {
-      addLog("尝试获取当前节点数据...");
-      resultArea.innerHTML = "<div style='color: #888;'>加载中...</div>";
-      
-      try {
-        addLog("调用invokes.getCurrentNodeWithChildren()...");
-        const startTime = performance.now();
-        const nodeData = await invokes.getCurrentNodeWithChildren();
-        const endTime = performance.now();
-        
-        addLog(`获取当前节点成功! 耗时: ${(endTime - startTime).toFixed(2)}ms`);
-        
-        // 简单展示当前节点信息
-        let info = `<div style="margin-bottom: 10px; color: green; font-weight: bold;">✓ 获取成功</div>`;
-        
-        info += `<div style="margin-bottom: 5px;"><b>节点ID:</b> ${nodeData.node_id}</div>`;
-        info += `<div style="margin-bottom: 5px;"><b>玩家:</b> ${nodeData.current_player}</div>`;
-        info += `<div style="margin-bottom: 5px;"><b>动作数量:</b> ${nodeData.actions.length}</div>`;
-        
-        info += `<div style="margin-top: 10px;"><b>JSON结构预览:</b></div>`;
-        info += `<pre style="background: #f8f8f8; padding: 5px; overflow: auto; max-height: 150px;">${JSON.stringify(nodeData, null, 2).substring(0, 500)}...</pre>`;
-        
-        resultArea.innerHTML = info;
-      } catch (err) {
-        addLog(`获取当前节点失败: ${err.message || err}`);
-        
-        let errorInfo = `<div style="color: red; font-weight: bold;">✗ 获取失败</div>`;
-        errorInfo += `<div style="margin-top: 5px;"><b>错误信息:</b> ${err.message || '未知错误'}</div>`;
-        
-        if (err.message && err.message.includes("Normalized weights are not cached")) {
-          errorInfo += `<div style="margin-top: 10px; padding: 8px; background: #fff8e6; border-left: 4px solid #f59e0b;">
-            <b>提示:</b> 需要先运行求解器并等待一些迭代完成。请点击"Run Solver"按钮运行求解器。
-          </div>`;
-        }
-        
-        resultArea.innerHTML = errorInfo;
+    // 添加简单的加载动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        animation: spin 1s ease-in-out infinite;
+        margin-top: 10px;
       }
-    };
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
     
     // 添加按钮和结果区域
     const btnContainer = document.createElement('div');
-    btnContainer.style.cssText = "display: flex; gap: 10px; margin-top: 15px;";
-    btnContainer.appendChild(getTreeBtn);
-    btnContainer.appendChild(getCurrentNodeBtn);
+    btnContainer.style.cssText = "display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; justify-content: center;";
+    btnContainer.appendChild(getPathBtn);
     
     debugDialog.appendChild(btnContainer);
     debugDialog.appendChild(resultArea);
     
     // 记录初始状态信息
-    addLog("调试弹窗已打开");
-    addLog(`当前时间: ${new Date().toLocaleString()}`);
+    addLog("调试弹窗已打开", 'frontend');
+    addLog(`当前时间: ${new Date().toLocaleString()}`, 'info');
     
   } catch (err) {
     console.error("调试对话框错误:", err);
@@ -3729,7 +3812,62 @@ async function showDecisionTree() {
   }
 }
 
-// 在script的结尾，确保defineExpose包含showDecisionTree方法
+// 生成决策路径摘要文本
+function generateDecisionPathSummary(decisionPath, store) {
+  try {
+    const startingPot = store.treeConfig?.startingPot || 0;
+    const stack = store.treeConfig?.effectiveStack || 0;
+    const board = store.board || [];
+    
+    let summary = `Starting with pot ${startingPot}, effective stack ${stack} | Board: `;
+    
+    // 添加翻牌牌面
+    if (board.length >= 3) {
+      summary += board.slice(0, 3).join(' ') + ' | ';
+    }
+    
+    // 添加每个决策点的信息
+    for (let i = 0; i < decisionPath.length; i++) {
+      const spot = decisionPath[i];
+      
+      if (i === 0 && spot.type === "root") {
+        summary += "Flop: ";
+        continue;
+      }
+      
+      if (spot.type === "player") {
+        summary += `${spot.player.toUpperCase()} ${spot.action.name} | `;
+      } else if (spot.type === "chance") {
+        if (spot.player === "turn") {
+          summary += `Turn: ${spot.cardDisplay} | Turn actions: `;
+        } else if (spot.player === "river") {
+          summary += `River: ${spot.cardDisplay} | River actions: `;
+        }
+      } else if (spot.type === "terminal") {
+        summary += `Final pot: ${spot.pot} | Equity: OOP ${spot.equityPercentage.oop}, IP ${spot.equityPercentage.ip}`;
+      }
+    }
+    
+    return summary;
+  } catch (err) {
+    console.error("生成路径摘要失败:", err);
+    return "无法生成路径摘要";
+  }
+}
+
+// 根据历史生成预期的节点ID
+function generateExpectedNodeId(history) {
+  if (!history || history.length === 0) {
+    return "root";
+  }
+  
+  return history.map(action => {
+    if (action === 0) return "F"; // Fold
+    if (action === 1) return "X"; // Check
+    if (action === 2) return "C"; // Call
+    return `A${action}`; // 其他动作
+  }).join("-");
+}
 
 defineExpose({
   sortBy,

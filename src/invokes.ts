@@ -356,3 +356,8 @@ export const getDecisionTree = async (maxDepth: number) => {
 export const getCurrentNodeWithChildren = async () => {
   return await invoke("get_current_node_with_children");
 };
+
+// 获取完整的决策路径数据
+export async function getCompleteDecisionPath(): Promise<any> {
+  return invoke("get_complete_decision_path");
+}

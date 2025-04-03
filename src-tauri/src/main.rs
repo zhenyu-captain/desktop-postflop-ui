@@ -72,7 +72,8 @@ fn main() {
             game_get_results,
             game_get_chance_reports,
             get_decision_tree,
-            get_current_node_with_children
+            get_current_node_with_children,
+            get_complete_decision_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
