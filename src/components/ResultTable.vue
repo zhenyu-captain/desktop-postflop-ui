@@ -2565,8 +2565,25 @@ const showEnhancedDecisionPathInfo = async () => {
         throw new Error("无法获取决策路径数据");
       }
       
+      // 创建用于展示的数据副本，将sortedHands替换为hands以便展示排序后的手牌
+      const displayData = JSON.parse(JSON.stringify(completeData));
+      
+      // 遍历所有节点，用排序后的手牌替换原始手牌
+      displayData.decisionPath.forEach(spot => {
+        if (spot.summaryData) {
+          ['oop', 'ip'].forEach(player => {
+            if (spot.summaryData[player] && spot.summaryData[player].sortedHands) {
+              // 用排序后的手牌替换原始手牌
+              spot.summaryData[player].hands = spot.summaryData[player].sortedHands;
+              // 删除多余属性，避免重复数据
+              delete spot.summaryData[player].sortedHands;
+            }
+          });
+        }
+      });
+      
       // 格式化为JSON字符串
-      const jsonFormat = JSON.stringify(completeData, null, 2);
+      const jsonFormat = JSON.stringify(displayData, null, 2);
       
       // 更新弹窗内容
       dialog.innerHTML = '';
@@ -3103,6 +3120,38 @@ const getDirectDecisionPathWithSummary = async () => {
     return enhancedSpot;
   });
   
+  // 对每个节点中的手牌数据进行排序处理（但不修改原始数据）
+  enhancedPath.forEach(spot => {
+    if (spot.summaryData) {
+      // 处理OOP和IP的手牌数据
+      ['oop', 'ip'].forEach(player => {
+        if (spot.summaryData[player] && spot.summaryData[player].hands && spot.summaryData[player].hands.length > 0) {
+          // 创建手牌排序函数 - 按照牌面大小从高到低排序(AA到22)
+          const sortHandsByRank = (a, b) => {
+            // 提取牌面信息（对于口袋对，两张牌的点数相同，取第一张即可）
+            const rankA = a.hand.substring(0, 1); // 第一张牌的点数
+            const rankB = b.hand.substring(0, 1); // 第一张牌的点数
+            
+            // 转换牌面点数为数值大小以便排序
+            const getRankValue = (rank) => {
+              const rankValues = {'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10};
+              return rankValues[rank] || parseInt(rank);
+            };
+            
+            const valueA = getRankValue(rankA);
+            const valueB = getRankValue(rankB);
+            
+            // 比较大小并返回排序结果(从大到小)
+            return valueB - valueA;
+          };
+          
+          // 创建按牌面大小排序的手牌副本
+          spot.summaryData[player].sortedHands = [...spot.summaryData[player].hands].sort(sortHandsByRank);
+        }
+      });
+    }
+  });
+  
   // 创建最终的增强数据
   const enhancedData = {
     ...optimizedData,
@@ -3237,6 +3286,41 @@ const generateVisualDecisionPath = (enhancedData) => {
   if (!enhancedData || !enhancedData.decisionPath) {
     return '<div class="text-red-500">No valid decision path data available</div>';
   }
+  
+  // 对所有节点中的手牌进行排序处理（为可视化展示准备）
+  enhancedData.decisionPath.forEach(spot => {
+    if (spot.summaryData) {
+      // 处理OOP和IP的手牌数据
+      ['oop', 'ip'].forEach(player => {
+        if (spot.summaryData[player] && spot.summaryData[player].hands && spot.summaryData[player].hands.length > 0) {
+          // 如果没有已排序的手牌，则现在创建
+          if (!spot.summaryData[player].sortedHands) {
+            // 创建手牌排序函数 - 按照牌面大小从高到低排序(AA到22)
+            const sortHandsByRank = (a, b) => {
+              // 提取牌面信息（对于口袋对，两张牌的点数相同，取第一张即可）
+              const rankA = a.hand.substring(0, 1); // 第一张牌的点数
+              const rankB = b.hand.substring(0, 1); // 第一张牌的点数
+              
+              // 转换牌面点数为数值大小以便排序
+              const getRankValue = (rank) => {
+                const rankValues = {'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10};
+                return rankValues[rank] || parseInt(rank);
+              };
+              
+              const valueA = getRankValue(rankA);
+              const valueB = getRankValue(rankB);
+              
+              // 比较大小并返回排序结果(从大到小)
+              return valueB - valueA;
+            };
+            
+            // 创建按牌面大小排序的手牌副本
+            spot.summaryData[player].sortedHands = [...spot.summaryData[player].hands].sort(sortHandsByRank);
+          }
+        }
+      });
+    }
+  });
   
   let html = `
     <div class="flex flex-col space-y-6">
