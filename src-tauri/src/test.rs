@@ -45,6 +45,9 @@ pub struct RootNode {
     pub pot: i32,
     pub board: Vec<String>,
     pub stack: i32,
+    pub equity: Option<f32>,
+    pub ev: Option<f32>,
+    pub hands: Option<Vec<HandData>>, // 添加手牌数据
 }
 
 // 玩家动作节点
@@ -54,6 +57,9 @@ pub struct PlayerNode {
     pub index: usize,
     pub player: String,
     pub action: ActionInfo,
+    pub equity: Option<f32>,
+    pub ev: Option<f32>,
+    pub hands: Option<Vec<HandData>>, // 添加手牌数据
 }
 
 // 机会节点（转牌、河牌）
@@ -104,6 +110,16 @@ pub struct CompleteDecisionPath {
     pub current_position: PathPosition,
     pub betting_info: BettingInfo,
     pub path_summary: String,
+}
+
+// 手牌数据结构
+#[derive(Serialize, Clone)]
+pub struct HandData {
+    pub hand: String,       // 手牌，如"AA", "KK"等
+    pub equity: f32,        // 手牌权益
+    pub ev: f32,            // 期望值
+    pub weight: f32,        // 权重
+    pub combos: u8,         // 组合数
 }
 
 // 获取决策树的命令
@@ -401,6 +417,126 @@ pub fn get_complete_decision_path(
     let mut path_index = 0;
     
     // 4.1 添加根节点
+    let (root_equity, root_ev, root_hands) = {
+        let mut game = game_state.lock().unwrap();
+        game.apply_history(&[]); // 回到根节点
+        game.cache_normalized_weights();
+        
+        // 获取整体节点的EQ和EV - 使用加权平均值计算
+        let equity_values = game.equity(0); // OOP玩家的权益
+        let ev_values = game.expected_values(0); // OOP玩家的EV
+        let weights = game.normalized_weights(0); // OOP玩家的权重
+        
+        // 如果有数据，使用加权平均计算整体EQ和EV
+        let equity_val = if !equity_values.is_empty() && !weights.is_empty() {
+            let avg = weighted_average(&equity_values, &weights);
+            Some(avg as f32)
+        } else {
+            None
+        };
+        
+        let ev_val = if !ev_values.is_empty() && !weights.is_empty() {
+            let avg = weighted_average(&ev_values, &weights);
+            Some(avg as f32)
+        } else {
+            None
+        };
+        
+        // 获取手牌数据
+        let mut hands_data = Vec::new();
+        
+        // 添加AA手牌数据
+        let aa_indices = get_hand_indices("AA", &game);
+        if !aa_indices.is_empty() {
+            let mut total_equity = 0.0;
+            let mut total_ev = 0.0;
+            let mut total_weight = 0.0;
+            let mut combo_count = 0;
+            
+            for &hand_idx in &aa_indices {
+                if hand_idx < weights.len() {
+                    let weight = weights[hand_idx];
+                    if weight > 0.0 {
+                        combo_count += 1;
+                        total_weight += weight;
+                        
+                        if hand_idx < equity_values.len() {
+                            total_equity += equity_values[hand_idx] * weight;
+                        }
+                        
+                        if hand_idx < ev_values.len() {
+                            total_ev += ev_values[hand_idx] * weight;
+                        }
+                    }
+                }
+            }
+            
+            // 只有当有实际权重时才添加手牌数据
+            if total_weight > 0.0 {
+                hands_data.push(HandData {
+                    hand: "AA".to_string(),
+                    equity: (total_equity / total_weight) as f32,
+                    ev: (total_ev / total_weight) as f32,
+                    weight: total_weight,
+                    combos: combo_count as u8,
+                });
+            }
+        }
+        
+        // 添加所有AA花色组合
+        let aa_combos = [
+            ("AsAh", "A♠A♥"), 
+            ("AsAd", "A♠A♦"), 
+            ("AsAc", "A♠A♣"),
+            ("AhAd", "A♥A♦"), 
+            ("AhAc", "A♥A♣"), 
+            ("AdAc", "A♦A♣")
+        ];
+        
+        for (code, display) in aa_combos.iter() {
+            let combo_indices = get_hand_indices(code, &game);
+            if !combo_indices.is_empty() {
+                let mut combo_equity = 0.0;
+                let mut combo_ev = 0.0;
+                let mut combo_weight = 0.0;
+                let mut combo_count = 0;
+                
+                for &hand_idx in &combo_indices {
+                    if hand_idx < weights.len() {
+                        let weight = weights[hand_idx];
+                        if weight > 0.0 {
+                            combo_count += 1;
+                            combo_weight += weight;
+                            
+                            if hand_idx < equity_values.len() {
+                                combo_equity += equity_values[hand_idx] * weight;
+                            }
+                            
+                            if hand_idx < ev_values.len() {
+                                combo_ev += ev_values[hand_idx] * weight;
+                            }
+                        }
+                    }
+                }
+                
+                // 只有当有实际权重时才添加手牌数据
+                if combo_weight > 0.0 {
+                    hands_data.push(HandData {
+                        hand: display.to_string(),
+                        equity: (combo_equity / combo_weight) as f32,
+                        ev: (combo_ev / combo_weight) as f32,
+                        weight: combo_weight,
+                        combos: combo_count as u8,
+                    });
+                }
+            }
+        }
+        
+        let hands_opt = if !hands_data.is_empty() { Some(hands_data) } else { None };
+        
+        (equity_val, ev_val, hands_opt)
+    };
+    
     let root_node = RootNode {
         r#type: "root".to_string(),
         index: path_index,
@@ -408,6 +544,9 @@ pub fn get_complete_decision_path(
         pot: starting_pot,
         board: board_cards[0..3].to_vec(),
         stack: effective_stack,
+        equity: root_equity,
+        ev: root_ev,
+        hands: root_hands,
     };
     path_index += 1;
     decision_path.push(serde_json::to_value(root_node).unwrap());
@@ -525,6 +664,125 @@ pub fn get_complete_decision_path(
                     _ => ("Unknown".to_string(), 0),
                 };
                 
+                // 获取当前节点的权益和EV
+                let mut game = game_state.lock().unwrap();
+                game.apply_history(&original_history[0..i]);
+                game.cache_normalized_weights();
+                
+                let player_idx = if current_player == 0 { 0 } else { 1 };
+                
+                // 获取当前节点的权益和EV
+                let equity_values = game.equity(player_idx);
+                let ev_values = game.expected_values(player_idx);
+                let weights = game.normalized_weights(player_idx);
+                
+                // 使用加权平均计算整体权益和EV
+                let equity_val = if !equity_values.is_empty() && !weights.is_empty() {
+                    let avg = weighted_average(&equity_values, &weights);
+                    Some(avg as f32)
+                } else {
+                    None
+                };
+                
+                let ev_val = if !ev_values.is_empty() && !weights.is_empty() {
+                    let avg = weighted_average(&ev_values, &weights);
+                    Some(avg as f32)
+                } else {
+                    None
+                };
+                
+                // 获取手牌数据
+                let mut hands_data = Vec::new();
+                
+                // 添加AA手牌数据
+                let aa_indices = get_hand_indices("AA", &game);
+                if !aa_indices.is_empty() {
+                    let mut total_equity = 0.0;
+                    let mut total_ev = 0.0;
+                    let mut total_weight = 0.0;
+                    let mut combo_count = 0;
+                    
+                    for &hand_idx in &aa_indices {
+                        if hand_idx < weights.len() {
+                            let weight = weights[hand_idx];
+                            if weight > 0.0 {
+                                combo_count += 1;
+                                total_weight += weight;
+                                
+                                if hand_idx < equity_values.len() {
+                                    total_equity += equity_values[hand_idx] * weight;
+                                }
+                                
+                                if hand_idx < ev_values.len() {
+                                    total_ev += ev_values[hand_idx] * weight;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 只有当有实际权重时才添加手牌数据
+                    if total_weight > 0.0 {
+                        hands_data.push(HandData {
+                            hand: "AA".to_string(),
+                            equity: (total_equity / total_weight) as f32,
+                            ev: (total_ev / total_weight) as f32,
+                            weight: total_weight,
+                            combos: combo_count as u8,
+                        });
+                    }
+                }
+                
+                // 添加所有AA花色组合
+                let aa_combos = [
+                    ("AsAh", "A♠A♥"), 
+                    ("AsAd", "A♠A♦"), 
+                    ("AsAc", "A♠A♣"),
+                    ("AhAd", "A♥A♦"), 
+                    ("AhAc", "A♥A♣"), 
+                    ("AdAc", "A♦A♣")
+                ];
+                
+                for (code, display) in aa_combos.iter() {
+                    let combo_indices = get_hand_indices(code, &game);
+                    if !combo_indices.is_empty() {
+                        let mut combo_equity = 0.0;
+                        let mut combo_ev = 0.0;
+                        let mut combo_weight = 0.0;
+                        let mut combo_count = 0;
+                        
+                        for &hand_idx in &combo_indices {
+                            if hand_idx < weights.len() {
+                                let weight = weights[hand_idx];
+                                if weight > 0.0 {
+                                    combo_count += 1;
+                                    combo_weight += weight;
+                                    
+                                    if hand_idx < equity_values.len() {
+                                        combo_equity += equity_values[hand_idx] * weight;
+                                    }
+                                    
+                                    if hand_idx < ev_values.len() {
+                                        combo_ev += ev_values[hand_idx] * weight;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 只有当有实际权重时才添加手牌数据
+                        if combo_weight > 0.0 {
+                            hands_data.push(HandData {
+                                hand: display.to_string(),
+                                equity: (combo_equity / combo_weight) as f32,
+                                ev: (combo_ev / combo_weight) as f32,
+                                weight: combo_weight,
+                                combos: combo_count as u8,
+                            });
+                        }
+                    }
+                }
+                
+                let hands_opt = if !hands_data.is_empty() { Some(hands_data) } else { None };
+                
                 // 创建玩家动作节点
                 let player_node = PlayerNode {
                     r#type: "player".to_string(),
@@ -535,6 +793,9 @@ pub fn get_complete_decision_path(
                         amount: amount.to_string(),
                         index: action_index,
                     },
+                    equity: equity_val,
+                    ev: ev_val,
+                    hands: hands_opt,
                 };
                 
                 path_index += 1;
@@ -723,4 +984,102 @@ fn generate_summary_from_path(
     }
     
     summary
+}
+
+// 辅助函数: 获取特定手牌的索引
+fn get_hand_indices(hand: &str, game: &PostFlopGame) -> Vec<usize> {
+    // 获取游戏中的私有牌数据
+    let private_cards = game.private_cards(0); // 使用OOP玩家的牌，因为目前只处理OOP的手牌
+    
+    // 匹配逻辑 - 这里需要根据具体的手牌表示方法调整
+    let indices: Vec<usize> = match hand {
+        // AA - 任何A对子
+        "AA" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;  // 牌的等级 (0-12)
+                let r2 = c2 / 4;
+                r1 == 12 && r2 == 12  // A的等级是12
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        // 特定花色的AA
+        "A♠A♥" | "AsAh" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;
+                let s1 = c1 % 4;
+                let r2 = c2 / 4;
+                let s2 = c2 % 4;
+                (r1 == 12 && r2 == 12) && ((s1 == 3 && s2 == 2) || (s1 == 2 && s2 == 3))  // A♠(3)A♥(2)
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        "A♠A♦" | "AsAd" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;
+                let s1 = c1 % 4;
+                let r2 = c2 / 4;
+                let s2 = c2 % 4;
+                (r1 == 12 && r2 == 12) && ((s1 == 3 && s2 == 1) || (s1 == 1 && s2 == 3))  // A♠(3)A♦(1)
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        "A♠A♣" | "AsAc" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;
+                let s1 = c1 % 4;
+                let r2 = c2 / 4;
+                let s2 = c2 % 4;
+                (r1 == 12 && r2 == 12) && ((s1 == 3 && s2 == 0) || (s1 == 0 && s2 == 3))  // A♠(3)A♣(0)
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        "A♥A♦" | "AhAd" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;
+                let s1 = c1 % 4;
+                let r2 = c2 / 4;
+                let s2 = c2 % 4;
+                (r1 == 12 && r2 == 12) && ((s1 == 2 && s2 == 1) || (s1 == 1 && s2 == 2))  // A♥(2)A♦(1)
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        "A♥A♣" | "AhAc" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;
+                let s1 = c1 % 4;
+                let r2 = c2 / 4;
+                let s2 = c2 % 4;
+                (r1 == 12 && r2 == 12) && ((s1 == 2 && s2 == 0) || (s1 == 0 && s2 == 2))  // A♥(2)A♣(0)
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        "A♦A♣" | "AdAc" => private_cards.iter()
+            .enumerate()
+            .filter(|(_, &(c1, c2))| {
+                let r1 = c1 / 4;
+                let s1 = c1 % 4;
+                let r2 = c2 / 4;
+                let s2 = c2 % 4;
+                (r1 == 12 && r2 == 12) && ((s1 == 1 && s2 == 0) || (s1 == 0 && s2 == 1))  // A♦(1)A♣(0)
+            })
+            .map(|(i, _)| i)
+            .collect(),
+            
+        // 其他手牌可以根据需要添加
+        _ => Vec::new(),
+    };
+    
+    indices
 }

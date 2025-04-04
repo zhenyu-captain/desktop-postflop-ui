@@ -3707,6 +3707,62 @@ async function showDecisionTree() {
             const node = pathData.decision_path[i];
             info += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #ddd;">`;
             info += `<b>节点 ${i}:</b> ${node.type} (${node.player})\n`;
+            
+            // 添加手牌数据显示
+            if (node.hands && node.hands.length > 0) {
+              info += `<div style="margin-top: 5px; margin-bottom: 5px; background: #f0fff0; padding: 8px; border-radius: 6px; border-left: 3px solid #4CAF50;">`;
+              info += `<div style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #2E7D32;">手牌数据:</div>`;
+              
+              // 首先显示总的AA数据
+              const aaHand = node.hands.find(h => h.hand === "AA");
+              if (aaHand) {
+                info += `<div style="margin-bottom: 8px; padding: 5px; background: #e8f5e9; border-radius: 4px;">`;
+                info += `<span style="font-weight: bold; font-size: 16px; color: #1B5E20;">AA</span> &nbsp;`;
+                info += `<span style="color: #2196F3; font-weight: bold;">EQ: ${(aaHand.equity * 100).toFixed(2)}%</span> &nbsp;|&nbsp; `;
+                info += `<span style="color: #E91E63; font-weight: bold;">EV: ${aaHand.ev.toFixed(2)}</span> &nbsp;|&nbsp; `;
+                info += `组合数: <b>${aaHand.combos}</b>`;
+                info += `</div>`;
+              }
+              
+              // 然后显示所有特定花色组合
+              const specificHands = node.hands.filter(h => h.hand !== "AA");
+              
+              if (specificHands.length > 0) {
+                info += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">`;
+                
+                for (const hand of specificHands) {
+                  // 对A♠A♥特别高亮
+                  const isSpecialHand = hand.hand === "A♠A♥";
+                  
+                  info += `<div style="padding: 5px; border-radius: 4px; ${isSpecialHand ? 'background: #ffecb3; border: 1px solid #ffc107;' : 'background: #f5f5f5;'}">`;
+                  info += `<span style="font-weight: bold; ${isSpecialHand ? 'color: #ff6f00; font-size: 14px;' : ''}">${hand.hand}</span> &nbsp;`;
+                  info += `<span style="color: #2196F3;">EQ: ${(hand.equity * 100).toFixed(2)}%</span> &nbsp; `;
+                  info += `<span style="color: #E91E63;">EV: ${hand.ev.toFixed(2)}</span>`;
+                  info += `</div>`;
+                }
+                
+                info += `</div>`;
+              }
+              
+              info += `</div>`;
+            }
+            
+            // 添加节点的整体EQ和EV数据
+            if (node.equity !== undefined || node.ev !== undefined) {
+              info += `<div style="margin-top: 5px; background: #fff0f5; padding: 5px; border-left: 3px solid #9C27B0;">`;
+              info += `<b>节点整体数据:</b> `;
+              
+              if (node.equity !== undefined) {
+                info += `<b style="color: #2196F3;">EQ:</b> ${(node.equity * 100).toFixed(2)}% | `;
+              }
+              
+              if (node.ev !== undefined) {
+                info += `<b style="color: #E91E63;">EV:</b> ${node.ev.toFixed(2)}`;
+              }
+              
+              info += `</div>`;
+            }
+            
             info += JSON.stringify(node, null, 2);
             info += `</div>`;
           }
