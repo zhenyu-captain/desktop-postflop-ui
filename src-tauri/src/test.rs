@@ -386,9 +386,65 @@ pub fn get_complete_decision_path(
         let history = game.history().to_vec();
         let total_bet = game.total_bet_amount();
         
+        // 打印初始卡牌配置状态
+        println!("【调试】初始牌面配置: 转牌={}({}), 河牌={}({})", 
+                 card_config.turn, card_to_string(card_config.turn),
+                 card_config.river, card_to_string(card_config.river));
+        
         (config, card_config, history, total_bet)
     };
     
+    // 打印历史记录和卡牌配置的关系
+    println!("【调试】历史记录长度: {}", original_history.len());
+    println!("【调试】历史记录内容: {:?}", original_history);
+    
+    // 检查历史记录中是否包含机会节点动作
+    let chance_indices: Vec<_> = original_history.iter()
+        .enumerate()
+        .filter(|(_, &action)| action < 52) // 卡牌动作范围为0-51
+        .collect();
+    println!("【调试】历史记录中的机会节点: {:?}", chance_indices);
+    
+    // 更详细地检查历史记录中的所有值
+    for (i, &action) in original_history.iter().enumerate() {
+        println!("【调试】历史记录[{}] = {} ({})", i, action, 
+                if action < 52 { format!("可能是卡牌: {}", card_to_string(action as u8)) } 
+                else { "非卡牌动作".to_string() });
+    }
+    
+    // 尝试识别历史记录中的转牌和河牌位置
+    let mut turn_action = None;
+    let mut river_action = None;
+    let mut chance_count = 0;
+    
+    for (i, &action) in original_history.iter().enumerate() {
+        // 如果这是个机会节点动作，记录它
+        let mut game = game_state.lock().unwrap();
+        let mut temp_history = original_history[0..i].to_vec();
+        game.apply_history(&temp_history);
+        
+        if game.is_chance_node() {
+            // 这是个机会节点位置，记录当前动作值作为卡牌
+            chance_count += 1;
+            if chance_count == 1 {
+                // 第一个机会节点是转牌
+                if i < original_history.len() {
+                    turn_action = Some(original_history[i]);  // 使用当前位置的值（22）
+                    println!("【调试】在位置{}发现转牌机会节点，值是: {}", i, original_history[i]);
+                }
+            } else if chance_count == 2 {
+                // 第二个机会节点是河牌
+                if i < original_history.len() {
+                    river_action = Some(original_history[i]);  // 使用当前位置的值（21）
+                    println!("【调试】在位置{}发现河牌机会节点，值是: {}", i, original_history[i]);
+                }
+            }
+        }
+    }
+    
+    println!("【调试】识别到的转牌动作: {:?}", turn_action);
+    println!("【调试】识别到的河牌动作: {:?}", river_action);
+
     // 2. 计算底池相关值
     let starting_pot = config.starting_pot;
     let effective_stack = config.effective_stack;
@@ -403,13 +459,64 @@ pub fn get_complete_decision_path(
         board_cards.push(card_to_string(card));
     }
     
-    // 添加转牌和河牌(如果已发牌)
-    if card_config.turn != NOT_DEALT {
+    // 添加转牌和河牌(如果已识别)
+    if let Some(turn) = turn_action {
+        if turn < 52 {  // 确保是有效卡牌ID
+            let turn_card = turn as u8;
+            let turn_str = card_to_string(turn_card);
+            println!("【调试】从历史记录识别的转牌: {} (ID={})", turn_str, turn);
+            board_cards.push(turn_str);
+        }
+    } else if card_config.turn != NOT_DEALT {
         board_cards.push(card_to_string(card_config.turn));
+        println!("【调试】已添加转牌: {} (ID={})", card_to_string(card_config.turn), card_config.turn);
+    } else {
+        println!("【调试】转牌未发出 (NOT_DEALT)且无法从历史记录中识别");
     }
     
-    if card_config.river != NOT_DEALT {
+    if let Some(river) = river_action {
+        if river < 52 {  // 确保是有效卡牌ID
+            let river_card = river as u8;
+            let river_str = card_to_string(river_card);
+            println!("【调试】从历史记录识别的河牌: {} (ID={})", river_str, river);
+            board_cards.push(river_str);
+        }
+    } else if card_config.river != NOT_DEALT {
         board_cards.push(card_to_string(card_config.river));
+        println!("【调试】已添加河牌: {} (ID={})", card_to_string(card_config.river), card_config.river);
+    } else {
+        println!("【调试】河牌未发出 (NOT_DEALT)且无法从历史记录中识别");
+    }
+    
+    // 打印生成的牌面数组
+    println!("【调试】生成的牌面数组: {:?}, 长度: {}", board_cards, board_cards.len());
+    
+    // 检查是否需要重新应用全部历史记录以更新card_config
+    println!("【调试】尝试重新应用历史记录以更新card_config:");
+    {
+        let mut game = game_state.lock().unwrap();
+        game.apply_history(&[]);  // 先回到根节点
+        
+        // 输出初始状态
+        let initial_config = game.card_config();
+        println!("【调试】重置到根节点后的card_config: 转牌={}({}), 河牌={}({})",
+                initial_config.turn, card_to_string(initial_config.turn),
+                initial_config.river, card_to_string(initial_config.river));
+        
+        // 逐步应用历史记录，观察card_config的变化
+        let mut current_history = Vec::new();
+        for (i, &action) in original_history.iter().enumerate() {
+            current_history.push(action);
+            game.apply_history(&current_history);
+            
+            let current_config = game.card_config();
+            println!("【调试】应用历史[0..{}]后的card_config: 转牌={}({}), 河牌={}({})",
+                    i+1, current_config.turn, card_to_string(current_config.turn),
+                    current_config.river, card_to_string(current_config.river));
+        }
+        
+        // 恢复到原始状态
+        game.apply_history(&original_history);
     }
     
     // 4. 构建决策路径
@@ -541,9 +648,9 @@ pub fn get_complete_decision_path(
         r#type: "root".to_string(),
         index: path_index,
         player: "flop".to_string(),
-        pot: starting_pot,
+        pot: config.starting_pot,
         board: board_cards[0..3].to_vec(),
-        stack: effective_stack,
+        stack: config.effective_stack,
         equity: root_equity,
         ev: root_ev,
         hands: root_hands,
@@ -584,7 +691,7 @@ pub fn get_complete_decision_path(
     if !original_history.is_empty() {
         // 初始化变量
         let mut street = 0; // 0 = 翻牌圈, 1 = 转牌圈, 2 = 河牌圈
-        let mut pot = starting_pot;
+        let mut pot = config.starting_pot;
         let mut current_player = 0; // 0 = OOP, 1 = IP
         let mut player_bet = [0, 0]; // 每个玩家的下注金额
         
@@ -602,14 +709,140 @@ pub fn get_complete_decision_path(
                     _ => "unknown",
                 };
                 
-                let card_id = if street == 1 { card_config.turn } else { card_config.river };
-                // 添加边界检查，确保访问有效索引
-                let card_display = if 2 + street < board_cards.len() {
-                    board_cards[2 + street].clone()
-                } else {
-                    "?".to_string() // 如果牌面不存在，使用占位符
+                println!("【调试】处理{}节点, 当前街道: {}", street_name, street);
+                
+                // 直接从board_cards数组获取牌面信息
+                let (card_id, card_display) = {
+                    // 记录当前游戏状态卡牌配置
+                    let game = game_state.lock().unwrap();
+                    let current_config = game.card_config();
+                    println!("【调试】机会节点处理时的card_config: 转牌={}({}), 河牌={}({})",
+                           current_config.turn, card_to_string(current_config.turn),
+                           current_config.river, card_to_string(current_config.river));
+                    
+                    // 根据街道获取卡牌
+                    if street == 1 && board_cards.len() >= 4 {
+                        // 转牌 - 索引3
+                        let card_str = board_cards[3].clone();
+                        println!("【调试】直接从board_cards获取转牌: {}", card_str);
+                        
+                        // 尝试将转牌转换回卡牌ID
+                        let card_id = if card_str.len() == 2 {
+                            let rank_char = card_str.chars().nth(0).unwrap();
+                            let suit_char = card_str.chars().nth(1).unwrap();
+                            
+                            let rank = match rank_char {
+                                '2' => 0,
+                                '3' => 1,
+                                '4' => 2,
+                                '5' => 3,
+                                '6' => 4,
+                                '7' => 5,
+                                '8' => 6,
+                                '9' => 7,
+                                'T' => 8,
+                                'J' => 9,
+                                'Q' => 10,
+                                'K' => 11,
+                                'A' => 12,
+                                _ => 0,
+                            };
+                            
+                            let suit = match suit_char {
+                                'c' => 0,
+                                'd' => 1,
+                                'h' => 2,
+                                's' => 3,
+                                _ => 0,
+                            };
+                            
+                            let id = rank * 4 + suit;
+                            println!("【调试】转换转牌到ID: {} -> {}", card_str, id);
+                            id
+                        } else {
+                            println!("【调试】转牌转换失败，使用NOT_DEALT(255)");
+                            255 // NOT_DEALT
+                        };
+                        
+                        (card_id, card_str)
+                    } else if street == 2 && board_cards.len() >= 5 {
+                        // 河牌 - 索引4
+                        let card_str = board_cards[4].clone();
+                        println!("【调试】直接从board_cards获取河牌: {}", card_str);
+                        
+                        // 尝试将河牌转换回卡牌ID
+                        let card_id = if card_str.len() == 2 {
+                            let rank_char = card_str.chars().nth(0).unwrap();
+                            let suit_char = card_str.chars().nth(1).unwrap();
+                            
+                            let rank = match rank_char {
+                                '2' => 0,
+                                '3' => 1,
+                                '4' => 2,
+                                '5' => 3,
+                                '6' => 4,
+                                '7' => 5,
+                                '8' => 6,
+                                '9' => 7,
+                                'T' => 8,
+                                'J' => 9,
+                                'Q' => 10,
+                                'K' => 11,
+                                'A' => 12,
+                                _ => 0,
+                            };
+                            
+                            let suit = match suit_char {
+                                'c' => 0,
+                                'd' => 1,
+                                'h' => 2,
+                                's' => 3,
+                                _ => 0,
+                            };
+                            
+                            let id = rank * 4 + suit;
+                            println!("【调试】转换河牌到ID: {} -> {}", card_str, id);
+                            id
+                        } else {
+                            println!("【调试】河牌转换失败，使用NOT_DEALT(255)");
+                            255 // NOT_DEALT
+                        };
+                        
+                        (card_id, card_str)
+                    } else {
+                        // 没有可用的牌面信息
+                        println!("【调试】没有可用的牌面信息，使用'?'");
+                        
+                        // 尝试从历史记录中获取
+                        if street == 1 && chance_indices.len() >= 1 {
+                            let turn_idx = chance_indices[0].1;
+                            println!("【调试】从历史记录尝试获取转牌: 索引={}, 值={}", 
+                                   chance_indices[0].0, turn_idx);
+                            if *turn_idx < 52 {
+                                let turn_str = card_to_string(*turn_idx as u8);
+                                println!("【调试】成功从历史记录获取转牌: {}", turn_str);
+                                (*turn_idx as u8, turn_str)
+                            } else {
+                                (255, "?".to_string())
+                            }
+                        } else if street == 2 && chance_indices.len() >= 2 {
+                            let river_idx = chance_indices[1].1;
+                            println!("【调试】从历史记录尝试获取河牌: 索引={}, 值={}", 
+                                   chance_indices[1].0, river_idx);
+                            if *river_idx < 52 {
+                                let river_str = card_to_string(*river_idx as u8);
+                                println!("【调试】成功从历史记录获取河牌: {}", river_str);
+                                (*river_idx as u8, river_str)
+                            } else {
+                                (255, "?".to_string())
+                            }
+                        } else {
+                            (255, "?".to_string())
+                        }
+                    }
                 };
                 
+                // 创建机会节点
                 let chance_node = ChanceNode {
                     r#type: "chance".to_string(),
                     index: path_index,
@@ -617,7 +850,7 @@ pub fn get_complete_decision_path(
                     pot: pot,
                     selected_card: card_id,
                     card_display,
-                    stack: remaining_stack,
+                    stack: config.effective_stack - total_bet[0].max(total_bet[1]),
                 };
                 path_index += 1;
                 decision_path.push(serde_json::to_value(chance_node).unwrap());
@@ -860,9 +1093,9 @@ pub fn get_complete_decision_path(
     let path_summary = if decision_path.len() <= 1 {
         // 只有根节点的情况
         format!("Starting with pot {}, effective stack {} | Board: {} {} {} | Flop: ",
-            starting_pot, effective_stack, board_cards[0], board_cards[1], board_cards[2])
+            config.starting_pot, config.effective_stack, board_cards[0], board_cards[1], board_cards[2])
     } else {
-        generate_summary_from_path(&decision_path, &board_cards, starting_pot, effective_stack)
+        generate_summary_from_path(&decision_path, &board_cards, config.starting_pot, config.effective_stack)
     };
     
     // 9. 构建完整的决策路径数据结构
@@ -875,9 +1108,9 @@ pub fn get_complete_decision_path(
         },
         betting_info: BettingInfo {
             total_bet,
-            pot_size: current_pot,
-            starting_pot,
-            stack: remaining_stack,
+            pot_size: config.starting_pot + total_bet[0] + total_bet[1],
+            starting_pot: config.starting_pot,
+            stack: config.effective_stack - total_bet[0].max(total_bet[1]),
         },
         path_summary,
     };
