@@ -639,6 +639,96 @@ pub fn get_complete_decision_path(
             }
         }
         
+        // 添加其他口袋对（KK至22）
+        let hand_ranks = ["K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
+        
+        for rank in hand_ranks.iter() {
+            let hand_code = format!("{}{}", rank, rank);
+            let hand_indices = get_hand_indices(&hand_code, &game);
+            
+            if !hand_indices.is_empty() {
+                let mut total_equity = 0.0;
+                let mut total_ev = 0.0;
+                let mut total_weight = 0.0;
+                let mut combo_count = 0;
+                
+                for &hand_idx in &hand_indices {
+                    if hand_idx < weights.len() {
+                        let weight = weights[hand_idx];
+                        if weight > 0.0 {
+                            combo_count += 1;
+                            total_weight += weight;
+                            
+                            if hand_idx < equity_values.len() {
+                                total_equity += equity_values[hand_idx] * weight;
+                            }
+                            
+                            if hand_idx < ev_values.len() {
+                                total_ev += ev_values[hand_idx] * weight;
+                            }
+                        }
+                    }
+                }
+                
+                // 只有当有实际权重时才添加手牌数据
+                if total_weight > 0.0 {
+                    hands_data.push(HandData {
+                        hand: hand_code,
+                        equity: (total_equity / total_weight) as f32,
+                        ev: (total_ev / total_weight) as f32,
+                        weight: total_weight,
+                        combos: combo_count as u8,
+                    });
+                }
+                
+                // 添加每个特定花色组合
+                let suits = [("s", "♠"), ("h", "♥"), ("d", "♦"), ("c", "♣")];
+                for (i, (suit1, symbol1)) in suits.iter().enumerate() {
+                    for (suit2, symbol2) in suits.iter().skip(i+1) {
+                        let combo_code = format!("{}{}{}{}", rank, suit1, rank, suit2);
+                        let display_name = format!("{}{}{}{}", rank, symbol1, rank, symbol2);
+                        
+                        let combo_indices = get_hand_indices(&combo_code, &game);
+                        if !combo_indices.is_empty() {
+                            let mut combo_equity = 0.0;
+                            let mut combo_ev = 0.0;
+                            let mut combo_weight = 0.0;
+                            let mut combo_count = 0;
+                            
+                            for &hand_idx in &combo_indices {
+                                if hand_idx < weights.len() {
+                                    let weight = weights[hand_idx];
+                                    if weight > 0.0 {
+                                        combo_count += 1;
+                                        combo_weight += weight;
+                                        
+                                        if hand_idx < equity_values.len() {
+                                            combo_equity += equity_values[hand_idx] * weight;
+                                        }
+                                        
+                                        if hand_idx < ev_values.len() {
+                                            combo_ev += ev_values[hand_idx] * weight;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 只有当有实际权重时才添加手牌数据
+                            if combo_weight > 0.0 {
+                                hands_data.push(HandData {
+                                    hand: display_name,
+                                    equity: (combo_equity / combo_weight) as f32,
+                                    ev: (combo_ev / combo_weight) as f32,
+                                    weight: combo_weight,
+                                    combos: combo_count as u8,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         let hands_opt = if !hands_data.is_empty() { Some(hands_data) } else { None };
         
         (equity_val, ev_val, hands_opt)
@@ -1014,6 +1104,96 @@ pub fn get_complete_decision_path(
                     }
                 }
                 
+                // 添加其他口袋对（KK至22）
+                let hand_ranks = ["K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
+                
+                for rank in hand_ranks.iter() {
+                    let hand_code = format!("{}{}", rank, rank);
+                    let hand_indices = get_hand_indices(&hand_code, &game);
+                    
+                    if !hand_indices.is_empty() {
+                        let mut total_equity = 0.0;
+                        let mut total_ev = 0.0;
+                        let mut total_weight = 0.0;
+                        let mut combo_count = 0;
+                        
+                        for &hand_idx in &hand_indices {
+                            if hand_idx < weights.len() {
+                                let weight = weights[hand_idx];
+                                if weight > 0.0 {
+                                    combo_count += 1;
+                                    total_weight += weight;
+                                    
+                                    if hand_idx < equity_values.len() {
+                                        total_equity += equity_values[hand_idx] * weight;
+                                    }
+                                    
+                                    if hand_idx < ev_values.len() {
+                                        total_ev += ev_values[hand_idx] * weight;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 只有当有实际权重时才添加手牌数据
+                        if total_weight > 0.0 {
+                            hands_data.push(HandData {
+                                hand: hand_code,
+                                equity: (total_equity / total_weight) as f32,
+                                ev: (total_ev / total_weight) as f32,
+                                weight: total_weight,
+                                combos: combo_count as u8,
+                            });
+                        }
+                        
+                        // 添加每个特定花色组合
+                        let suits = [("s", "♠"), ("h", "♥"), ("d", "♦"), ("c", "♣")];
+                        for (i, (suit1, symbol1)) in suits.iter().enumerate() {
+                            for (suit2, symbol2) in suits.iter().skip(i+1) {
+                                let combo_code = format!("{}{}{}{}", rank, suit1, rank, suit2);
+                                let display_name = format!("{}{}{}{}", rank, symbol1, rank, symbol2);
+                                
+                                let combo_indices = get_hand_indices(&combo_code, &game);
+                                if !combo_indices.is_empty() {
+                                    let mut combo_equity = 0.0;
+                                    let mut combo_ev = 0.0;
+                                    let mut combo_weight = 0.0;
+                                    let mut combo_count = 0;
+                                    
+                                    for &hand_idx in &combo_indices {
+                                        if hand_idx < weights.len() {
+                                            let weight = weights[hand_idx];
+                                            if weight > 0.0 {
+                                                combo_count += 1;
+                                                combo_weight += weight;
+                                                
+                                                if hand_idx < equity_values.len() {
+                                                    combo_equity += equity_values[hand_idx] * weight;
+                                                }
+                                                
+                                                if hand_idx < ev_values.len() {
+                                                    combo_ev += ev_values[hand_idx] * weight;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // 只有当有实际权重时才添加手牌数据
+                                    if combo_weight > 0.0 {
+                                        hands_data.push(HandData {
+                                            hand: display_name,
+                                            equity: (combo_equity / combo_weight) as f32,
+                                            ev: (combo_ev / combo_weight) as f32,
+                                            weight: combo_weight,
+                                            combos: combo_count as u8,
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 let hands_opt = if !hands_data.is_empty() { Some(hands_data) } else { None };
                 
                 // 创建玩家动作节点
@@ -1224,95 +1404,154 @@ fn get_hand_indices(hand: &str, game: &PostFlopGame) -> Vec<usize> {
     // 获取游戏中的私有牌数据
     let private_cards = game.private_cards(0); // 使用OOP玩家的牌，因为目前只处理OOP的手牌
     
-    // 匹配逻辑 - 这里需要根据具体的手牌表示方法调整
-    let indices: Vec<usize> = match hand {
-        // AA - 任何A对子
-        "AA" => private_cards.iter()
+    // 解析手牌
+    if hand.len() == 2 {
+        // 处理普通口袋对 (如 "AA", "KK", "QQ" 等)
+        let rank_char = hand.chars().next().unwrap();
+        
+        // 将字符转换为等级值 (0-12)
+        let rank = match rank_char {
+            '2' => 0,
+            '3' => 1,
+            '4' => 2,
+            '5' => 3,
+            '6' => 4,
+            '7' => 5,
+            '8' => 6,
+            '9' => 7,
+            'T' => 8,
+            'J' => 9,
+            'Q' => 10,
+            'K' => 11,
+            'A' => 12,
+            _ => return Vec::new(), // 无效的等级
+        };
+        
+        // 过滤出所有匹配该等级的口袋对
+        return private_cards.iter()
             .enumerate()
             .filter(|(_, &(c1, c2))| {
                 let r1 = c1 / 4;  // 牌的等级 (0-12)
                 let r2 = c2 / 4;
-                r1 == 12 && r2 == 12  // A的等级是12
+                r1 == rank && r2 == rank
             })
             .map(|(i, _)| i)
-            .collect(),
+            .collect();
+    } else if hand.len() == 4 {
+        // 处理带有特定花色的口袋对 (如 "AsAh", "KsKh" 等原始代码表示)
+        if hand.chars().nth(0) == hand.chars().nth(2) {
+            let rank_char = hand.chars().next().unwrap();
+            let suit1_char = hand.chars().nth(1).unwrap();
+            let suit2_char = hand.chars().nth(3).unwrap();
             
-        // 特定花色的AA
-        "A♠A♥" | "AsAh" => private_cards.iter()
-            .enumerate()
-            .filter(|(_, &(c1, c2))| {
-                let r1 = c1 / 4;
-                let s1 = c1 % 4;
-                let r2 = c2 / 4;
-                let s2 = c2 % 4;
-                (r1 == 12 && r2 == 12) && ((s1 == 3 && s2 == 2) || (s1 == 2 && s2 == 3))  // A♠(3)A♥(2)
-            })
-            .map(|(i, _)| i)
-            .collect(),
+            // 将字符转换为等级值 (0-12)
+            let rank = match rank_char {
+                '2' => 0,
+                '3' => 1,
+                '4' => 2,
+                '5' => 3,
+                '6' => 4,
+                '7' => 5,
+                '8' => 6,
+                '9' => 7,
+                'T' => 8,
+                'J' => 9,
+                'Q' => 10,
+                'K' => 11,
+                'A' => 12,
+                _ => return Vec::new(), // 无效的等级
+            };
             
-        "A♠A♦" | "AsAd" => private_cards.iter()
-            .enumerate()
-            .filter(|(_, &(c1, c2))| {
-                let r1 = c1 / 4;
-                let s1 = c1 % 4;
-                let r2 = c2 / 4;
-                let s2 = c2 % 4;
-                (r1 == 12 && r2 == 12) && ((s1 == 3 && s2 == 1) || (s1 == 1 && s2 == 3))  // A♠(3)A♦(1)
-            })
-            .map(|(i, _)| i)
-            .collect(),
+            // 将字符转换为花色值 (0-3)
+            let suit1 = match suit1_char {
+                'c' => 0,
+                'd' => 1,
+                'h' => 2,
+                's' => 3,
+                _ => return Vec::new(), // 无效的花色
+            };
             
-        "A♠A♣" | "AsAc" => private_cards.iter()
-            .enumerate()
-            .filter(|(_, &(c1, c2))| {
-                let r1 = c1 / 4;
-                let s1 = c1 % 4;
-                let r2 = c2 / 4;
-                let s2 = c2 % 4;
-                (r1 == 12 && r2 == 12) && ((s1 == 3 && s2 == 0) || (s1 == 0 && s2 == 3))  // A♠(3)A♣(0)
-            })
-            .map(|(i, _)| i)
-            .collect(),
+            let suit2 = match suit2_char {
+                'c' => 0,
+                'd' => 1,
+                'h' => 2,
+                's' => 3,
+                _ => return Vec::new(), // 无效的花色
+            };
             
-        "A♥A♦" | "AhAd" => private_cards.iter()
-            .enumerate()
-            .filter(|(_, &(c1, c2))| {
-                let r1 = c1 / 4;
-                let s1 = c1 % 4;
-                let r2 = c2 / 4;
-                let s2 = c2 % 4;
-                (r1 == 12 && r2 == 12) && ((s1 == 2 && s2 == 1) || (s1 == 1 && s2 == 2))  // A♥(2)A♦(1)
-            })
-            .map(|(i, _)| i)
-            .collect(),
+            // 过滤出匹配该等级和花色的组合
+            return private_cards.iter()
+                .enumerate()
+                .filter(|(_, &(c1, c2))| {
+                    let r1 = c1 / 4;
+                    let s1 = c1 % 4;
+                    let r2 = c2 / 4;
+                    let s2 = c2 % 4;
+                    (r1 == rank && r2 == rank) && ((s1 == suit1 && s2 == suit2) || (s1 == suit2 && s2 == suit1))
+                })
+                .map(|(i, _)| i)
+                .collect();
+        }
+    } else if hand.contains('♠') || hand.contains('♥') || hand.contains('♦') || hand.contains('♣') {
+        // 处理带有Unicode花色符号的口袋对 (如 "A♠A♥", "K♠K♥" 等)
+        
+        // 分析手牌格式
+        let chars: Vec<char> = hand.chars().collect();
+        if chars.len() >= 4 && chars[0] == chars[2] {
+            let rank_char = chars[0];
+            let suit1_symbol = chars[1];
+            let suit2_symbol = chars[3];
             
-        "A♥A♣" | "AhAc" => private_cards.iter()
-            .enumerate()
-            .filter(|(_, &(c1, c2))| {
-                let r1 = c1 / 4;
-                let s1 = c1 % 4;
-                let r2 = c2 / 4;
-                let s2 = c2 % 4;
-                (r1 == 12 && r2 == 12) && ((s1 == 2 && s2 == 0) || (s1 == 0 && s2 == 2))  // A♥(2)A♣(0)
-            })
-            .map(|(i, _)| i)
-            .collect(),
+            // 将字符转换为等级值 (0-12)
+            let rank = match rank_char {
+                '2' => 0,
+                '3' => 1,
+                '4' => 2,
+                '5' => 3,
+                '6' => 4,
+                '7' => 5,
+                '8' => 6,
+                '9' => 7,
+                'T' => 8,
+                'J' => 9,
+                'Q' => 10,
+                'K' => 11,
+                'A' => 12,
+                _ => return Vec::new(), // 无效的等级
+            };
             
-        "A♦A♣" | "AdAc" => private_cards.iter()
-            .enumerate()
-            .filter(|(_, &(c1, c2))| {
-                let r1 = c1 / 4;
-                let s1 = c1 % 4;
-                let r2 = c2 / 4;
-                let s2 = c2 % 4;
-                (r1 == 12 && r2 == 12) && ((s1 == 1 && s2 == 0) || (s1 == 0 && s2 == 1))  // A♦(1)A♣(0)
-            })
-            .map(|(i, _)| i)
-            .collect(),
+            // 将符号转换为花色值 (0-3)
+            let suit1 = match suit1_symbol {
+                '♣' => 0,
+                '♦' => 1,
+                '♥' => 2,
+                '♠' => 3,
+                _ => return Vec::new(), // 无效的花色
+            };
             
-        // 其他手牌可以根据需要添加
-        _ => Vec::new(),
-    };
+            let suit2 = match suit2_symbol {
+                '♣' => 0,
+                '♦' => 1,
+                '♥' => 2,
+                '♠' => 3,
+                _ => return Vec::new(), // 无效的花色
+            };
+            
+            // 过滤出匹配该等级和花色的组合
+            return private_cards.iter()
+                .enumerate()
+                .filter(|(_, &(c1, c2))| {
+                    let r1 = c1 / 4;
+                    let s1 = c1 % 4;
+                    let r2 = c2 / 4;
+                    let s2 = c2 % 4;
+                    (r1 == rank && r2 == rank) && ((s1 == suit1 && s2 == suit2) || (s1 == suit2 && s2 == suit1))
+                })
+                .map(|(i, _)| i)
+                .collect();
+        }
+    }
     
-    indices
+    // 如果没有匹配的情况，返回空向量
+    Vec::new()
 }

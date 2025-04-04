@@ -3637,6 +3637,22 @@ async function showDecisionTree() {
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     `;
     
+    // 添加下载按钮
+    const downloadBtn = document.createElement('button');
+    downloadBtn.textContent = "下载完整数据";
+    downloadBtn.style.cssText = `
+      padding: 10px 20px;
+      background: #10b981; /* 绿色 */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-right: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    `;
+    
     // 创建结果显示区域
     const resultArea = document.createElement('div');
     resultArea.style.cssText = `
@@ -3828,7 +3844,91 @@ async function showDecisionTree() {
         // 添加重试按钮事件处理
         document.getElementById("retryBtn")?.addEventListener("click", getPathBtn.onclick);
       }
-    };
+    }; // getPathBtn.onclick 结束
+    
+    // 下载按钮的事件处理
+    downloadBtn.onclick = async () => {
+      addLog("开始准备下载完整数据...", 'info');
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = "准备中...";
+      downloadBtn.style.background = "#94a3b8"; // 禁用状态灰色
+      
+      try {
+        // 尝试使用API获取完整数据
+        addLog("调用getCompleteDecisionPath API获取完整数据...", 'info');
+        
+        const pathData = await invokes.getCompleteDecisionPath();
+        
+        // 记录成功信息
+        addLog(`数据获取成功! 准备下载文件...`, 'success');
+        
+        // 准备完整的JSON数据（包括AA至22的所有数据）
+        const downloadData = {
+          board: pathData.board,
+          betting_info: pathData.betting_info,
+          decision_path: pathData.decision_path,
+          // 添加下载时间戳
+          timestamp: new Date().toISOString(),
+          version: "1.0"
+        };
+        
+        // 使用日期时间作为文件名一部分
+        const date = new Date();
+        const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+        const timeStr = `${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
+        
+        // 使用牌面作为文件名一部分
+        const boardStr = pathData.board.join('_').replace(/[♠♥♦♣]/g, '');
+        
+        // 默认文件名
+        const defaultFilename = `decision_path_${boardStr}_${dateStr}_${timeStr}.json`;
+        
+        // 使用Tauri的dialog API让用户选择保存位置
+        addLog("正在打开保存对话框...", 'info');
+        
+        // 导入Tauri的dialog和fs模块
+        const { save } = await import('@tauri-apps/api/dialog');
+        const { writeBinaryFile } = await import('@tauri-apps/api/fs');
+        
+        // 打开保存对话框
+        const filePath = await save({
+          defaultPath: defaultFilename,
+          filters: [{
+            name: 'JSON文件',
+            extensions: ['json']
+          }]
+        });
+        
+        // 如果用户取消了对话框，filePath将为null或undefined
+        if (!filePath) {
+          addLog("保存操作已取消", 'warning');
+          return;
+        }
+        
+        // 转换JSON为Uint8Array
+        const jsonString = JSON.stringify(downloadData, null, 2);
+        const encoder = new TextEncoder();
+        const jsonBytes = encoder.encode(jsonString);
+        
+        // 使用Tauri的fs API写入文件
+        await writeBinaryFile(filePath, jsonBytes);
+        
+        addLog(`文件已保存到: ${filePath}`, 'success');
+      } catch (err) {
+        addLog(`下载失败: ${err.message || err}`, 'error');
+        resultArea.innerHTML = `
+          <div style="background: #fef2f2; padding: 15px; border-left: 4px solid #ef4444; border-radius: 4px;">
+            <div style="font-weight: bold; color: #b91c1c; margin-bottom: 5px;">下载失败</div>
+            <div>${err.message || String(err)}</div>
+          </div>
+        `;
+      } finally {
+        // 恢复按钮状态
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = "下载完整数据";
+        downloadBtn.style.background = "#10b981";
+      }
+    }; // downloadBtn.onclick 结束
     
     // 添加简单的加载动画样式
     const style = document.createElement('style');
@@ -3850,10 +3950,11 @@ async function showDecisionTree() {
     `;
     document.head.appendChild(style);
     
-    // 添加按钮和结果区域
+    // 添加按钮到主区域
     const btnContainer = document.createElement('div');
     btnContainer.style.cssText = "display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; justify-content: center;";
     btnContainer.appendChild(getPathBtn);
+    btnContainer.appendChild(downloadBtn);
     
     debugDialog.appendChild(btnContainer);
     debugDialog.appendChild(resultArea);
