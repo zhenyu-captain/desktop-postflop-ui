@@ -43,6 +43,17 @@
       @reset-copy-success="resetCopySuccess"
     />
 
+    <!-- Debug Button -->
+    <div class="debug-button-container">
+      <button 
+        class="debug-button"
+        @click="showDebugModal = true"
+        title="Debug Data"
+      >
+        Debug
+      </button>
+    </div>
+
     <div
       v-if="store.navView === 'results' && selectedSpot && results"
       class="flex flex-grow min-h-0"
@@ -132,6 +143,24 @@
           @deal-card="onDealCard"
         />
       </template>
+    </div>
+  </div>
+
+  <!-- Debug Modal -->
+  <div v-if="showDebugModal" class="debug-modal-overlay">
+    <div class="debug-modal">
+      <div class="debug-modal-header">
+        <h3>Debug Data</h3>
+        <button @click="showDebugModal = false" class="close-button">×</button>
+      </div>
+      <div class="debug-modal-body">
+        <div class="debug-actions">
+          <button @click="copyDebugToClipboard" class="copy-button">Copy to clipboard</button>
+          <span v-if="debugCopyStatus === 1" class="copy-success">Copied!</span>
+          <span v-if="debugCopyStatus === -1" class="copy-error">Copy failed</span>
+        </div>
+        <pre class="debug-content">{{ prettyDebugData }}</pre>
+      </div>
     </div>
   </div>
 </template>
@@ -314,4 +343,254 @@ const onUpdateHoverContent = (content: HoverContent | null) => {
 const onDealCard = (card: number) => {
   dealtCard.value = card;
 };
+
+/* Debug functionality */
+const showDebugModal = ref(false);
+const debugCopyStatus = ref(0);
+
+// Collect all relevant data in a single JSON object
+const debugData = computed(() => {
+  return {
+    // Store data
+    store: {
+      isSolverFinished: store.isSolverFinished,
+      isSolverRunning: store.isSolverRunning,
+      hasSolverRun: store.hasSolverRun,
+      isFinalizing: store.isFinalizing,
+      isSolverError: store.isSolverError,
+      navView: store.navView,
+    },
+    // Component state
+    componentState: {
+      isHandlerUpdated: isHandlerUpdated.value,
+      isLocked: isLocked.value,
+      cards: cards.value,
+      dealtCard: dealtCard.value,
+      displayMode: displayMode.value,
+      chanceMode: chanceMode.value,
+      displayOptions: displayOptions.value,
+      copySuccess: copySuccess.value,
+    },
+    // Data flow records
+    dataFlow: {
+      toResultNav: {
+        isHandlerUpdated: isHandlerUpdated.value,
+        isLocked: isLocked.value,
+        cards: cards.value,
+        dealtCard: dealtCard.value,
+      },
+      fromResultNav: {
+        onTriggerUpdateReceived: {
+          selectedSpot: selectedSpot.value,
+          selectedChance: selectedChance.value,
+          currentBoard: currentBoard.value,
+          results: results.value,
+          chanceReports: chanceReports.value,
+          totalBetAmount: totalBetAmount.value,
+        }
+      },
+      toResultMiddle: {
+        displayMode: displayMode.value,
+        chanceMode: chanceMode.value,
+        autoPlayerBasics: autoPlayerBasics.value,
+        autoPlayerChance: autoPlayerChance.value,
+        copySuccess: copySuccess.value,
+      },
+      toResultBasics: {
+        cards: cards.value,
+        selectedSpot: selectedSpot.value,
+        selectedChance: selectedChance.value,
+        currentBoard: currentBoard.value,
+        totalBetAmount: totalBetAmount.value,
+        results: results.value,
+        displayOptions: displayOptions.value,
+        displayPlayer: displayPlayerBasics.value,
+        isCompareMode: displayMode.value === 'compare',
+      },
+      toResultTable: {
+        cards: cards.value,
+        selectedSpot: selectedSpot.value,
+        results: results.value,
+        displayPlayer: displayPlayerBasics.value,
+        hoverContent: basicsHoverContent.value,
+        tableBarWidth: displayOptions.value.barWidth,
+        tableDisplayContent: displayOptions.value.actionContent,
+      },
+      toResultGraphs: {
+        cards: cards.value,
+        selectedSpot: selectedSpot.value,
+        selectedChance: selectedChance.value,
+        results: results.value,
+        chanceReports: chanceReports.value,
+        displayOptions: displayOptions.value,
+        displayPlayer: displayPlayerBasics.value,
+      },
+      toResultCompare: {
+        selectedSpot: selectedSpot.value,
+        selectedChance: selectedChance.value,
+        results: results.value,
+      },
+      toResultChance: {
+        selectedSpot: selectedSpot.value,
+        selectedChance: selectedChance.value,
+        chanceReports: chanceReports.value,
+        displayOptions: displayOptions.value,
+        displayPlayer: displayPlayerChance.value,
+      },
+    },
+    // Raw data objects
+    rawData: {
+      selectedSpot: selectedSpot.value,
+      selectedChance: selectedChance.value,
+      currentBoard: currentBoard.value,
+      results: results.value,
+      chanceReports: chanceReports.value,
+      totalBetAmount: totalBetAmount.value,
+      basicsHoverContent: basicsHoverContent.value,
+    },
+    // Debug metadata
+    meta: {
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+    }
+  };
+});
+
+const prettyDebugData = computed(() => {
+  try {
+    return JSON.stringify(debugData.value, null, 2);
+  } catch (error) {
+    return `Error generating JSON: ${error}`;
+  }
+});
+
+const copyDebugToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(prettyDebugData.value);
+    debugCopyStatus.value = 1;
+    setTimeout(() => {
+      debugCopyStatus.value = 0;
+    }, 2000);
+  } catch (error) {
+    debugCopyStatus.value = -1;
+    setTimeout(() => {
+      debugCopyStatus.value = 0;
+    }, 2000);
+  }
+};
 </script>
+
+<style scoped>
+.debug-button-container {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 10;
+}
+
+.debug-button {
+  background-color: #ff5500;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.debug-button:hover {
+  background-color: #ff7733;
+}
+
+.debug-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.debug-modal {
+  background-color: white;
+  border-radius: 4px;
+  width: 90%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.debug-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.debug-modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.debug-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.debug-actions {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.copy-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background-color: #2980b9;
+}
+
+.copy-success {
+  color: #2ecc71;
+}
+
+.copy-error {
+  color: #e74c3c;
+}
+
+.debug-content {
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  max-height: 70vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+</style>
