@@ -52,6 +52,16 @@
       >
         Debug
       </button>
+      
+      <button 
+        class="path-button"
+        @click="printDecisionPathToConsole"
+        title="打印GTO决策路径"
+      >
+        决策路径
+      </button>
+      <span v-if="pathConsoleStatus === 1" class="path-success-status">已发送到控制台!</span>
+      <span v-if="pathConsoleStatus === -1" class="path-error-status">发送失败</span>
     </div>
 
     <div
@@ -354,6 +364,7 @@ const onDealCard = (card: number) => {
 const showDebugModal = ref(false);
 const debugCopyStatus = ref(0);
 const debugConsoleStatus = ref(0);
+const pathConsoleStatus = ref(0);
 
 // Collect all relevant data in a single JSON object
 const debugData = computed(() => {
@@ -515,6 +526,42 @@ const printToRustConsole = async () => {
     }, 2000);
   }
 };
+
+// 添加打印决策路径到Rust控制台的函数
+const printDecisionPathToConsole = async () => {
+  try {
+    // 显示加载状态
+    pathConsoleStatus.value = 2; // 2表示加载中
+    
+    // 获取完整决策路径
+    const pathData = await invokes.getCompleteDecisionPath();
+    
+    // 构建包含元数据的调试信息
+    const pathInfo = {
+      timestamp: new Date().toISOString(),
+      source: "GTO Complete Decision Path",
+      data: pathData
+    };
+    
+    // 调用后端命令将数据发送到控制台
+    await invoke('log_to_console', { 
+      message: JSON.stringify(pathInfo, null, 2)
+    });
+    
+    // 显示成功状态
+    pathConsoleStatus.value = 1;
+    setTimeout(() => {
+      pathConsoleStatus.value = 0;
+    }, 2000);
+  } catch (error) {
+    // 显示错误状态
+    console.error("Failed to get or send decision path data:", error);
+    pathConsoleStatus.value = -1;
+    setTimeout(() => {
+      pathConsoleStatus.value = 0;
+    }, 2000);
+  }
+};
 </script>
 
 <style scoped>
@@ -523,9 +570,13 @@ const printToRustConsole = async () => {
   right: 20px;
   bottom: 20px;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
 }
 
-.debug-button {
+.debug-button, .path-button {
   background-color: #ff5500;
   color: white;
   border: none;
@@ -534,10 +585,43 @@ const printToRustConsole = async () => {
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-width: 100px;
 }
 
 .debug-button:hover {
   background-color: #ff7733;
+}
+
+.path-button {
+  background-color: #8b5cf6;
+}
+
+.path-button:hover {
+  background-color: #9d6dff;
+}
+
+.path-success-status {
+  position: absolute;
+  bottom: 70px;
+  right: 20px;
+  color: #2ecc71;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.path-error-status {
+  position: absolute;
+  bottom: 70px;
+  right: 20px;
+  color: #e74c3c;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .debug-modal-overlay {
