@@ -56,11 +56,12 @@
       <button 
         class="path-button"
         @click="printDecisionPathToConsole"
-        title="打印GTO决策路径"
+        title="打印GTO决策路径并保存到文件"
       >
         决策路径
       </button>
-      <span v-if="pathConsoleStatus === 1" class="path-success-status">已发送到控制台!</span>
+      <span v-if="pathConsoleStatus === 1" class="path-success-status">已发送到控制台并保存!</span>
+      <span v-if="pathConsoleStatus === 2" class="path-loading-status">处理中...</span>
       <span v-if="pathConsoleStatus === -1" class="path-error-status">发送失败</span>
     </div>
 
@@ -166,11 +167,12 @@
       <div class="debug-modal-body">
         <div class="debug-actions">
           <button @click="copyDebugToClipboard" class="copy-button">Copy to clipboard</button>
-          <button @click="printToRustConsole" class="console-button">打印到控制台</button>
+          <button @click="printToRustConsole" class="console-button">打印并保存到文件</button>
           <span v-if="debugCopyStatus === 1" class="copy-success">Copied!</span>
           <span v-if="debugCopyStatus === -1" class="copy-error">Copy failed</span>
-          <span v-if="debugConsoleStatus === 1" class="copy-success">已发送到控制台!</span>
-          <span v-if="debugConsoleStatus === -1" class="copy-error">发送失败</span>
+          <span v-if="debugConsoleStatus === 1" class="copy-success">已发送到控制台并保存!</span>
+          <span v-if="debugConsoleStatus === 2" class="copy-loading">处理中...</span>
+          <span v-if="debugConsoleStatus === -1" class="copy-error">操作失败</span>
         </div>
         <pre class="debug-content">{{ prettyDebugData }}</pre>
       </div>
@@ -183,8 +185,10 @@ import { computed, ref } from "vue";
 import { useStore } from "../store";
 import * as invokes from "../invokes";
 
-// 新增导入Tauri的invoke函数
+// Tauri imports
 import { invoke } from "@tauri-apps/api/tauri";
+import { save } from '@tauri-apps/api/dialog';
+import { writeTextFile } from '@tauri-apps/api/fs';
 
 import {
   Results,
@@ -500,6 +504,9 @@ const copyDebugToClipboard = async () => {
 // 添加打印到Rust控制台的函数
 const printToRustConsole = async () => {
   try {
+    // 显示加载状态
+    debugConsoleStatus.value = 2; // 2表示加载中
+    
     // 构建包含元数据的调试信息
     const debugInfo = {
       timestamp: new Date().toISOString(),
@@ -507,10 +514,31 @@ const printToRustConsole = async () => {
       data: debugData.value
     };
     
+    const debugContent = JSON.stringify(debugInfo, null, 2);
+    
     // 调用后端命令将数据发送到控制台
     await invoke('log_to_console', { 
-      message: JSON.stringify(debugInfo, null, 2)
+      message: debugContent
     });
+    
+    // 保存到文件
+    try {
+      // 弹出保存对话框
+      const filePath = await save({
+        filters: [{
+          name: 'JSON',
+          extensions: ['json']
+        }],
+        defaultPath: `debug-data-${new Date().toISOString().replace(/:/g, '-')}.json`
+      });
+      
+      if (filePath) {
+        await writeTextFile(filePath, debugContent);
+        console.log("Debug data saved to file:", filePath);
+      }
+    } catch (fileError) {
+      console.error("Failed to save debug data to file:", fileError);
+    }
     
     // 显示成功状态
     debugConsoleStatus.value = 1;
@@ -543,10 +571,31 @@ const printDecisionPathToConsole = async () => {
       data: pathData
     };
     
+    const pathContent = JSON.stringify(pathInfo, null, 2);
+    
     // 调用后端命令将数据发送到控制台
     await invoke('log_to_console', { 
-      message: JSON.stringify(pathInfo, null, 2)
+      message: pathContent
     });
+    
+    // 保存到文件
+    try {
+      // 弹出保存对话框
+      const filePath = await save({
+        filters: [{
+          name: 'JSON',
+          extensions: ['json']
+        }],
+        defaultPath: `decision-path-${new Date().toISOString().replace(/:/g, '-')}.json`
+      });
+      
+      if (filePath) {
+        await writeTextFile(filePath, pathContent);
+        console.log("Decision path saved to file:", filePath);
+      }
+    } catch (fileError) {
+      console.error("Failed to save decision path to file:", fileError);
+    }
     
     // 显示成功状态
     pathConsoleStatus.value = 1;
@@ -617,6 +666,18 @@ const printDecisionPathToConsole = async () => {
   bottom: 70px;
   right: 20px;
   color: #e74c3c;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.path-loading-status {
+  position: absolute;
+  bottom: 70px;
+  right: 20px;
+  color: #f39c12;
   background-color: rgba(255, 255, 255, 0.9);
   padding: 2px 6px;
   border-radius: 4px;
@@ -710,6 +771,10 @@ const printDecisionPathToConsole = async () => {
 
 .copy-error {
   color: #e74c3c;
+}
+
+.copy-loading {
+  color: #f39c12;
 }
 
 .debug-content {
