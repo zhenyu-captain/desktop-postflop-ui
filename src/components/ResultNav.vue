@@ -404,6 +404,14 @@ let totalBetAmountAppended = [0, 0];
 watch(isHandlerUpdated, async () => {
   if (!isHandlerUpdated.value) return;
 
+  // 打印调试信息，确认配置正确
+  console.log("ResultNav初始化root节点:", {
+    boardLength: config.board.length,
+    board: config.board.map(card => card),
+    pot: config.startingPot,
+    stack: config.effectiveStack
+  });
+
   const l = config.board.length;
   const spot: SpotRoot = {
     type: "root",

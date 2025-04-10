@@ -431,3 +431,14 @@ export const showLoadDialog = async (): Promise<string | null> => {
     return error as string;
   }
 };
+
+// 添加获取游戏配置信息的函数
+export interface GameConfigInfo {
+  board: number[];
+  starting_pot: number;
+  effective_stack: number;
+}
+
+export const gameGetConfigInfo = async (): Promise<GameConfigInfo> => {
+  return await invoke("game_get_config_info");
+};

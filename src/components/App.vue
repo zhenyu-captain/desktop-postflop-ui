@@ -186,6 +186,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
 import { useStore, useConfigStore } from "../store";
+import * as invokes from "../invokes";
 import { showSaveDialog, showLoadDialog } from "../invokes";
 
 import RangeEditor from "./RangeEditor.vue";
@@ -379,18 +380,44 @@ const handleLoadBin = async () => {
     if (result) {
       store.lastLoadError = result;
     } else {
-      store.lastLoadSuccess = true;
-      
-      // 设置为已完成求解状态
-      store.isSolverFinished = true;
-      
-      // 触发数据刷新 - 这是关键！告诉 ResultViewer 重新加载数据
-      store.triggerDataRefresh();
-      
-      // 3秒后自动清除成功状态
-      setTimeout(() => {
-        store.lastLoadSuccess = false;
-      }, 3000);
+      // 加载成功后获取游戏配置信息
+      try {
+        const configInfo = await invokes.gameGetConfigInfo();
+        
+        // 打印调试信息，确认从二进制文件加载的配置信息正确
+        console.log("从二进制文件加载的游戏配置:", {
+          board: configInfo.board.map(card => card),
+          startingPot: configInfo.starting_pot,
+          effectiveStack: configInfo.effective_stack
+        });
+        
+        // 更新 ConfigStore 中的配置
+        config.board = configInfo.board;
+        config.startingPot = configInfo.starting_pot;
+        config.effectiveStack = configInfo.effective_stack;
+        
+        // 保证回到根节点
+        await invokes.gameApplyHistory([]);
+        
+        // 设置为已完成求解状态
+        store.isSolverFinished = true;
+        
+        // 触发数据刷新 - 这是关键！告诉 ResultViewer 重新加载数据
+        store.triggerDataRefresh();
+        
+        // 加载成功后自动切换到结果页面
+        store.navView = "results";
+        
+        store.lastLoadSuccess = true;
+        
+        // 3秒后自动清除成功状态
+        setTimeout(() => {
+          store.lastLoadSuccess = false;
+        }, 3000);
+      } catch (configError) {
+        console.error("Failed to get game config info:", configError);
+        store.lastLoadError = `加载成功但获取配置失败: ${configError}`;
+      }
     }
   } catch (error) {
     store.lastLoadError = String(error);

@@ -73,6 +73,7 @@ fn main() {
             game_get_chance_reports,
             game_save_to_bin,
             game_load_from_bin,
+            game_get_config_info,
             get_decision_tree,
             get_current_node_with_children,
             get_complete_decision_path,

@@ -556,11 +556,71 @@ pub fn game_load_from_bin(
 ) -> Result<(), String> {
     // 使用 postflop-solver 提供的 load_data_from_file 函数
     // 不设置内存限制（None 参数）
-    let (new_game, _memo) = load_data_from_file(file_path, None)?;
+    let (new_game, _memo): (PostFlopGame, String) = load_data_from_file(file_path, None)?;
+    
+    // 打印加载后的游戏配置信息，用于调试
+    println!("【调试】加载后的游戏配置:");
+    println!("BoardState: {:?}", new_game.tree_config().initial_state);
+    println!("starting_pot: {}", new_game.tree_config().starting_pot);
+    println!("effective_stack: {}", new_game.tree_config().effective_stack);
+    println!("flop cards: {:?}", new_game.card_config().flop);
+    println!("turn card: {}", new_game.card_config().turn);
+    println!("river card: {}", new_game.card_config().river);
     
     // 更新游戏状态
     let mut game = game_state.lock().unwrap();
     *game = new_game;
     
     Ok(())
+}
+
+// 添加新的结构体，用于返回游戏配置信息
+#[derive(Serialize)]
+pub struct GameConfigInfo {
+    pub board: Vec<u8>,
+    pub starting_pot: i32,
+    pub effective_stack: i32,
+}
+
+// 添加获取游戏配置信息的命令
+#[tauri::command]
+pub fn game_get_config_info(game_state: tauri::State<Mutex<PostFlopGame>>) -> GameConfigInfo {
+    let game = game_state.lock().unwrap();
+    let config = game.tree_config();
+    let card_config = game.card_config();
+    
+    // 添加详细调试信息
+    println!("【详细调试】game_get_config_info:");
+    println!("starting_pot: {}", config.starting_pot);
+    println!("effective_stack: {}", config.effective_stack);
+    println!("initial_state: {:?}", config.initial_state);
+    println!("flop cards: {:?}", card_config.flop);
+    println!("turn card: {}", card_config.turn);
+    println!("river card: {}", card_config.river);
+    
+    // 始终包含所有可用的牌，以确保UI正确显示
+    let mut board = vec![
+        card_config.flop[0], 
+        card_config.flop[1], 
+        card_config.flop[2]
+    ];
+    
+    // 根据初始状态添加转牌和河牌
+    if config.initial_state == BoardState::Turn || config.initial_state == BoardState::River {
+        board.push(card_config.turn);
+    }
+    
+    if config.initial_state == BoardState::River {
+        board.push(card_config.river);
+    }
+    
+    println!("生成的board数组: {:?}", board);
+    println!("游戏状态: {:?}", config.initial_state);
+    
+    // 确保返回正确的初始值，而不是当前状态的值
+    GameConfigInfo {
+        board,
+        starting_pot: config.starting_pot,
+        effective_stack: config.effective_stack,
+    }
 }

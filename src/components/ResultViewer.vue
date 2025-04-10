@@ -182,7 +182,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useStore } from "../store";
+import { useStore, useSavedConfigStore } from "../store";
 import * as invokes from "../invokes";
 
 // Tauri imports
@@ -245,8 +245,43 @@ watch(() => store.dataRefreshTrigger, async () => {
 });
 
 const init = async () => {
-  cards.value = await invokes.gamePrivateCards();
-  isHandlerUpdated.value = true;
+  try {
+    // 首先获取游戏配置信息
+    // 这确保我们有正确的初始状态（牌面、底池、筹码等）
+    const configInfo = await invokes.gameGetConfigInfo();
+    
+    // 打印调试信息
+    console.log("初始化游戏状态:", {
+      board: configInfo.board.map(card => card),
+      startingPot: configInfo.starting_pot,
+      effectiveStack: configInfo.effective_stack
+    });
+    
+    // 获取卡牌数据
+    cards.value = await invokes.gamePrivateCards();
+    
+    // 重要：重置到初始状态
+    // 确保清除之前选择的状态
+    selectedSpot.value = null;
+    selectedChance.value = null;
+    results.value = null;
+    chanceReports.value = null;
+    
+    // 应用历史为空数组，返回到游戏树的根节点
+    await invokes.gameApplyHistory([]);
+    
+    // 确保配置数据是最新的
+    // 这是关键修复 - 确保UI组件使用正确的配置数据
+    const useConfigStore = useSavedConfigStore();
+    useConfigStore.board = configInfo.board;
+    useConfigStore.startingPot = configInfo.starting_pot;
+    useConfigStore.effectiveStack = configInfo.effective_stack;
+    
+    // 设置标志通知ResultNav组件需要重新初始化
+    isHandlerUpdated.value = true;
+  } catch (error) {
+    console.error("Error initializing ResultViewer:", error);
+  }
 };
 
 const clear = () => {
