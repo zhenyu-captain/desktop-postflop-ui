@@ -156,8 +156,11 @@
       <div class="debug-modal-body">
         <div class="debug-actions">
           <button @click="copyDebugToClipboard" class="copy-button">Copy to clipboard</button>
+          <button @click="printToRustConsole" class="console-button">打印到控制台</button>
           <span v-if="debugCopyStatus === 1" class="copy-success">Copied!</span>
           <span v-if="debugCopyStatus === -1" class="copy-error">Copy failed</span>
+          <span v-if="debugConsoleStatus === 1" class="copy-success">已发送到控制台!</span>
+          <span v-if="debugConsoleStatus === -1" class="copy-error">发送失败</span>
         </div>
         <pre class="debug-content">{{ prettyDebugData }}</pre>
       </div>
@@ -169,6 +172,9 @@
 import { computed, ref } from "vue";
 import { useStore } from "../store";
 import * as invokes from "../invokes";
+
+// 新增导入Tauri的invoke函数
+import { invoke } from "@tauri-apps/api/tauri";
 
 import {
   Results,
@@ -347,6 +353,7 @@ const onDealCard = (card: number) => {
 /* Debug functionality */
 const showDebugModal = ref(false);
 const debugCopyStatus = ref(0);
+const debugConsoleStatus = ref(0);
 
 // Collect all relevant data in a single JSON object
 const debugData = computed(() => {
@@ -478,6 +485,36 @@ const copyDebugToClipboard = async () => {
     }, 2000);
   }
 };
+
+// 添加打印到Rust控制台的函数
+const printToRustConsole = async () => {
+  try {
+    // 构建包含元数据的调试信息
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      source: "ResultViewer Debug Data",
+      data: debugData.value
+    };
+    
+    // 调用后端命令将数据发送到控制台
+    await invoke('log_to_console', { 
+      message: JSON.stringify(debugInfo, null, 2)
+    });
+    
+    // 显示成功状态
+    debugConsoleStatus.value = 1;
+    setTimeout(() => {
+      debugConsoleStatus.value = 0;
+    }, 2000);
+  } catch (error) {
+    // 显示错误状态
+    console.error("Failed to send data to console:", error);
+    debugConsoleStatus.value = -1;
+    setTimeout(() => {
+      debugConsoleStatus.value = 0;
+    }, 2000);
+  }
+};
 </script>
 
 <style scoped>
@@ -561,17 +598,26 @@ const copyDebugToClipboard = async () => {
   gap: 10px;
 }
 
-.copy-button {
+.copy-button, .console-button {
   background-color: #3498db;
   color: white;
   border: none;
   border-radius: 4px;
   padding: 6px 12px;
   cursor: pointer;
+  margin-right: 8px;
 }
 
-.copy-button:hover {
+.copy-button:hover, .console-button:hover {
   background-color: #2980b9;
+}
+
+.console-button {
+  background-color: #27ae60;
+}
+
+.console-button:hover {
+  background-color: #219653;
 }
 
 .copy-success {

@@ -4,6 +4,9 @@
       <button @click="fetchDecisionTree(3)">获取决策树 (最大深度3)</button>
       <button @click="fetchCurrentNode">获取当前节点</button>
       <button @click="saveTreeToFile">保存树到文件</button>
+      <button @click="printToRustConsole" class="console-button">打印到控制台</button>
+      <span v-if="consoleStatus === 1" class="success-message">已发送到控制台!</span>
+      <span v-if="consoleStatus === -1" class="error-message">发送失败</span>
     </div>
     
     <div v-if="loading" class="loading">加载中...</div>
@@ -58,6 +61,7 @@
 <script>
 import { ref, defineComponent } from 'vue';
 import { getDecisionTree, getCurrentNodeWithChildren } from '../invokes';
+import { invoke } from "@tauri-apps/api/tauri";
 
 // 递归组件用于显示树节点
 const TreeNode = {
@@ -130,6 +134,7 @@ export default defineComponent({
     const treeData = ref(null);
     const loading = ref(false);
     const error = ref(null);
+    const consoleStatus = ref(0);
     
     const playerLabels = {
       'oop': '场外玩家',
@@ -191,14 +196,52 @@ export default defineComponent({
       }
     };
     
+    // 添加打印到Rust控制台的功能
+    const printToRustConsole = async () => {
+      if (!treeData.value) {
+        error.value = "没有树数据可打印";
+        return;
+      }
+      
+      try {
+        // 构建包含元数据的调试信息
+        const debugInfo = {
+          timestamp: new Date().toISOString(),
+          source: "GTO Decision Tree",
+          data: treeData.value
+        };
+        
+        // 调用后端命令将数据发送到控制台
+        await invoke('log_to_console', { 
+          message: JSON.stringify(debugInfo, null, 2)
+        });
+        
+        // 显示成功状态
+        consoleStatus.value = 1;
+        setTimeout(() => {
+          consoleStatus.value = 0;
+        }, 2000);
+      } catch (err) {
+        // 显示错误状态
+        error.value = `发送到控制台出错: ${err.message}`;
+        console.error(err);
+        consoleStatus.value = -1;
+        setTimeout(() => {
+          consoleStatus.value = 0;
+        }, 2000);
+      }
+    };
+    
     return {
       treeData,
       loading,
       error,
+      consoleStatus,
       playerLabels,
       fetchDecisionTree,
       fetchCurrentNode,
-      saveTreeToFile
+      saveTreeToFile,
+      printToRustConsole
     };
   }
 });
@@ -212,10 +255,13 @@ export default defineComponent({
 
 .controls {
   margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 button {
-  margin-right: 10px;
   padding: 8px 16px;
   background-color: #4CAF50;
   color: white;
@@ -226,6 +272,24 @@ button {
 
 button:hover {
   background-color: #45a049;
+}
+
+.console-button {
+  background-color: #27ae60;
+}
+
+.console-button:hover {
+  background-color: #219653;
+}
+
+.success-message {
+  color: #2ecc71;
+  margin-left: 10px;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin-left: 10px;
 }
 
 .loading {

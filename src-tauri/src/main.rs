@@ -73,7 +73,8 @@ fn main() {
             game_get_chance_reports,
             get_decision_tree,
             get_current_node_with_children,
-            get_complete_decision_path
+            get_complete_decision_path,
+            log_to_console
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -110,4 +111,12 @@ fn set_num_threads(pool_state: tauri::State<Mutex<ThreadPool>>, num_threads: usi
         .num_threads(num_threads)
         .build()
         .unwrap();
+}
+
+/// 从前端接收数据并打印到Rust控制台
+#[tauri::command]
+fn log_to_console(message: String) {
+    println!("\n====== 前端数据打印 ======");
+    println!("{}", message);
+    println!("====== 前端数据结束 ======\n");
 }
