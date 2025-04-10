@@ -10,6 +10,7 @@ export type SideView =
   | "tree-config"
   | "bunching"
   | "run-solver"
+  | "file-operations"
   | "about";
 
 export const saveConfigTmp = () => {
@@ -93,6 +94,7 @@ export const useStore = defineStore("app", {
       "tree-config": ["Tree Configuration"],
       bunching: ["Bunching Effect"],
       "run-solver": ["Run Solver"],
+      "file-operations": ["文件操作"],
     },
     ranges: Array.from({ length: 6 }, () =>
       Array.from({ length: 13 * 13 }, () => 0)
@@ -105,6 +107,13 @@ export const useStore = defineStore("app", {
     isSolverFinished: false,
     isSolverError: false,
     isFinalizing: false,
+    isSaving: false,
+    isLoading: false,
+    lastSaveError: null as string | null,
+    lastLoadError: null as string | null,
+    lastSaveSuccess: false,
+    lastLoadSuccess: false,
+    dataRefreshTrigger: 0,
   }),
 
   getters: {
@@ -117,7 +126,19 @@ export const useStore = defineStore("app", {
         state.isFinalizing
       );
     },
+    canSaveSolution: (state) => {
+      return state.isSolverFinished && !state.isSaving;
+    },
+    canLoadSolution: (state) => {
+      return !state.isSolverRunning && !state.isLoading;
+    },
   },
+
+  actions: {
+    triggerDataRefresh() {
+      this.dataRefreshTrigger++;
+    }
+  }
 });
 
 export const useConfigStore = defineStore("config", {

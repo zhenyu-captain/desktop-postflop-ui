@@ -3,6 +3,9 @@ use postflop_solver::*;
 use rayon::ThreadPool;
 use serde::Serialize;
 use std::sync::Mutex;
+use std::fs::File;
+use std::io::{self, BufWriter, BufReader};
+use std::path::Path;
 
 #[inline]
 fn decode_action(action: &str) -> Action {
@@ -531,4 +534,33 @@ pub fn game_get_chance_reports(
         eqr,
         strategy,
     }
+}
+
+#[tauri::command(async)]
+pub fn game_save_to_bin(
+    game_state: tauri::State<Mutex<PostFlopGame>>,
+    file_path: String,
+    memo: String,
+) -> Result<(), String> {
+    let game = game_state.lock().unwrap();
+    
+    // 使用 postflop-solver 提供的 save_data_to_file 函数
+    // 不启用压缩（None 参数）
+    save_data_to_file(&*game, &memo, file_path, None)
+}
+
+#[tauri::command(async)]
+pub fn game_load_from_bin(
+    game_state: tauri::State<Mutex<PostFlopGame>>,
+    file_path: String,
+) -> Result<(), String> {
+    // 使用 postflop-solver 提供的 load_data_from_file 函数
+    // 不设置内存限制（None 参数）
+    let (new_game, _memo) = load_data_from_file(file_path, None)?;
+    
+    // 更新游戏状态
+    let mut game = game_state.lock().unwrap();
+    *game = new_game;
+    
+    Ok(())
 }

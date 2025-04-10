@@ -71,6 +71,8 @@ fn main() {
             game_possible_cards,
             game_get_results,
             game_get_chance_reports,
+            game_save_to_bin,
+            game_load_from_bin,
             get_decision_tree,
             get_current_node_with_children,
             get_complete_decision_path,

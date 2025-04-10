@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api";
 import { Results, ChanceReports } from "./result-types";
+import { open, save } from "@tauri-apps/api/dialog";
+import { appWindow } from "@tauri-apps/api/window";
 
 export const osName = async (): Promise<"windows" | "macos" | "linux"> => {
   return await invoke("os_name");
@@ -361,3 +363,71 @@ export const getCurrentNodeWithChildren = async () => {
 export async function getCompleteDecisionPath(): Promise<any> {
   return invoke("get_complete_decision_path");
 }
+
+// 添加保存游戏状态到二进制文件的函数
+export const gameSaveToBin = async (
+  filePath: string,
+  memo: string
+): Promise<string | null> => {
+  try {
+    await invoke("game_save_to_bin", { filePath, memo });
+    return null; // 成功返回 null
+  } catch (error) {
+    return error as string; // 失败返回错误信息
+  }
+};
+
+// 添加从二进制文件加载游戏状态的函数
+export const gameLoadFromBin = async (
+  filePath: string
+): Promise<string | null> => {
+  try {
+    await invoke("game_load_from_bin", { filePath });
+    return null; // 成功返回 null
+  } catch (error) {
+    return error as string; // 失败返回错误信息
+  }
+};
+
+// 添加弹出保存对话框并保存的辅助函数
+export const showSaveDialog = async (
+  memo: string = ""
+): Promise<string | null> => {
+  try {
+    const filePath = await save({
+      filters: [{
+        name: "GTO Solver Files",
+        extensions: ["bin"]
+      }],
+      defaultPath: "solver_state.bin",
+      title: "保存求解状态",
+    });
+    
+    if (!filePath) return "用户取消了保存操作";
+    
+    return await gameSaveToBin(filePath as string, memo);
+  } catch (error) {
+    return error as string;
+  }
+};
+
+// 添加弹出加载对话框并加载的辅助函数
+export const showLoadDialog = async (): Promise<string | null> => {
+  try {
+    const selected = await open({
+      filters: [{
+        name: "GTO Solver Files",
+        extensions: ["bin"]
+      }],
+      multiple: false,
+      directory: false,
+      title: "加载求解状态",
+    });
+    
+    if (!selected || Array.isArray(selected)) return "未选择文件或选择了多个文件";
+    
+    return await gameLoadFromBin(selected as string);
+  } catch (error) {
+    return error as string;
+  }
+};

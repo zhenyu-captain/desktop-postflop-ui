@@ -181,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useStore } from "../store";
 import * as invokes from "../invokes";
 
@@ -234,6 +234,13 @@ store.$subscribe(async (_, store) => {
     } else {
       clear();
     }
+  }
+});
+
+// 添加对 dataRefreshTrigger 的监听，当它变化时重新初始化数据
+watch(() => store.dataRefreshTrigger, async () => {
+  if (store.isSolverFinished) {
+    await init();
   }
 });
 
