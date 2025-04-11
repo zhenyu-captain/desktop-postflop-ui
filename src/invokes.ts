@@ -442,3 +442,54 @@ export interface GameConfigInfo {
 export const gameGetConfigInfo = async (): Promise<GameConfigInfo> => {
   return await invoke("game_get_config_info");
 };
+
+// 添加保存和加载配置的函数
+export const showSaveConfigDialog = async (
+  configData: string
+): Promise<string | null> => {
+  try {
+    const filePath = await save({
+      filters: [{
+        name: "GTO Config Files",
+        extensions: ["json"]
+      }],
+      defaultPath: "poker_config.json",
+      title: "保存配置文件",
+    });
+    
+    if (!filePath) return "用户取消了保存操作";
+    
+    await invoke("save_config_to_file", { 
+      filePath, 
+      configData 
+    });
+    
+    return null;
+  } catch (error) {
+    return error as string;
+  }
+};
+
+export const showLoadConfigDialog = async (): Promise<{ configData: string } | string> => {
+  try {
+    const selected = await open({
+      filters: [{
+        name: "GTO Config Files",
+        extensions: ["json"]
+      }],
+      multiple: false,
+      directory: false,
+      title: "加载配置文件",
+    });
+    
+    if (!selected || Array.isArray(selected)) return "未选择文件或选择了多个文件";
+    
+    const configData = await invoke("load_config_from_file", { 
+      filePath: selected as string 
+    });
+    
+    return { configData: configData as string };
+  } catch (error) {
+    return error as string;
+  }
+};

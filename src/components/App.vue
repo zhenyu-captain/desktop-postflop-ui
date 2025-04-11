@@ -87,10 +87,46 @@
             <div class="file-operations">
               <div class="section-title mb-6">
                 <h2 class="text-xl font-bold">文件操作</h2>
-                <p class="text-gray-600 mt-1">保存和加载求解方案</p>
+                <p class="text-gray-600 mt-1">保存和加载求解方案与配置</p>
               </div>
               
               <div class="flex flex-col space-y-6">
+                <!-- 保存配置区域 -->
+                <div class="card p-5 border rounded-lg shadow-sm bg-white">
+                  <h3 class="text-lg font-semibold mb-3">保存配置</h3>
+                  <p class="text-gray-600 mb-4">将当前的所有配置（牌局设置、范围、游戏树等）保存为JSON文件，以便日后复用。</p>
+                  
+                  <div class="flex items-center">
+                    <button 
+                      class="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center"
+                      @click="handleSaveConfig"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      保存配置
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- 加载配置区域 -->
+                <div class="card p-5 border rounded-lg shadow-sm bg-white">
+                  <h3 class="text-lg font-semibold mb-3">加载配置</h3>
+                  <p class="text-gray-600 mb-4">从之前保存的JSON文件中加载所有配置（牌局设置、范围、游戏树等）。</p>
+                  
+                  <div class="flex items-center">
+                    <button 
+                      class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center"
+                      @click="handleLoadConfig"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      加载配置
+                    </button>
+                  </div>
+                </div>
+                
                 <!-- 保存方案区域 -->
                 <div class="card p-5 border rounded-lg shadow-sm bg-white">
                   <h3 class="text-lg font-semibold mb-3">保存方案</h3>
@@ -141,15 +177,15 @@
               </div>
               
               <!-- 状态消息 -->
-              <div v-if="store.lastSaveSuccess || store.lastLoadSuccess || store.lastSaveError || store.lastLoadError" 
+              <div v-if="store.lastSaveSuccess || store.lastLoadSuccess || configSaveSuccess || configLoadSuccess || store.lastSaveError || store.lastLoadError || configSaveError || configLoadError" 
                    class="mt-6 p-4 rounded-lg" 
                    :class="{
-                     'bg-green-100 border-l-4 border-green-500': store.lastSaveSuccess || store.lastLoadSuccess,
-                     'bg-red-100 border-l-4 border-red-500': store.lastSaveError || store.lastLoadError
+                     'bg-green-100 border-l-4 border-green-500': store.lastSaveSuccess || store.lastLoadSuccess || configSaveSuccess || configLoadSuccess,
+                     'bg-red-100 border-l-4 border-red-500': store.lastSaveError || store.lastLoadError || configSaveError || configLoadError
                    }">
                 <div class="flex">
                   <div class="flex-shrink-0">
-                    <svg v-if="store.lastSaveSuccess || store.lastLoadSuccess" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                    <svg v-if="store.lastSaveSuccess || store.lastLoadSuccess || configSaveSuccess || configLoadSuccess" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
                     <svg v-else class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
@@ -159,8 +195,8 @@
                   <div class="ml-3">
                     <p class="text-sm leading-5 font-medium" 
                        :class="{
-                         'text-green-800': store.lastSaveSuccess || store.lastLoadSuccess,
-                         'text-red-800': store.lastSaveError || store.lastLoadError
+                         'text-green-800': store.lastSaveSuccess || store.lastLoadSuccess || configSaveSuccess || configLoadSuccess,
+                         'text-red-800': store.lastSaveError || store.lastLoadError || configSaveError || configLoadError
                        }">
                       {{ getStatusMessage() }}
                     </p>
@@ -187,7 +223,7 @@
 import { computed, ref, onMounted } from "vue";
 import { useStore, useConfigStore } from "../store";
 import * as invokes from "../invokes";
-import { showSaveDialog, showLoadDialog } from "../invokes";
+import { showSaveDialog, showLoadDialog, showSaveConfigDialog, showLoadConfigDialog } from "../invokes";
 
 import RangeEditor from "./RangeEditor.vue";
 import BoardSelector from "./BoardSelector.vue";
@@ -328,6 +364,283 @@ const cancelTreeEdit = () => {
   inTreeEditor.value = false; // 重置标记
 };
 
+// 添加配置保存状态变量
+const configSaveSuccess = ref(false);
+const configLoadSuccess = ref(false);
+const configSaveError = ref<string | null>(null);
+const configLoadError = ref<string | null>(null);
+
+// 保存配置文件
+const handleSaveConfig = async () => {
+  // 重置状态
+  configSaveSuccess.value = false;
+  configSaveError.value = null;
+  
+  try {
+    // 从 store 中收集所有需要保存的配置
+    const mainStore = useStore();
+    const configStore = useConfigStore();
+    
+    // 创建包含所有需要保存的配置的对象
+    const configData = {
+      // 主要配置
+      board: configStore.board,
+      startingPot: configStore.startingPot,
+      effectiveStack: configStore.effectiveStack,
+      rakePercent: configStore.rakePercent,
+      rakeCap: configStore.rakeCap,
+      donkOption: configStore.donkOption,
+      
+      // 下注配置
+      oopFlopBet: configStore.oopFlopBet,
+      oopFlopRaise: configStore.oopFlopRaise,
+      oopTurnBet: configStore.oopTurnBet,
+      oopTurnRaise: configStore.oopTurnRaise,
+      oopTurnDonk: configStore.oopTurnDonk,
+      oopRiverBet: configStore.oopRiverBet,
+      oopRiverRaise: configStore.oopRiverRaise,
+      oopRiverDonk: configStore.oopRiverDonk,
+      ipFlopBet: configStore.ipFlopBet,
+      ipFlopRaise: configStore.ipFlopRaise,
+      ipTurnBet: configStore.ipTurnBet,
+      ipTurnRaise: configStore.ipTurnRaise,
+      ipRiverBet: configStore.ipRiverBet,
+      ipRiverRaise: configStore.ipRiverRaise,
+      
+      // 阈值配置
+      addAllInThreshold: configStore.addAllInThreshold,
+      forceAllInThreshold: configStore.forceAllInThreshold,
+      mergingThreshold: configStore.mergingThreshold,
+      
+      // 特殊游戏树配置
+      expectedBoardLength: configStore.expectedBoardLength,
+      addedLines: configStore.addedLines,
+      removedLines: configStore.removedLines,
+      
+      // 范围配置
+      ranges: mainStore.ranges,
+      
+      // bunching 配置
+      isBunchingEnabled: mainStore.isBunchingEnabled,
+      bunchingFlop: mainStore.bunchingFlop,
+    };
+    
+    // 将配置转换为 JSON 字符串
+    const configJson = JSON.stringify(configData, null, 2);
+    
+    // 调用 Tauri 保存对话框
+    const result = await showSaveConfigDialog(configJson);
+    
+    if (result) {
+      configSaveError.value = result;
+    } else {
+      configSaveSuccess.value = true;
+      
+      // 3秒后自动清除成功状态
+      setTimeout(() => {
+        configSaveSuccess.value = false;
+      }, 3000);
+    }
+  } catch (error) {
+    configSaveError.value = String(error);
+  }
+};
+
+// 加载配置文件
+const handleLoadConfig = async () => {
+  // 重置状态
+  configLoadSuccess.value = false;
+  configLoadError.value = null;
+  
+  try {
+    // 调用 Tauri 加载对话框
+    const result = await showLoadConfigDialog();
+    
+    if (typeof result === 'string') {
+      configLoadError.value = result;
+    } else {
+      // 解析 JSON 配置
+      const configData = JSON.parse(result.configData);
+      
+      // 获取 store 实例
+      const mainStore = useStore();
+      const configStore = useConfigStore();
+      
+      // 更新主要配置
+      configStore.$patch({
+        board: configData.board || [],
+        startingPot: configData.startingPot || 20,
+        effectiveStack: configData.effectiveStack || 100,
+        rakePercent: configData.rakePercent || 0,
+        rakeCap: configData.rakeCap || 0,
+        donkOption: configData.donkOption || false,
+        
+        // 下注配置
+        oopFlopBet: configData.oopFlopBet || "",
+        oopFlopRaise: configData.oopFlopRaise || "",
+        oopTurnBet: configData.oopTurnBet || "",
+        oopTurnRaise: configData.oopTurnRaise || "",
+        oopTurnDonk: configData.oopTurnDonk || "",
+        oopRiverBet: configData.oopRiverBet || "",
+        oopRiverRaise: configData.oopRiverRaise || "",
+        oopRiverDonk: configData.oopRiverDonk || "",
+        ipFlopBet: configData.ipFlopBet || "",
+        ipFlopRaise: configData.ipFlopRaise || "",
+        ipTurnBet: configData.ipTurnBet || "",
+        ipTurnRaise: configData.ipTurnRaise || "",
+        ipRiverBet: configData.ipRiverBet || "",
+        ipRiverRaise: configData.ipRiverRaise || "",
+        
+        // 阈值配置
+        addAllInThreshold: configData.addAllInThreshold || 150,
+        forceAllInThreshold: configData.forceAllInThreshold || 20,
+        mergingThreshold: configData.mergingThreshold || 10,
+        
+        // 特殊游戏树配置
+        expectedBoardLength: configData.expectedBoardLength || 0,
+        addedLines: configData.addedLines || "",
+        removedLines: configData.removedLines || "",
+      });
+      
+      // 更新范围配置
+      if (configData.ranges && Array.isArray(configData.ranges)) {
+        mainStore.ranges = configData.ranges;
+        
+        // 更新 Rust 端的范围数据
+        // 我们需要逐个更新 OOP 和 IP 的范围
+        try {
+          // 先清除现有的范围数据
+          await invokes.rangeClear(0); // 清除OOP范围
+          await invokes.rangeClear(1); // 清除IP范围
+          
+          // 使用数据块更新方式来更新范围，避免过多的API调用
+          const oopIndex = configData.board.length >= 3 ? 2 : 0;
+          const ipIndex = configData.board.length >= 3 ? 3 : 1;
+          
+          // 对于每个玩家，使用一次性API调用更新其范围
+          if (configData.ranges[oopIndex] && configData.ranges[oopIndex].length === 13*13) {
+            // 将权重数组转换为范围字符串格式
+            const oopRangeWeights = configData.ranges[oopIndex];
+            let oopRangeStr = "";
+            
+            // 构建范围字符串
+            for (let i = 0; i < 13; i++) {
+              for (let j = 0; j < 13; j++) {
+                const index = i * 13 + j;
+                const weight = oopRangeWeights[index] || 0;
+                if (weight > 0) {
+                  // 转换索引为牌面字符
+                  const ranks = "23456789TJQKA";
+                  const rank1 = ranks[12 - i]; // 倒序，因为A是索引0
+                  const rank2 = ranks[12 - j];
+                  
+                  // 判断是对子、同花还是异花
+                  let combo;
+                  if (i === j) {
+                    combo = `${rank1}${rank2}`; // 对子
+                  } else if (i < j) {
+                    combo = `${rank1}${rank2}s`; // 同花
+                  } else {
+                    combo = `${rank1}${rank2}o`; // 异花
+                  }
+                  
+                  // 添加到范围字符串，带上权重
+                  if (weight < 100) {
+                    oopRangeStr += `${combo}:${weight/100},`;
+                  } else {
+                    oopRangeStr += `${combo},`;
+                  }
+                }
+              }
+            }
+            
+            // 移除最后一个逗号
+            if (oopRangeStr.endsWith(",")) {
+              oopRangeStr = oopRangeStr.substring(0, oopRangeStr.length - 1);
+            }
+            
+            // 使用范围字符串一次性更新OOP范围
+            const oopResult = await invokes.rangeFromString(0, oopRangeStr);
+            if (oopResult) {
+              console.warn("更新OOP范围警告:", oopResult);
+            }
+          }
+          
+          // 对IP执行相同操作
+          if (configData.ranges[ipIndex] && configData.ranges[ipIndex].length === 13*13) {
+            // 将权重数组转换为范围字符串格式
+            const ipRangeWeights = configData.ranges[ipIndex];
+            let ipRangeStr = "";
+            
+            // 构建范围字符串
+            for (let i = 0; i < 13; i++) {
+              for (let j = 0; j < 13; j++) {
+                const index = i * 13 + j;
+                const weight = ipRangeWeights[index] || 0;
+                if (weight > 0) {
+                  // 转换索引为牌面字符
+                  const ranks = "23456789TJQKA";
+                  const rank1 = ranks[12 - i]; // 倒序，因为A是索引0
+                  const rank2 = ranks[12 - j];
+                  
+                  // 判断是对子、同花还是异花
+                  let combo;
+                  if (i === j) {
+                    combo = `${rank1}${rank2}`; // 对子
+                  } else if (i < j) {
+                    combo = `${rank1}${rank2}s`; // 同花
+                  } else {
+                    combo = `${rank1}${rank2}o`; // 异花
+                  }
+                  
+                  // 添加到范围字符串，带上权重
+                  if (weight < 100) {
+                    ipRangeStr += `${combo}:${weight/100},`;
+                  } else {
+                    ipRangeStr += `${combo},`;
+                  }
+                }
+              }
+            }
+            
+            // 移除最后一个逗号
+            if (ipRangeStr.endsWith(",")) {
+              ipRangeStr = ipRangeStr.substring(0, ipRangeStr.length - 1);
+            }
+            
+            // 使用范围字符串一次性更新IP范围
+            const ipResult = await invokes.rangeFromString(1, ipRangeStr);
+            if (ipResult) {
+              console.warn("更新IP范围警告:", ipResult);
+            }
+          }
+        } catch (error) {
+          console.error("更新范围数据失败:", error);
+          configLoadError.value = `更新范围数据失败: ${error}`;
+          return; // 出错时提前返回
+        }
+      }
+      
+      // 更新 bunching 配置
+      if (configData.isBunchingEnabled !== undefined) {
+        mainStore.isBunchingEnabled = configData.isBunchingEnabled;
+      }
+      if (configData.bunchingFlop && Array.isArray(configData.bunchingFlop)) {
+        mainStore.bunchingFlop = configData.bunchingFlop;
+      }
+      
+      configLoadSuccess.value = true;
+      
+      // 3秒后自动清除成功状态
+      setTimeout(() => {
+        configLoadSuccess.value = false;
+      }, 3000);
+    }
+  } catch (error) {
+    configLoadError.value = String(error);
+  }
+};
+
 // 保存二进制文件
 const handleSaveBin = async () => {
   if (!store.canSaveSolution) return;
@@ -426,12 +739,16 @@ const handleLoadBin = async () => {
   }
 };
 
-// 获取状态消息
+// 修改状态信息获取函数
 const getStatusMessage = () => {
-  if (store.lastSaveSuccess) return "保存成功！";
-  if (store.lastLoadSuccess) return "加载成功！";
-  if (store.lastSaveError) return `保存失败: ${store.lastSaveError}`;
-  if (store.lastLoadError) return `加载失败: ${store.lastLoadError}`;
+  if (store.lastSaveSuccess) return "保存方案成功！";
+  if (store.lastLoadSuccess) return "加载方案成功！";
+  if (configSaveSuccess.value) return "保存配置成功！";
+  if (configLoadSuccess.value) return "加载配置成功！";
+  if (store.lastSaveError) return `保存方案失败: ${store.lastSaveError}`;
+  if (store.lastLoadError) return `加载方案失败: ${store.lastLoadError}`;
+  if (configSaveError.value) return `保存配置失败: ${configSaveError.value}`;
+  if (configLoadError.value) return `加载配置失败: ${configLoadError.value}`;
   return "";
 };
 

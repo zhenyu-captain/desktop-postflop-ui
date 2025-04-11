@@ -77,7 +77,9 @@ fn main() {
             get_decision_tree,
             get_current_node_with_children,
             get_complete_decision_path,
-            log_to_console
+            log_to_console,
+            save_config_to_file,
+            load_config_from_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -122,4 +124,16 @@ fn log_to_console(message: String) {
     println!("\n====== 前端数据打印 ======");
     println!("{}", message);
     println!("====== 前端数据结束 ======\n");
+}
+
+#[tauri::command]
+fn save_config_to_file(file_path: String, config_data: String) -> Result<(), String> {
+    std::fs::write(&file_path, config_data)
+        .map_err(|e| format!("Failed to save config file: {}", e))
+}
+
+#[tauri::command]
+fn load_config_from_file(file_path: String) -> Result<String, String> {
+    std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to load config file: {}", e))
 }
