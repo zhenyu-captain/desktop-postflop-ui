@@ -35,6 +35,51 @@
           </svg>
           Build New Tree
         </button>
+        
+        <!-- 添加调试按钮 -->
+        <button
+          class="ml-4 inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm 
+            bg-yellow-500 text-white hover:bg-yellow-600 hover:shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+          @click="showDebugInfo"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM6.293 6.707a1 1 0 010-1.414l.7-.7a1 1 0 111.414 1.414l-.7.7a1 1 0 01-1.414 0zM13.707 6.707a1 1 0 010-1.414l.7-.7a1 1 0 111.414 1.414l-.7.7a1 1 0 01-1.414 0zM4 10a1 1 0 100 2h1a1 1 0 100-2H4zM15 10a1 1 0 100 2h1a1 1 0 100-2h-1zM6.293 13.293a1 1 0 011.414 0l.7.7a1 1 0 11-1.414 1.414l-.7-.7a1 1 0 010-1.414zM13.707 13.293a1 1 0 011.414 0l.7.7a1 1 0 11-1.414 1.414l-.7-.7a1 1 0 010-1.414zM10 16a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          Debug
+        </button>
+      </div>
+
+      <!-- 调试信息区域 -->
+      <div v-if="showDebug" class="debug-info mt-4 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-auto max-h-[500px]">
+        <h4 class="font-semibold text-lg mb-2 text-gray-800 dark:text-gray-200">Debug Information</h4>
+        <div class="space-y-2">
+          <div class="border-b pb-2 dark:border-gray-700">
+            <p class="font-medium text-gray-800 dark:text-gray-200">Board Configuration:</p>
+            <pre class="bg-white dark:bg-gray-900 p-2 rounded mt-1 text-xs overflow-auto">{{ debugBoardInfo }}</pre>
+          </div>
+          <div class="border-b pb-2 dark:border-gray-700">
+            <p class="font-medium text-gray-800 dark:text-gray-200">Range Configuration:</p>
+            <pre class="bg-white dark:bg-gray-900 p-2 rounded mt-1 text-xs overflow-auto">{{ debugRangeInfo }}</pre>
+          </div>
+          <div class="border-b pb-2 dark:border-gray-700">
+            <p class="font-medium text-gray-800 dark:text-gray-200">Betting Configuration:</p>
+            <pre class="bg-white dark:bg-gray-900 p-2 rounded mt-1 text-xs overflow-auto">{{ debugBettingInfo }}</pre>
+          </div>
+          <div class="border-b pb-2 dark:border-gray-700">
+            <p class="font-medium text-gray-800 dark:text-gray-200">Tree Configuration:</p>
+            <pre class="bg-white dark:bg-gray-900 p-2 rounded mt-1 text-xs overflow-auto">{{ debugTreeInfo }}</pre>
+          </div>
+          <div>
+            <p class="font-medium text-gray-800 dark:text-gray-200">Validation Result:</p>
+            <pre class="bg-white dark:bg-gray-900 p-2 rounded mt-1 text-xs overflow-auto" :class="{'text-red-500': debugValidationError}">{{ debugValidationResult }}</pre>
+          </div>
+        </div>
+        <button 
+          class="mt-4 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          @click="showDebug = false"
+        >
+          Close Debug Info
+        </button>
       </div>
 
       <div class="status-indicator my-2 py-1.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center">
@@ -432,7 +477,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import {
   useStore,
   useConfigStore,
@@ -570,6 +615,15 @@ const store = useStore();
 const config = useConfigStore();
 const tmpConfig = useTmpConfigStore();
 const savedConfig = useSavedConfigStore();
+
+// 添加调试相关的响应式变量
+const showDebug = ref(false);
+const debugBoardInfo = ref('');
+const debugRangeInfo = ref('');
+const debugBettingInfo = ref('');
+const debugTreeInfo = ref('');
+const debugValidationResult = ref('');
+const debugValidationError = ref(false);
 
 const numThreads = ref(navigator.hardwareConcurrency || 1);
 const targetExploitability = ref(0.3);
@@ -824,6 +878,117 @@ const resumeSolver = async () => {
   const end = performance.now();
   elapsedTimeMs.value += end - startTime;
 };
+
+// 显示调试信息的函数
+const showDebugInfo = async () => {
+  showDebug.value = true;
+  
+  // 收集牌局配置信息
+  debugBoardInfo.value = JSON.stringify({
+    board: config.board.map(card => {
+      const rank = Math.floor(card / 4);
+      const suit = card % 4;
+      const ranks = "23456789TJQKA";
+      const suits = "cdhs";
+      return ranks[rank] + suits[suit];
+    }),
+    startingPot: config.startingPot,
+    effectiveStack: config.effectiveStack,
+    rakePercent: config.rakePercent,
+    rakeCap: config.rakeCap,
+    donkOption: config.donkOption
+  }, null, 2);
+  
+  // 收集范围信息
+  try {
+    const oopRangeInfo = await invokes.rangeInfo(0);
+    const ipRangeInfo = await invokes.rangeInfo(1);
+    debugRangeInfo.value = JSON.stringify({
+      oopRangeInfo,
+      ipRangeInfo,
+      storeRanges: store.ranges
+    }, null, 2);
+  } catch (error) {
+    debugRangeInfo.value = `Error fetching range info: ${error}`;
+  }
+  
+  // 收集下注配置信息
+  debugBettingInfo.value = JSON.stringify({
+    oopFlopBet: config.oopFlopBet,
+    oopFlopRaise: config.oopFlopRaise,
+    oopTurnBet: config.oopTurnBet,
+    oopTurnRaise: config.oopTurnRaise,
+    oopTurnDonk: config.oopTurnDonk,
+    oopRiverBet: config.oopRiverBet,
+    oopRiverRaise: config.oopRiverRaise,
+    oopRiverDonk: config.oopRiverDonk,
+    ipFlopBet: config.ipFlopBet,
+    ipFlopRaise: config.ipFlopRaise,
+    ipTurnBet: config.ipTurnBet,
+    ipTurnRaise: config.ipTurnRaise,
+    ipRiverBet: config.ipRiverBet,
+    ipRiverRaise: config.ipRiverRaise,
+    
+    // 添加sanitized版本，检查是否有错误
+    oopFlopBetSanitized: config.oopFlopBetSanitized,
+    oopFlopRaiseSanitized: config.oopFlopRaiseSanitized,
+    oopTurnBetSanitized: config.oopTurnBetSanitized,
+    oopTurnRaiseSanitized: config.oopTurnRaiseSanitized,
+    oopTurnDonkSanitized: config.oopTurnDonkSanitized,
+    oopRiverBetSanitized: config.oopRiverBetSanitized,
+    oopRiverRaiseSanitized: config.oopRiverRaiseSanitized,
+    oopRiverDonkSanitized: config.oopRiverDonkSanitized,
+    ipFlopBetSanitized: config.ipFlopBetSanitized,
+    ipFlopRaiseSanitized: config.ipFlopRaiseSanitized,
+    ipTurnBetSanitized: config.ipTurnBetSanitized,
+    ipTurnRaiseSanitized: config.ipTurnRaiseSanitized,
+    ipRiverBetSanitized: config.ipRiverBetSanitized,
+    ipRiverRaiseSanitized: config.ipRiverRaiseSanitized
+  }, null, 2);
+  
+  // 收集树配置信息
+  debugTreeInfo.value = JSON.stringify({
+    addAllInThreshold: config.addAllInThreshold,
+    forceAllInThreshold: config.forceAllInThreshold,
+    mergingThreshold: config.mergingThreshold,
+    expectedBoardLength: config.expectedBoardLength,
+    addedLines: config.addedLines,
+    removedLines: config.removedLines,
+    
+    // 添加bunching信息
+    isBunchingEnabled: store.isBunchingEnabled,
+    bunchingFlop: store.bunchingFlop
+  }, null, 2);
+  
+  // 检查配置是否有效
+  const validationResult = checkConfig(config);
+  if (validationResult === null) {
+    debugValidationResult.value = "配置验证通过√";
+    debugValidationError.value = false;
+  } else {
+    debugValidationResult.value = `配置验证失败: ${validationResult}`;
+    debugValidationError.value = true;
+  }
+};
+
+// 处理自动构建树事件
+const handleAutoBuildTree = (event) => {
+  console.log("RunSolver收到自动构建树事件:", event.detail);
+  if (!isTreeBuilding.value && !store.isSolverRunning && !store.isFinalizing) {
+    buildTree();
+  }
+};
+
+// 添加生命周期钩子和事件监听器
+onMounted(() => {
+  // 监听自动构建树事件
+  document.addEventListener('auto-build-tree', handleAutoBuildTree);
+});
+
+onUnmounted(() => {
+  // 移除事件监听器
+  document.removeEventListener('auto-build-tree', handleAutoBuildTree);
+});
 </script>
 
 <style scoped>

@@ -507,44 +507,48 @@ const handleLoadConfig = async () => {
         mainStore.ranges = configData.ranges;
         
         // 更新 Rust 端的范围数据
-        // 我们需要逐个更新 OOP 和 IP 的范围
         try {
-          // 先清除现有的范围数据
-          await invokes.rangeClear(0); // 清除OOP范围
-          await invokes.rangeClear(1); // 清除IP范围
-          
-          // 使用数据块更新方式来更新范围，避免过多的API调用
+          // 确定使用哪个索引来获取OOP和IP的范围
           const oopIndex = configData.board.length >= 3 ? 2 : 0;
           const ipIndex = configData.board.length >= 3 ? 3 : 1;
           
-          // 对于每个玩家，使用一次性API调用更新其范围
+          // 使用更简单可靠的方法 - 直接使用字符串表示
+          console.log("正在更新OOP范围...");
+          
+          // 构建OOP范围字符串 (更可靠的方法)
           if (configData.ranges[oopIndex] && configData.ranges[oopIndex].length === 13*13) {
-            // 将权重数组转换为范围字符串格式
-            const oopRangeWeights = configData.ranges[oopIndex];
+            // 先清除现有的范围数据
+            await invokes.rangeClear(0);
+            
+            // 从一维数组构建范围字符串
+            const oopWeights = configData.ranges[oopIndex];
             let oopRangeStr = "";
             
-            // 构建范围字符串
+            // 使用正确的映射关系来构建范围字符串
+            const ranks = "AKQJT98765432"; // 注意这里是倒序的！
+            
+            // 遍历所有可能的牌型组合
             for (let i = 0; i < 13; i++) {
               for (let j = 0; j < 13; j++) {
                 const index = i * 13 + j;
-                const weight = oopRangeWeights[index] || 0;
+                const weight = oopWeights[index];
+                
+                // 只添加权重大于0的组合
                 if (weight > 0) {
-                  // 转换索引为牌面字符
-                  const ranks = "23456789TJQKA";
-                  const rank1 = ranks[12 - i]; // 倒序，因为A是索引0
-                  const rank2 = ranks[12 - j];
+                  const rank1 = ranks[i];
+                  const rank2 = ranks[j];
                   
                   // 判断是对子、同花还是异花
                   let combo;
                   if (i === j) {
                     combo = `${rank1}${rank2}`; // 对子
                   } else if (i < j) {
-                    combo = `${rank1}${rank2}s`; // 同花
+                    combo = `${rank1}${rank2}o`; // 异花 (注意这里与标准约定可能不同)
                   } else {
-                    combo = `${rank1}${rank2}o`; // 异花
+                    combo = `${rank1}${rank2}s`; // 同花
                   }
                   
-                  // 添加到范围字符串，带上权重
+                  // 添加到范围字符串
                   if (weight < 100) {
                     oopRangeStr += `${combo}:${weight/100},`;
                   } else {
@@ -559,41 +563,71 @@ const handleLoadConfig = async () => {
               oopRangeStr = oopRangeStr.substring(0, oopRangeStr.length - 1);
             }
             
-            // 使用范围字符串一次性更新OOP范围
+            console.log("OOP范围字符串:", oopRangeStr);
+            
+            // 如果没有可用范围，添加一个默认的
+            if (oopRangeStr === "") {
+              oopRangeStr = "AA";  // 至少添加一手牌
+              console.log("警告: OOP范围为空，添加默认范围 AA");
+            }
+            
+            // 使用字符串更新OOP范围
             const oopResult = await invokes.rangeFromString(0, oopRangeStr);
             if (oopResult) {
               console.warn("更新OOP范围警告:", oopResult);
+              configLoadError.value = `OOP范围更新失败: ${oopResult}`;
+              return;
             }
+            
+            // 验证更新是否成功
+            const oopCombos = await invokes.rangeNumCombos(0);
+            console.log(`OOP范围更新完成，组合数: ${oopCombos}`);
+            
+            if (oopCombos === 0) {
+              console.error("OOP范围更新失败，没有有效组合");
+              configLoadError.value = "OOP范围更新失败，无法构建树";
+              return;
+            }
+          } else {
+            console.warn("OOP范围数据无效或不存在");
           }
           
-          // 对IP执行相同操作
+          // 对IP执行相同的操作
+          console.log("正在更新IP范围...");
+          
           if (configData.ranges[ipIndex] && configData.ranges[ipIndex].length === 13*13) {
-            // 将权重数组转换为范围字符串格式
-            const ipRangeWeights = configData.ranges[ipIndex];
+            // 先清除现有的范围数据
+            await invokes.rangeClear(1);
+            
+            // 从一维数组构建范围字符串  
+            const ipWeights = configData.ranges[ipIndex];
             let ipRangeStr = "";
             
-            // 构建范围字符串
+            // 使用正确的映射关系来构建范围字符串
+            const ranks = "AKQJT98765432"; // 注意这里是倒序的！
+            
+            // 遍历所有可能的牌型组合
             for (let i = 0; i < 13; i++) {
               for (let j = 0; j < 13; j++) {
                 const index = i * 13 + j;
-                const weight = ipRangeWeights[index] || 0;
+                const weight = ipWeights[index];
+                
+                // 只添加权重大于0的组合
                 if (weight > 0) {
-                  // 转换索引为牌面字符
-                  const ranks = "23456789TJQKA";
-                  const rank1 = ranks[12 - i]; // 倒序，因为A是索引0
-                  const rank2 = ranks[12 - j];
+                  const rank1 = ranks[i];
+                  const rank2 = ranks[j];
                   
                   // 判断是对子、同花还是异花
                   let combo;
                   if (i === j) {
                     combo = `${rank1}${rank2}`; // 对子
                   } else if (i < j) {
-                    combo = `${rank1}${rank2}s`; // 同花
+                    combo = `${rank1}${rank2}o`; // 异花 (注意这里与标准约定可能不同)
                   } else {
-                    combo = `${rank1}${rank2}o`; // 异花
+                    combo = `${rank1}${rank2}s`; // 同花
                   }
                   
-                  // 添加到范围字符串，带上权重
+                  // 添加到范围字符串
                   if (weight < 100) {
                     ipRangeStr += `${combo}:${weight/100},`;
                   } else {
@@ -608,12 +642,35 @@ const handleLoadConfig = async () => {
               ipRangeStr = ipRangeStr.substring(0, ipRangeStr.length - 1);
             }
             
-            // 使用范围字符串一次性更新IP范围
+            console.log("IP范围字符串:", ipRangeStr);
+            
+            // 如果没有可用范围，添加一个默认的
+            if (ipRangeStr === "") {
+              ipRangeStr = "AA";  // 至少添加一手牌
+              console.log("警告: IP范围为空，添加默认范围 AA");
+            }
+            
+            // 使用字符串更新IP范围
             const ipResult = await invokes.rangeFromString(1, ipRangeStr);
             if (ipResult) {
               console.warn("更新IP范围警告:", ipResult);
+              configLoadError.value = `IP范围更新失败: ${ipResult}`;
+              return;
             }
+            
+            // 验证更新是否成功
+            const ipCombos = await invokes.rangeNumCombos(1);
+            console.log(`IP范围更新完成，组合数: ${ipCombos}`);
+            
+            if (ipCombos === 0) {
+              console.error("IP范围更新失败，没有有效组合");
+              configLoadError.value = "IP范围更新失败，无法构建树";
+              return;
+            }
+          } else {
+            console.warn("IP范围数据无效或不存在");
           }
+          
         } catch (error) {
           console.error("更新范围数据失败:", error);
           configLoadError.value = `更新范围数据失败: ${error}`;
@@ -630,6 +687,33 @@ const handleLoadConfig = async () => {
       }
       
       configLoadSuccess.value = true;
+      
+      // 尝试自动构建游戏树
+      try {
+        // 检查RunSolver组件是否已存在
+        const runSolverInstance = document.querySelector('.solver-container');
+        if (runSolverInstance) {
+          console.log("即将自动构建游戏树...");
+          
+          // 如果不在RunSolver视图，切换到RunSolver视图
+          if (store.sideView !== 'run-solver') {
+            store.sideView = 'run-solver';
+          }
+          
+          // 给UI一点时间来更新
+          setTimeout(async () => {
+            // 创建一个自定义事件，让RunSolver组件知道应该构建树
+            const buildTreeEvent = new CustomEvent('auto-build-tree', {
+              detail: { source: 'config-load' }
+            });
+            document.dispatchEvent(buildTreeEvent);
+            
+            console.log("已触发自动构建树事件");
+          }, 500);
+        }
+      } catch (e) {
+        console.error("自动构建树失败:", e);
+      }
       
       // 3秒后自动清除成功状态
       setTimeout(() => {

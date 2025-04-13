@@ -57,6 +57,27 @@ export const rangeRawData = async (player: number): Promise<number[]> => {
   return await invoke("range_raw_data", { player });
 };
 
+// 添加rangeInfo方法
+export const rangeInfo = async (player: number): Promise<any> => {
+  try {
+    const weights = await rangeGetWeights(player);
+    const numCombos = await rangeNumCombos(player);
+    const rangeString = await rangeToString(player);
+    
+    return {
+      player,
+      weights,
+      numCombos,
+      rangeString
+    };
+  } catch (error) {
+    return {
+      player,
+      error: String(error)
+    };
+  }
+};
+
 /* Action Tree */
 
 export const treeNew = async (
