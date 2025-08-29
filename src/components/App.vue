@@ -31,7 +31,7 @@
           ]"
           @click="store.navView = store.navView === 'solver' ? 'results' : 'solver'"
         >
-          {{ store.navView === 'solver' ? '查看结果' : '返回求解器' }}
+          {{ store.navView === 'solver' ? 'View Results' : 'Back to Solver' }}
         </button>
       </div>
     </nav>
