@@ -23,7 +23,7 @@
         </button>
       </div>
 
-      <div class="flex items-center ml-auto px-4">
+      <div class="flex items-center ml-auto px-4 space-x-3">
         <button 
           :class="[
             'px-6 h-8 rounded transition-colors',
@@ -32,6 +32,16 @@
           @click="store.navView = store.navView === 'solver' ? 'results' : 'solver'"
         >
           {{ store.navView === 'solver' ? 'View Results' : 'Back to Solver' }}
+        </button>
+        
+        <button 
+          :class="[
+            'px-6 h-8 rounded transition-colors',
+            store.navView === 'solver' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-700'
+          ]"
+          @click="store.navView = store.navView === 'solver' ? 'results2' : 'solver'"
+        >
+          {{ store.navView === 'solver' ? 'View Results 2' : 'Back to Solver 2' }}
         </button>
       </div>
     </nav>
@@ -248,6 +258,11 @@
       <ResultViewer />
     </div>
 
+    <!-- 结果页面2 - 升级版本 -->
+    <div v-show="store.navView === 'results2'" class="w-full h-[calc(100%-3rem)] overflow-hidden">      
+      <ResultViewer2 />
+    </div>
+
     <!-- 调试日志弹窗 -->
     <div v-if="showDebugModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-4/5 max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -284,6 +299,7 @@ import BunchingEffect from "./BunchingEffect.vue";
 import RunSolver from "./RunSolver.vue";
 import AboutPage from "./AboutPage.vue";
 import ResultViewer from "./ResultViewer.vue";
+import ResultViewer2 from "./ResultViewer2.vue";
 
 const store = useStore();
 const config = useConfigStore();
