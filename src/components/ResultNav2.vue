@@ -899,6 +899,7 @@ onUnmounted(() => {
 // 提供决策路径导航数据
 const provideDecisionPathData = () => {
   const pathData = {
+    tabId: props.tabId,
     spots: spots.value,
     currentState: {
       selectedSpotIndex: selectedSpotIndex.value,
@@ -916,6 +917,114 @@ const provideDecisionPathData = () => {
   
   eventBus.emit('decision-path-data', pathData);
 };
+
+// 导出当前状态（供标签页管理器使用）
+const exportCurrentState = () => {
+  return {
+    // 完整的spots状态 - 包含所有导航节点
+    spots: JSON.parse(JSON.stringify(spots.value)),
+    
+    // 选择状态
+    selectedSpotIndex: selectedSpotIndex.value,
+    selectedChanceIndex: selectedChanceIndex.value,
+    
+    // 计算状态
+    rates: rates.value ? [...rates.value] : null,
+    canChanceReports: canChanceReports.value,
+    
+    // 交互状态
+    isDealing: isDealing.value,
+    
+    // 临时状态变量（用于状态恢复）
+    selectedSpotIndexTmp: selectedSpotIndexTmp,
+    selectedChanceIndexTmp: selectedChanceIndexTmp,
+    
+    // 当前计算结果状态
+    totalBetAmount: [...totalBetAmount],
+    
+    // 导出时间戳
+    exportedAt: new Date().toISOString(),
+    
+    // 配置状态快照
+    configSnapshot: {
+      board: [...config.board],
+      startingPot: config.startingPot,
+      effectiveStack: config.effectiveStack,
+    }
+  };
+};
+
+// 导入状态（从标签页管理器恢复）
+const importState = (savedState: any) => {
+  if (!savedState) {
+    console.warn(`No saved state to import for tab ${props.tabId}`);
+    return;
+  }
+  
+  try {
+    console.log(`Importing state for tab ${props.tabId}:`, {
+      spotsCount: savedState.spots?.length || 0,
+      selectedSpotIndex: savedState.selectedSpotIndex,
+      selectedChanceIndex: savedState.selectedChanceIndex,
+      exportedAt: savedState.exportedAt,
+      hasRates: !!savedState.rates
+    });
+    
+    // 恢复spots状态 - 完整的导航树
+    if (savedState.spots && Array.isArray(savedState.spots)) {
+      spots.value = savedState.spots;
+    }
+    
+    // 恢复选择状态
+    selectedSpotIndex.value = savedState.selectedSpotIndex ?? -1;
+    selectedChanceIndex.value = savedState.selectedChanceIndex ?? -1;
+    
+    // 恢复临时状态变量
+    if (savedState.selectedSpotIndexTmp !== undefined) {
+      selectedSpotIndexTmp = savedState.selectedSpotIndexTmp;
+    }
+    if (savedState.selectedChanceIndexTmp !== undefined) {
+      selectedChanceIndexTmp = savedState.selectedChanceIndexTmp;
+    }
+    
+    // 恢复计算状态
+    rates.value = savedState.rates ? [...savedState.rates] : null;
+    canChanceReports.value = savedState.canChanceReports || false;
+    
+    // 恢复交互状态
+    isDealing.value = savedState.isDealing || false;
+    
+    // 恢复总下注金额
+    if (savedState.totalBetAmount && Array.isArray(savedState.totalBetAmount)) {
+      totalBetAmount = [...savedState.totalBetAmount];
+    }
+    
+    console.log(`Successfully imported state for tab ${props.tabId}:`, {
+      spotsCount: spots.value.length,
+      selectedSpotIndex: selectedSpotIndex.value,
+      selectedChanceIndex: selectedChanceIndex.value,
+      hasRates: !!rates.value,
+      canChanceReports: canChanceReports.value
+    });
+    
+  } catch (error) {
+    console.error(`Error importing state for tab ${props.tabId}:`, error);
+    // 如果导入失败，至少确保基本状态是安全的
+    spots.value = [];
+    selectedSpotIndex.value = -1;
+    selectedChanceIndex.value = -1;
+    rates.value = null;
+    isDealing.value = false;
+    canChanceReports.value = false;
+  }
+};
+
+// 暴露给父组件的方法
+defineExpose({
+  exportCurrentState,
+  importState,
+  selectSpot,
+});
 </script>
 
 <style scoped>

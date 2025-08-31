@@ -59,6 +59,7 @@
         <div v-if="isActive" class="flex flex-col h-full">
           <!-- 当前标签页的导航组件 -->
           <ResultNav2
+            :ref="(el) => { if (el) setNavRef(tab.id, el); }"
             :key="`nav-${tab.id}`"
             :tab-id="tab.id"
             :is-handler-updated="getTabData(tab.id, 'isHandlerUpdated', false)"
@@ -198,6 +199,14 @@
       </button>
       
       <button 
+        class="tab-debug-button"
+        @click="showTabDebugModal = true"
+        title="多标签页状态调试"
+      >
+        标签页调试
+      </button>
+      
+      <button 
         class="path-button"
         @click="printDecisionPathToConsole"
         title="打印GTO决策路径并保存到文件"
@@ -273,10 +282,160 @@
       </div>
     </div>
   </div>
+
+  <!-- Tab Debug Modal -->
+  <div v-if="showTabDebugModal" class="debug-modal-overlay">
+    <div class="tab-debug-modal">
+      <div class="debug-modal-header">
+        <h3>🔧 多标签页状态调试器</h3>
+        <button @click="showTabDebugModal = false" class="close-button">×</button>
+      </div>
+      <div class="debug-modal-body">
+        <div class="debug-actions">
+          <button @click="refreshDebugInfo" class="refresh-button">🔄 刷新状态</button>
+          <button @click="testSaveAllTabs" class="test-button">💾 测试保存所有标签页</button>
+          <button @click="testRestoreCurrentTab" class="test-button">📥 测试恢复当前标签页</button>
+          <button @click="exportTabDebugData" class="export-button">📤 导出调试数据</button>
+          <button @click="clearAllTabStates" class="clear-button">🗑️ 清除所有状态</button>
+        </div>
+        
+        <div class="debug-sections">
+          <!-- 基础信息 -->
+          <div class="debug-section">
+            <h4>📊 基础状态信息</h4>
+            <div class="debug-info">
+              <div><strong>当前活跃标签页:</strong> {{ currentActiveTabId || '无' }}</div>
+              <div><strong>标签页总数:</strong> {{ tabManager?.tabs?.length || 0 }}</div>
+              <div><strong>数据存储数量:</strong> {{ tabsData.size }}</div>
+              <div><strong>导航引用数量:</strong> {{ navRefs.size }}</div>
+              <div><strong>切换锁状态:</strong> {{ switchingLock ? '🔒 锁定' : '🔓 解锁' }}</div>
+            </div>
+          </div>
+
+          <!-- 标签页详细信息 -->
+          <div class="debug-section">
+            <h4>📋 标签页详细状态</h4>
+            <div class="tabs-debug-list">
+              <div 
+                v-for="tab in tabManager?.tabs || []" 
+                :key="tab.id"
+                :class="['tab-debug-item', { 'active': tab.id === currentActiveTabId }]"
+              >
+                <div class="tab-debug-header">
+                  <span class="tab-name">{{ tab.name }}</span>
+                  <span class="tab-id">ID: {{ tab.id }}</span>
+                  <span v-if="tab.id === currentActiveTabId" class="active-indicator">🟢 活跃</span>
+                </div>
+                
+                <div class="tab-debug-details">
+                  <div class="debug-row">
+                    <span>数据存储:</span>
+                    <span :class="tabsData.has(tab.id) ? 'status-good' : 'status-bad'">
+                      {{ tabsData.has(tab.id) ? '✅ 存在' : '❌ 缺失' }}
+                    </span>
+                  </div>
+                  
+                  <div class="debug-row">
+                    <span>导航引用:</span>
+                    <span :class="navRefs.has(tab.id) ? 'status-good' : 'status-bad'">
+                      {{ navRefs.has(tab.id) ? '✅ 存在' : '❌ 缺失' }}
+                    </span>
+                  </div>
+                  
+                  <div v-if="tabsData.has(tab.id)" class="tab-state-details">
+                    <div class="debug-row">
+                      <span>导航状态:</span>
+                      <span :class="getTabData(tab.id, 'navState') ? 'status-good' : 'status-warning'">
+                        {{ getTabData(tab.id, 'navState') ? '✅ 已保存' : '⚠️ 未保存' }}
+                      </span>
+                    </div>
+                    
+                    <div class="debug-row">
+                      <span>Spots数量:</span>
+                      <span>{{ getTabData(tab.id, 'navState')?.spots?.length || 0 }}</span>
+                    </div>
+                    
+                    <div class="debug-row">
+                      <span>选中Spot:</span>
+                      <span>{{ getTabData(tab.id, 'navState')?.selectedSpotIndex ?? '无' }}</span>
+                    </div>
+                    
+                    <div class="debug-row">
+                      <span>选中Chance:</span>
+                      <span>{{ getTabData(tab.id, 'navState')?.selectedChanceIndex ?? '无' }}</span>
+                    </div>
+                    
+                    <div class="debug-row">
+                      <span>最后保存:</span>
+                      <span>{{ formatTime(getTabData(tab.id, 'lastSavedAt')) }}</span>
+                    </div>
+                    
+                    <div class="debug-row">
+                      <span>显示模式:</span>
+                      <span>{{ getTabData(tab.id, 'displayMode') || '未设置' }}</span>
+                    </div>
+                    
+                    <div class="debug-row">
+                      <span>结果数据:</span>
+                      <span :class="getTabData(tab.id, 'results') ? 'status-good' : 'status-warning'">
+                        {{ getTabData(tab.id, 'results') ? '✅ 有数据' : '⚠️ 无数据' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 引用状态检查 -->
+          <div class="debug-section">
+            <h4>🔗 组件引用状态</h4>
+            <div class="refs-debug-info">
+              <div v-for="[tabId, ref] of navRefs" :key="tabId" class="ref-debug-item">
+                <div><strong>{{ tabId }}:</strong></div>
+                <div class="debug-row">
+                  <span>引用类型:</span>
+                  <span>{{ typeof ref }}</span>
+                </div>
+                <div class="debug-row">
+                  <span>导出方法:</span>
+                  <span :class="typeof ref?.exportCurrentState === 'function' ? 'status-good' : 'status-bad'">
+                    {{ typeof ref?.exportCurrentState === 'function' ? '✅ 可用' : '❌ 不可用' }}
+                  </span>
+                </div>
+                <div class="debug-row">
+                  <span>导入方法:</span>
+                  <span :class="typeof ref?.importState === 'function' ? 'status-good' : 'status-bad'">
+                    {{ typeof ref?.importState === 'function' ? '✅ 可用' : '❌ 不可用' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作日志 -->
+          <div class="debug-section">
+            <h4>📝 操作日志 (最近10条)</h4>
+            <div class="debug-logs">
+              <div 
+                v-for="(log, index) in debugLogs.slice(-10)" 
+                :key="index"
+                :class="['debug-log-item', `log-${log.type}`]"
+              >
+                <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+                <span class="log-type">{{ log.type.toUpperCase() }}</span>
+                <span class="log-message">{{ log.message }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, nextTick } from "vue";
 import { useStore, useSavedConfigStore } from "../store";
 import * as invokes from "../invokes";
 
@@ -319,6 +478,7 @@ const toggleEnhancedMode = () => {
 /* 多标签页状态管理 */
 const tabManager = ref<InstanceType<typeof TabManager>>();
 const tabsData = ref<Map<string, any>>(new Map());
+const navRefs = ref<Map<string, any>>(new Map());
 
 // 默认显示选项
 const defaultDisplayOptions: DisplayOptions = {
@@ -393,24 +553,38 @@ const initTabData = async (tabId: string, cards?: number[][]) => {
     }
     
     const tabData = {
+      // 基础状态
       isHandlerUpdated: true,
       isLocked: false,
       cards: cards,
       dealtCard: -1,
+      
+      // 导航状态
       selectedSpot: null,
       selectedChance: null,
       currentBoard: [],
       results: null,
       chanceReports: null,
       totalBetAmount: [0, 0],
+      
+      // 显示状态
       displayMode: 'basics' as DisplayMode,
       chanceMode: '',
       displayOptions: { ...defaultDisplayOptions },
       copySuccess: 0,
       basicsHoverContent: null,
+      
+      // 导航历史和状态持久化
+      navigationHistory: null,
+      lastSavedAt: new Date(),
+      
+      // 标签页元数据
+      createdAt: new Date(),
+      name: `决策路径 ${tabsData.value.size + 1}`,
     };
     
     tabsData.value.set(tabId, tabData);
+    console.log(`Initialized tab ${tabId} with fresh data`);
   } catch (error) {
     console.error(`Error initializing tab ${tabId}:`, error);
   }
@@ -419,6 +593,159 @@ const initTabData = async (tabId: string, cards?: number[][]) => {
 // 清除所有标签页数据
 const clearAllTabs = () => {
   tabsData.value.clear();
+};
+
+// 当前活跃的标签页ID
+const currentActiveTabId = ref<string>('');
+
+// 保存当前活跃标签页的状态
+const saveCurrentTabState = async () => {
+  const currentTab = tabManager.value?.activeTab;
+  if (!currentTab) return;
+  
+  try {
+    const tabData = tabsData.value.get(currentTab.id);
+    if (tabData) {
+      // 标记状态已保存的时间
+      tabData.lastSavedAt = new Date();
+      
+      console.log(`Saved state for tab ${currentTab.id}:`, {
+        selectedSpot: tabData.selectedSpot?.type,
+        selectedChance: tabData.selectedChance?.player,
+        displayMode: tabData.displayMode,
+        results: !!tabData.results
+      });
+    }
+  } catch (error) {
+    console.error(`Error saving tab state for ${currentTab.id}:`, error);
+  }
+};
+
+// 保存当前活跃标签页的导航状态
+const saveCurrentTabNavState = async () => {
+  if (!currentActiveTabId.value) {
+    console.log('No active tab to save state for');
+    return;
+  }
+  
+  try {
+    const tabId = currentActiveTabId.value;
+    const navRef = getNavRef(tabId);
+    const tabData = tabsData.value.get(tabId);
+    
+    console.log(`Attempting to save navigation state for tab ${tabId}:`, {
+      hasNavRef: !!navRef,
+      hasExportMethod: !!(navRef?.exportCurrentState),
+      hasTabData: !!tabData
+    });
+    
+    if (navRef && typeof navRef.exportCurrentState === 'function' && tabData) {
+      const navState = navRef.exportCurrentState();
+      
+      if (navState && navState.spots) {
+        tabData.navState = navState;
+        tabData.lastSavedAt = new Date();
+        
+        console.log(`Successfully saved navigation state for tab ${tabId}:`, {
+          spotsCount: navState.spots?.length || 0,
+          selectedSpotIndex: navState.selectedSpotIndex,
+          selectedChanceIndex: navState.selectedChanceIndex,
+          exportedAt: navState.exportedAt,
+          hasRates: !!navState.rates
+        });
+      } else {
+        console.warn(`Invalid navigation state exported for tab ${tabId}:`, navState);
+      }
+    } else {
+      console.warn(`Cannot save navigation state for tab ${tabId}:`, {
+        hasNavRef: !!navRef,
+        hasExportMethod: !!(navRef?.exportCurrentState),
+        hasTabData: !!tabData
+      });
+    }
+  } catch (error) {
+    console.error(`Error saving navigation state for tab ${currentActiveTabId.value}:`, error);
+  }
+};
+
+// 恢复标签页的导航状态
+const restoreTabNavState = async (tabId: string) => {
+  try {
+    const tabData = tabsData.value.get(tabId);
+    if (!tabData) {
+      console.warn(`No tab data found for ${tabId}, cannot restore state`);
+      return;
+    }
+    
+    console.log(`Restoring navigation state for tab ${tabId}:`, {
+      hasNavState: !!tabData.navState,
+      selectedSpot: tabData.selectedSpot?.type,
+      selectedChance: tabData.selectedChance?.player,
+      displayMode: tabData.displayMode,
+      results: !!tabData.results,
+      lastSavedAt: tabData.lastSavedAt
+    });
+    
+    // 多次等待确保DOM完全更新
+    await nextTick();
+    await nextTick();
+    
+    // 使用 setTimeout 确保在下一个事件循环中执行
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
+    const navRef = getNavRef(tabId);
+    console.log(`Navigation ref for tab ${tabId}:`, {
+      hasRef: !!navRef,
+      hasImportState: !!(navRef?.importState),
+      hasNavState: !!tabData.navState
+    });
+    
+    if (navRef && tabData.navState && typeof navRef.importState === 'function') {
+      // 在恢复导航状态之前，先应用游戏历史（如果有的话）
+      if (tabData.navState.configSnapshot) {
+        try {
+          // 确保游戏配置是正确的
+          const useConfigStore = useSavedConfigStore();
+          const currentConfig = {
+            board: useConfigStore.board,
+            startingPot: useConfigStore.startingPot,
+            effectiveStack: useConfigStore.effectiveStack
+          };
+          
+          // 检查配置是否匹配
+          const savedConfig = tabData.navState.configSnapshot;
+          const configMatches = 
+            JSON.stringify(currentConfig.board) === JSON.stringify(savedConfig.board) &&
+            currentConfig.startingPot === savedConfig.startingPot &&
+            currentConfig.effectiveStack === savedConfig.effectiveStack;
+            
+          if (!configMatches) {
+            console.warn(`Config mismatch for tab ${tabId}, will reinitialize`);
+            tabData.isHandlerUpdated = true;
+            return;
+          }
+        } catch (configError) {
+          console.error(`Config check failed for tab ${tabId}:`, configError);
+        }
+      }
+      
+      // 恢复导航状态
+      navRef.importState(tabData.navState);
+      console.log(`Successfully restored navigation state for tab ${tabId}`);
+    } else {
+      console.log(`Cannot restore navigation state for tab ${tabId}, triggering reinitialize`);
+      // 如果没有保存的导航状态或引用无效，触发重新初始化
+      tabData.isHandlerUpdated = true;
+    }
+    
+  } catch (error) {
+    console.error(`Error restoring navigation state for tab ${tabId}:`, error);
+    // 如果恢复失败，重新初始化
+    const tabData = tabsData.value.get(tabId);
+    if (tabData) {
+      tabData.isHandlerUpdated = true;
+    }
+  }
 };
 
 // 标签页数据访问方法
@@ -434,12 +761,96 @@ const setTabData = (tabId: string, key: string, value: any) => {
   }
 };
 
+// 设置导航组件引用
+const setNavRef = (tabId: string, ref: any) => {
+  if (ref) {
+    navRefs.value.set(tabId, ref);
+    const refInfo = {
+      hasExportMethod: typeof ref.exportCurrentState === 'function',
+      hasImportMethod: typeof ref.importState === 'function',
+      refType: typeof ref
+    };
+    
+    console.log(`Set navigation ref for tab ${tabId}:`, refInfo);
+    addDebugLog('info', `设置导航引用 ${tabId}: 导出方法=${refInfo.hasExportMethod}, 导入方法=${refInfo.hasImportMethod}`);
+  } else {
+    // 清除引用
+    navRefs.value.delete(tabId);
+    console.log(`Cleared navigation ref for tab ${tabId}`);
+    addDebugLog('info', `清除导航引用: ${tabId}`);
+  }
+};
+
+// 获取导航组件引用
+const getNavRef = (tabId: string) => {
+  return navRefs.value.get(tabId);
+};
+
+// 防止并发切换的锁
+const switchingLock = ref(false);
+
 // 标签页事件处理
-const onTabSwitched = (tabId: string, tab: TabData) => {
-  console.log(`Switched to tab: ${tabId}`);
-  // 如果标签页没有数据，初始化它
-  if (!tabsData.value.has(tabId)) {
-    initTabData(tabId);
+const onTabSwitched = async (tabId: string, tab: TabData) => {
+  // 防止并发切换
+  if (switchingLock.value) {
+    const msg = `标签页切换正在进行中，忽略切换到 ${tabId}`;
+    console.warn(msg);
+    addDebugLog('warning', msg);
+    return;
+  }
+  
+  switchingLock.value = true;
+  
+  try {
+    const previousTabId = currentActiveTabId.value;
+    addDebugLog('info', `开始切换标签页: "${previousTabId}" → "${tabId}"`);
+    console.log(`Switching from tab "${previousTabId}" to tab "${tabId}"`);
+    
+    // 步骤1: 保存当前活跃标签页的状态（如果存在且不同）
+    if (previousTabId && previousTabId !== tabId) {
+      addDebugLog('info', `保存前一个标签页状态: ${previousTabId}`);
+      console.log(`Saving state for previous tab: ${previousTabId}`);
+      await saveCurrentTabNavState();
+      
+      // 额外等待确保保存完成
+      await nextTick();
+    }
+    
+    // 步骤2: 更新当前活跃标签页ID（在恢复之前）
+    currentActiveTabId.value = tabId;
+    
+    // 步骤3: 初始化或恢复目标标签页
+    if (!tabsData.value.has(tabId)) {
+      addDebugLog('info', `初始化新标签页: ${tabId}`);
+      console.log(`Initializing new tab: ${tabId}`);
+      await initTabData(tabId);
+    } else {
+      addDebugLog('info', `恢复现有标签页: ${tabId}`);
+      console.log(`Restoring existing tab: ${tabId}`);
+      await restoreTabNavState(tabId);
+    }
+    
+    addDebugLog('success', `标签页切换成功: ${tabId}`);
+    console.log(`Successfully switched to tab: ${tabId}`);
+    
+  } catch (error) {
+    const errorMsg = `标签页切换失败 ${tabId}: ${error}`;
+    console.error(`Error during tab switch to ${tabId}:`, error);
+    addDebugLog('error', errorMsg);
+    
+    // 错误恢复：如果切换失败，至少确保目标标签页有基本数据
+    if (!tabsData.value.has(tabId)) {
+      try {
+        await initTabData(tabId);
+        addDebugLog('info', `错误恢复: 已初始化标签页 ${tabId}`);
+      } catch (initError) {
+        const initErrorMsg = `错误恢复失败 ${tabId}: ${initError}`;
+        console.error(`Failed to initialize tab ${tabId} during error recovery:`, initError);
+        addDebugLog('error', initErrorMsg);
+      }
+    }
+  } finally {
+    switchingLock.value = false;
   }
 };
 
@@ -476,8 +887,12 @@ const onUpdateSpot = (
   newTotalBetAmount: number[]
 ) => {
   const tabData = tabsData.value.get(tabId);
-  if (!tabData) return;
+  if (!tabData) {
+    console.warn(`Tab data not found for tab ${tabId}`);
+    return;
+  }
 
+  // 更新标签页数据
   tabData.dealtCard = -1;
   tabData.selectedSpot = newSelectedSpot;
   tabData.selectedChance = newSelectedChance;
@@ -487,6 +902,29 @@ const onUpdateSpot = (
   tabData.totalBetAmount = newTotalBetAmount;
   tabData.isLocked = false;
   tabData.chanceMode = newSelectedChance?.player ?? "";
+  
+  // 保存导航历史（从 spots 数组中提取选择的索引）
+  if (newSelectedSpot) {
+    try {
+      // 这里我们需要从 ResultNav2 组件获取当前的 spots 状态
+      // 暂时先记录基本信息
+      tabData.navigationHistory = {
+        selectedSpotIndex: newSelectedSpot.index,
+        selectedChanceIndex: newSelectedChance?.index || -1,
+        lastUpdated: new Date()
+      };
+    } catch (error) {
+      console.error(`Error saving navigation history for tab ${tabId}:`, error);
+    }
+  }
+  
+  console.log(`Updated spot for tab ${tabId}:`, {
+    selectedSpot: newSelectedSpot?.type,
+    selectedChance: newSelectedChance?.player,
+    currentBoard: newCurrentBoard.length,
+    hasResults: !!newResults,
+    navigationHistory: tabData.navigationHistory
+  });
 };
 
 /* 标签页显示模式和选项管理 */
@@ -571,9 +1009,161 @@ const onDealCard = (tabId: string, card: number) => {
 
 /* Debug functionality */
 const showDebugModal = ref(false);
+const showTabDebugModal = ref(false);
 const debugCopyStatus = ref(0);
 const debugConsoleStatus = ref(0);
 const pathConsoleStatus = ref(0);
+
+// 调试日志系统
+const debugLogs = ref<Array<{
+  timestamp: Date;
+  type: 'info' | 'warning' | 'error' | 'success';
+  message: string;
+}>>([]);
+
+// 添加调试日志
+const addDebugLog = (type: 'info' | 'warning' | 'error' | 'success', message: string) => {
+  debugLogs.value.push({
+    timestamp: new Date(),
+    type,
+    message
+  });
+  
+  // 保持最多100条日志
+  if (debugLogs.value.length > 100) {
+    debugLogs.value.shift();
+  }
+};
+
+// 格式化时间
+const formatTime = (date: Date | string | undefined) => {
+  if (!date) return '未设置';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleTimeString('zh-CN', { 
+    hour12: false, 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit' 
+  });
+};
+
+// 调试功能方法
+const refreshDebugInfo = () => {
+  addDebugLog('info', '手动刷新调试信息');
+  // 强制重新渲染调试界面
+  showTabDebugModal.value = false;
+  nextTick(() => {
+    showTabDebugModal.value = true;
+  });
+};
+
+const testSaveAllTabs = async () => {
+  addDebugLog('info', '开始测试保存所有标签页状态');
+  
+  try {
+    // 保存当前活跃标签页
+    if (currentActiveTabId.value) {
+      await saveCurrentTabNavState();
+      addDebugLog('success', `已保存当前标签页: ${currentActiveTabId.value}`);
+    }
+    
+    // 尝试获取所有标签页的引用状态
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const tab of tabManager.value?.tabs || []) {
+      const navRef = getNavRef(tab.id);
+      if (navRef && typeof navRef.exportCurrentState === 'function') {
+        try {
+          const state = navRef.exportCurrentState();
+          if (state && state.spots) {
+            successCount++;
+            addDebugLog('success', `标签页 ${tab.id} 状态导出成功 (${state.spots.length} spots)`);
+          } else {
+            failCount++;
+            addDebugLog('warning', `标签页 ${tab.id} 状态导出为空`);
+          }
+        } catch (error) {
+          failCount++;
+          addDebugLog('error', `标签页 ${tab.id} 状态导出失败: ${error}`);
+        }
+      } else {
+        failCount++;
+        addDebugLog('error', `标签页 ${tab.id} 缺少导航引用或导出方法`);
+      }
+    }
+    
+    addDebugLog('info', `测试完成: ${successCount} 成功, ${failCount} 失败`);
+  } catch (error) {
+    addDebugLog('error', `测试保存失败: ${error}`);
+  }
+};
+
+const testRestoreCurrentTab = async () => {
+  if (!currentActiveTabId.value) {
+    addDebugLog('warning', '没有当前活跃标签页可以测试恢复');
+    return;
+  }
+  
+  addDebugLog('info', `开始测试恢复标签页: ${currentActiveTabId.value}`);
+  
+  try {
+    await restoreTabNavState(currentActiveTabId.value);
+    addDebugLog('success', `标签页 ${currentActiveTabId.value} 恢复测试完成`);
+  } catch (error) {
+    addDebugLog('error', `标签页 ${currentActiveTabId.value} 恢复测试失败: ${error}`);
+  }
+};
+
+const exportTabDebugData = async () => {
+  try {
+    const debugData = {
+      timestamp: new Date().toISOString(),
+      currentActiveTabId: currentActiveTabId.value,
+      switchingLock: switchingLock.value,
+      tabsCount: tabManager.value?.tabs?.length || 0,
+      dataCount: tabsData.size,
+      refsCount: navRefs.size,
+      tabs: [],
+      logs: debugLogs.value,
+    };
+    
+    // 收集每个标签页的详细信息
+    for (const tab of tabManager.value?.tabs || []) {
+      const tabData = tabsData.value.get(tab.id);
+      const navRef = navRefs.value.get(tab.id);
+      
+      debugData.tabs.push({
+        id: tab.id,
+        name: tab.name,
+        hasData: !!tabData,
+        hasRef: !!navRef,
+        hasNavState: !!(tabData?.navState),
+        spotsCount: tabData?.navState?.spots?.length || 0,
+        selectedSpotIndex: tabData?.navState?.selectedSpotIndex,
+        selectedChanceIndex: tabData?.navState?.selectedChanceIndex,
+        lastSavedAt: tabData?.lastSavedAt,
+        displayMode: tabData?.displayMode,
+        hasResults: !!tabData?.results,
+      });
+    }
+    
+    const content = JSON.stringify(debugData, null, 2);
+    await navigator.clipboard.writeText(content);
+    addDebugLog('success', '调试数据已复制到剪贴板');
+  } catch (error) {
+    addDebugLog('error', `导出调试数据失败: ${error}`);
+  }
+};
+
+const clearAllTabStates = () => {
+  if (confirm('确定要清除所有标签页状态吗？这将重置所有标签页到初始状态。')) {
+    tabsData.value.clear();
+    navRefs.value.clear();
+    currentActiveTabId.value = '';
+    addDebugLog('warning', '已清除所有标签页状态');
+  }
+};
 
 // Collect all relevant data in a single JSON object
 const debugData = computed(() => {
@@ -992,5 +1582,207 @@ const printDecisionPathToConsole = async () => {
   white-space: pre-wrap;
   font-family: monospace;
   font-size: 0.9rem;
+}
+
+/* 标签页调试器样式 */
+.tab-debug-button {
+  background-color: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-width: 100px;
+}
+
+.tab-debug-button:hover {
+  background-color: #7c3aed;
+}
+
+.tab-debug-modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 95%;
+  max-width: 1400px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.debug-actions {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.debug-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.refresh-button { background-color: #3b82f6; color: white; }
+.refresh-button:hover { background-color: #2563eb; }
+
+.test-button { background-color: #10b981; color: white; }
+.test-button:hover { background-color: #059669; }
+
+.export-button { background-color: #f59e0b; color: white; }
+.export-button:hover { background-color: #d97706; }
+
+.clear-button { background-color: #ef4444; color: white; }
+.clear-button:hover { background-color: #dc2626; }
+
+.debug-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.debug-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.debug-section h4 {
+  margin: 0 0 12px 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.debug-info > div {
+  margin: 8px 0;
+  padding: 4px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tabs-debug-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.tab-debug-item {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.tab-debug-item.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.tab-debug-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.tab-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.tab-id {
+  font-size: 0.8rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.active-indicator {
+  font-size: 0.8rem;
+  color: #059669;
+  font-weight: 500;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 0.9rem;
+}
+
+.debug-row span:first-child {
+  color: #64748b;
+}
+
+.status-good { color: #059669; font-weight: 500; }
+.status-warning { color: #d97706; font-weight: 500; }
+.status-bad { color: #dc2626; font-weight: 500; }
+
+.tab-state-details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.refs-debug-info {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ref-debug-item {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.debug-logs {
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.debug-log-item {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  margin: 2px 0;
+  border-radius: 3px;
+  align-items: center;
+}
+
+.log-info { background: #eff6ff; }
+.log-success { background: #f0fdf4; }
+.log-warning { background: #fefce8; }
+.log-error { background: #fef2f2; }
+
+.log-time {
+  color: #64748b;
+  min-width: 60px;
+}
+
+.log-type {
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.log-info .log-type { color: #2563eb; }
+.log-success .log-type { color: #059669; }
+.log-warning .log-type { color: #d97706; }
+.log-error .log-type { color: #dc2626; }
+
+.log-message {
+  flex: 1;
 }
 </style>
