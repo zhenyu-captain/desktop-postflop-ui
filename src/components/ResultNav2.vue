@@ -328,6 +328,7 @@ const actionColor = (
 };
 
 const props = defineProps<{
+  tabId?: string;
   isHandlerUpdated: boolean;
   isLocked: boolean;
   cards: number[][];
