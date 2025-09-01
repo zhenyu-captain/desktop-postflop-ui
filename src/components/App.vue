@@ -31,7 +31,7 @@
           ]"
           @click="store.navView = store.navView === 'solver' ? 'results' : 'solver'"
         >
-          {{ store.navView === 'solver' ? 'View Results' : 'Back to Solver' }}
+          {{ store.navView === 'solver' ? 'Results Classic' : 'Back Classic' }}
         </button>
         
         <button 
@@ -41,7 +41,7 @@
           ]"
           @click="store.navView = store.navView === 'solver' ? 'results2' : 'solver'"
         >
-          {{ store.navView === 'solver' ? 'View Results 2' : 'Back to Solver 2' }}
+          {{ store.navView === 'solver' ? 'Results Pro' : 'Back Pro' }}
         </button>
       </div>
     </nav>
