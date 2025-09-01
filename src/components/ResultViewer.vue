@@ -56,13 +56,13 @@
       <button 
         class="path-button"
         @click="printDecisionPathToConsole"
-        title="打印GTO决策路径并保存到文件"
+        title="Print GTO Decision Path and Save to File"
       >
-        决策路径
+        Decision Path
       </button>
-      <span v-if="pathConsoleStatus === 1" class="path-success-status">已发送到控制台并保存!</span>
-      <span v-if="pathConsoleStatus === 2" class="path-loading-status">处理中...</span>
-      <span v-if="pathConsoleStatus === -1" class="path-error-status">发送失败</span>
+      <span v-if="pathConsoleStatus === 1" class="path-success-status">Sent to console and saved!</span>
+      <span v-if="pathConsoleStatus === 2" class="path-loading-status">Processing...</span>
+      <span v-if="pathConsoleStatus === -1" class="path-error-status">Send failed</span>
     </div>
 
     <div
@@ -167,12 +167,12 @@
       <div class="debug-modal-body">
         <div class="debug-actions">
           <button @click="copyDebugToClipboard" class="copy-button">Copy to clipboard</button>
-          <button @click="printToRustConsole" class="console-button">打印并保存到文件</button>
+          <button @click="printToRustConsole" class="console-button">Print & Save to File</button>
           <span v-if="debugCopyStatus === 1" class="copy-success">Copied!</span>
           <span v-if="debugCopyStatus === -1" class="copy-error">Copy failed</span>
-          <span v-if="debugConsoleStatus === 1" class="copy-success">已发送到控制台并保存!</span>
-          <span v-if="debugConsoleStatus === 2" class="copy-loading">处理中...</span>
-          <span v-if="debugConsoleStatus === -1" class="copy-error">操作失败</span>
+          <span v-if="debugConsoleStatus === 1" class="copy-success">Sent to console and saved!</span>
+          <span v-if="debugConsoleStatus === 2" class="copy-loading">Processing...</span>
+          <span v-if="debugConsoleStatus === -1" class="copy-error">Operation failed</span>
         </div>
         <pre class="debug-content">{{ prettyDebugData }}</pre>
       </div>
@@ -676,7 +676,9 @@ const printDecisionPathToConsole = async () => {
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  min-width: 100px;
+  min-width: 120px;
+  width: 120px;
+  text-align: center;
 }
 
 .debug-button:hover {

@@ -25,7 +25,7 @@
     <div class="bg-gradient-to-r from-green-500 to-blue-600 text-white px-4 py-2 text-sm font-semibold flex items-center justify-between">
       <div class="flex items-center space-x-2">
         <span class="bg-white text-green-600 px-2 py-1 rounded text-xs font-bold">V2.0</span>
-        <span>升级版结果查看器 - 多标签页增强版本</span>
+        <span>Upgraded Results Viewer – Multi-Tab Enhanced Version</span>
       </div>
       <div class="flex items-center space-x-4">
         <button 
@@ -35,13 +35,13 @@
             enhancedMode ? 'bg-yellow-400 text-black' : 'bg-white bg-opacity-20 text-white'
           ]"
         >
-          {{ enhancedMode ? '增强模式: 开启' : '增强模式: 关闭' }}
+          {{ enhancedMode ? 'Enhanced Mode: On' : 'Enhanced Mode: Off' }}
         </button>
         <button 
           @click="showVersionInfo = true"
           class="bg-white bg-opacity-20 text-white px-3 py-1 rounded text-xs hover:bg-opacity-30 transition-colors"
         >
-          新功能介绍
+          New Features
         </button>
       </div>
     </div>
@@ -202,17 +202,17 @@
       <button 
         class="tab-debug-button"
         @click="showTabDebugModal = true"
-        title="多标签页状态调试"
+        title="Multi-Tab State Debug"
       >
-        标签页调试
+        Tab Debug
       </button>
       
       <button 
         class="path-button"
         @click="printDecisionPathToConsole"
-        title="打印GTO决策路径并保存到文件"
+        title="Print GTO Decision Path and Save to File"
       >
-        决策路径
+        Decision Path
       </button>
       <span v-if="pathConsoleStatus === 1" class="path-success-status">已发送到控制台并保存!</span>
       <span v-if="pathConsoleStatus === 2" class="path-loading-status">处理中...</span>
@@ -230,12 +230,12 @@
       <div class="debug-modal-body">
         <div class="debug-actions">
           <button @click="copyDebugToClipboard" class="copy-button">Copy to clipboard</button>
-          <button @click="printToRustConsole" class="console-button">打印并保存到文件</button>
+          <button @click="printToRustConsole" class="console-button">Print & Save to File</button>
           <span v-if="debugCopyStatus === 1" class="copy-success">Copied!</span>
           <span v-if="debugCopyStatus === -1" class="copy-error">Copy failed</span>
-          <span v-if="debugConsoleStatus === 1" class="copy-success">已发送到控制台并保存!</span>
-          <span v-if="debugConsoleStatus === 2" class="copy-loading">处理中...</span>
-          <span v-if="debugConsoleStatus === -1" class="copy-error">操作失败</span>
+          <span v-if="debugConsoleStatus === 1" class="copy-success">Sent to console and saved!</span>
+          <span v-if="debugConsoleStatus === 2" class="copy-loading">Processing...</span>
+          <span v-if="debugConsoleStatus === -1" class="copy-error">Operation failed</span>
         </div>
         <pre class="debug-content">{{ prettyDebugData }}</pre>
       </div>
@@ -246,7 +246,7 @@
   <div v-if="showVersionInfo" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-4/5 max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
       <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-green-500 to-blue-600">
-        <h3 class="text-lg font-semibold text-white">🚀 View Results 2.0 - 新功能介绍</h3>
+        <h3 class="text-lg font-semibold text-white">🚀 View Results 2.0 - New Features Introduction</h3>
         <button @click="showVersionInfo = false" class="text-white hover:text-gray-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -256,34 +256,24 @@
       <div class="p-6 overflow-y-auto flex-1">
         <div class="space-y-4">
           <div class="bg-green-50 border-l-4 border-green-400 p-4">
-            <h4 class="font-semibold text-green-800 mb-2">🔥 多标签页系统</h4>
-            <p class="text-green-700">全新的多标签页功能！现在可以同时打开多个决策路径，在不同的FLOP、TURN、RIVER阶段之间快速切换对比。每个标签页都有独立的导航状态和用户选择记录。</p>
-          </div>
-          
-          <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
-            <h4 class="font-semibold text-blue-800 mb-2">📊 并行决策分析</h4>
-            <p class="text-blue-700">支持在多个标签页中同时进行不同的决策路径分析，轻松对比OOP和IP在不同情况下的最优策略。可以复制当前标签页状态到新标签页进行分支分析。</p>
-          </div>
-          
-          <div class="bg-purple-50 border-l-4 border-purple-400 p-4">
-            <h4 class="font-semibold text-purple-800 mb-2">🎛️ 独立状态管理</h4>
-            <p class="text-purple-700">每个标签页都有完全独立的状态管理，包括选择的行动、卡片发放、显示模式等。切换标签页时自动保存和恢复状态，不会互相干扰。</p>
+            <h4 class="font-semibold text-green-800 mb-2">🎯 Purpose of the Multi-Tab System</h4>
+            <p class="text-green-700">The purpose of the multi-tab system is to allow you, whether seated as SB, BB, MP, CO, BTN, or any position in a 9-handed game, to open a dedicated tab for that role and analyze matchups against other positions. Each role has its own independent tab with separate navigation and decision states, enabling parallel comparison of strategies across different seats.</p>
           </div>
           
           <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-            <h4 class="font-semibold text-yellow-800 mb-2">⚡ 增强用户体验</h4>
-            <p class="text-yellow-700">标签页可以重命名、复制、关闭，支持快捷键操作。右键菜单提供更多管理选项，包括关闭其他标签页、关闭所有标签页等便捷功能。</p>
+            <h4 class="font-semibold text-yellow-800 mb-2">⚡ Enhanced User Experience</h4>
+            <p class="text-yellow-700">You can rename a tab by double-clicking it. For example, you can rename Decision Path 1 to SB, Decision Path 2 to BB, Decision Path 3 to CO, and Decision Path 4 to BTN. This provides a more intuitive and efficient user experience.</p>
           </div>
 
-          <div class="bg-orange-50 border-l-4 border-orange-400 p-4">
-            <h4 class="font-semibold text-orange-800 mb-2">🔧 已知问题</h4>
-            <p class="text-orange-700">首次加载时导航状态可能显示为"可保存但未保存"。解决方案：在多标签页状态调试器中点击"💾 保存导航状态"按钮，或切换到其他标签页再切换回来即可解决。</p>
+          <div class="bg-purple-50 border-l-4 border-purple-400 p-4">
+            <h4 class="font-semibold text-purple-800 mb-2">🎛️ Independent State Management</h4>
+            <p class="text-purple-700">Each tab has completely independent state management, including selected actions, card deals, display modes, etc. When switching tabs, states are automatically saved and restored without interfering with each other.</p>
           </div>
         </div>
       </div>
       <div class="p-4 border-t border-gray-200 flex justify-end">
         <button @click="showVersionInfo = false" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          开始使用
+          Get Started
         </button>
       </div>
     </div>
@@ -293,36 +283,36 @@
   <div v-if="showTabDebugModal" class="debug-modal-overlay">
     <div class="tab-debug-modal">
       <div class="debug-modal-header">
-        <h3>🔧 多标签页状态调试器</h3>
+        <h3>🔧 Multi-Tab State Debugger</h3>
         <button @click="showTabDebugModal = false" class="close-button">×</button>
       </div>
       <div class="debug-modal-body">
         <div class="debug-actions">
-          <button @click="refreshDebugInfo" class="refresh-button">🔄 刷新状态</button>
-          <button @click="testSaveAllTabs" class="test-button">💾 测试保存所有标签页</button>
-          <button @click="testRestoreCurrentTab" class="test-button">📥 测试恢复当前标签页</button>
-          <button @click="testSaveCurrentTabNav" class="test-button" title="手动保存当前活跃标签页的导航状态（兜底功能，正常情况下会自动保存）">💾 手动保存</button>
-          <button @click="checkRefsStatus" class="test-button">🔍 检查引用状态</button>
-          <button @click="exportTabDebugData" class="export-button">📤 导出调试数据</button>
-          <button @click="clearAllTabStates" class="clear-button">🗑️ 清除所有状态</button>
+          <button @click="refreshDebugInfo" class="refresh-button">🔄 Refresh Status</button>
+          <button @click="testSaveAllTabs" class="test-button">💾 Test Save All Tabs</button>
+          <button @click="testRestoreCurrentTab" class="test-button">📥 Test Restore Current Tab</button>
+          <button @click="testSaveCurrentTabNav" class="test-button" title="Manually save the navigation state of the current active tab (fallback function, normally saves automatically)">💾 Manual Save</button>
+          <button @click="checkRefsStatus" class="test-button">🔍 Check Reference Status</button>
+          <button @click="exportTabDebugData" class="export-button">📤 Export Debug Data</button>
+          <button @click="clearAllTabStates" class="clear-button">🗑️ Clear All States</button>
         </div>
         
         <div class="debug-sections">
           <!-- 基础信息 -->
           <div class="debug-section">
-            <h4>📊 基础状态信息</h4>
+            <h4>📊 Basic Status Information</h4>
             <div class="debug-info">
-              <div><strong>当前活跃标签页:</strong> {{ currentActiveTabId || '无' }}</div>
-              <div><strong>标签页总数:</strong> {{ tabManager?.tabs?.length || 0 }}</div>
-              <div><strong>数据存储数量:</strong> {{ tabsData.size }}</div>
-              <div><strong>导航引用数量:</strong> {{ navRefs.size }}</div>
-              <div><strong>切换锁状态:</strong> {{ switchingLock ? '🔒 锁定' : '🔓 解锁' }}</div>
+              <div><strong>Current Active Tab:</strong> {{ currentActiveTabId || 'None' }}</div>
+              <div><strong>Total Tabs:</strong> {{ tabManager?.tabs?.length || 0 }}</div>
+              <div><strong>Data Storage Count:</strong> {{ tabsData.size }}</div>
+              <div><strong>Navigation Reference Count:</strong> {{ navRefs.size }}</div>
+              <div><strong>Switch Lock Status:</strong> {{ switchingLock ? '🔒 Locked' : '🔓 Unlocked' }}</div>
             </div>
           </div>
 
           <!-- 标签页详细信息 -->
           <div class="debug-section">
-            <h4>📋 标签页详细状态</h4>
+            <h4>📋 Tab Detailed Status</h4>
             <div class="tabs-debug-list">
               <div 
                 v-for="tab in tabManager?.tabs || []" 
@@ -332,61 +322,61 @@
                 <div class="tab-debug-header">
                   <span class="tab-name">{{ tab.name }}</span>
                   <span class="tab-id">ID: {{ tab.id }}</span>
-                  <span v-if="tab.id === currentActiveTabId" class="active-indicator">🟢 活跃</span>
+                  <span v-if="tab.id === currentActiveTabId" class="active-indicator">🟢 Active</span>
                 </div>
                 
                 <div class="tab-debug-details">
                   <div class="debug-row">
-                    <span>数据存储:</span>
+                    <span>Data Storage:</span>
                     <span :class="tabsData.has(tab.id) ? 'status-good' : 'status-bad'">
-                      {{ tabsData.has(tab.id) ? '✅ 存在' : '❌ 缺失' }}
+                      {{ tabsData.has(tab.id) ? '✅ Exists' : '❌ Missing' }}
                     </span>
                   </div>
                   
                   <div class="debug-row">
-                    <span>导航引用:</span>
+                    <span>Navigation Reference:</span>
                     <span :class="navRefs.has(tab.id) ? 'status-good' : 'status-bad'">
-                      {{ navRefs.has(tab.id) ? '✅ 存在' : '❌ 缺失' }}
+                      {{ navRefs.has(tab.id) ? '✅ Exists' : '❌ Missing' }}
                     </span>
                   </div>
                   
                   <div v-if="tabsData.has(tab.id)" class="tab-state-details">
                     <div class="debug-row">
-                      <span>导航状态:</span>
+                      <span>Navigation State:</span>
                       <span :class="getTabNavStateStatus(tab.id).class">
                         {{ getTabNavStateStatus(tab.id).text }}
                       </span>
                     </div>
-                    
+
                     <div class="debug-row">
-                      <span>Spots数量:</span>
+                      <span>Spots Count:</span>
                       <span>{{ getTabData(tab.id, 'navState')?.spots?.length || 0 }}</span>
                     </div>
-                    
+
                     <div class="debug-row">
-                      <span>选中Spot:</span>
-                      <span>{{ getTabData(tab.id, 'navState')?.selectedSpotIndex ?? '无' }}</span>
+                      <span>Selected Spot:</span>
+                      <span>{{ getTabData(tab.id, 'navState')?.selectedSpotIndex ?? 'None' }}</span>
                     </div>
-                    
+
                     <div class="debug-row">
-                      <span>选中Chance:</span>
-                      <span>{{ getTabData(tab.id, 'navState')?.selectedChanceIndex ?? '无' }}</span>
+                      <span>Selected Chance:</span>
+                      <span>{{ getTabData(tab.id, 'navState')?.selectedChanceIndex ?? 'None' }}</span>
                     </div>
-                    
+
                     <div class="debug-row">
-                      <span>最后保存:</span>
+                      <span>Last Saved:</span>
                       <span>{{ formatTime(getTabData(tab.id, 'lastSavedAt')) }}</span>
                     </div>
-                    
+
                     <div class="debug-row">
-                      <span>显示模式:</span>
-                      <span>{{ getTabData(tab.id, 'displayMode') || '未设置' }}</span>
+                      <span>Display Mode:</span>
+                      <span>{{ getTabData(tab.id, 'displayMode') || 'Not Set' }}</span>
                     </div>
-                    
+
                     <div class="debug-row">
-                      <span>结果数据:</span>
+                      <span>Results Data:</span>
                       <span :class="getTabData(tab.id, 'results') ? 'status-good' : 'status-warning'">
-                        {{ getTabData(tab.id, 'results') ? '✅ 有数据' : '⚠️ 无数据' }}
+                        {{ getTabData(tab.id, 'results') ? '✅ Has Data' : '⚠️ No Data' }}
                       </span>
                     </div>
                   </div>
@@ -397,24 +387,24 @@
 
           <!-- 引用状态检查 -->
           <div class="debug-section">
-            <h4>🔗 组件引用状态</h4>
+            <h4>🔗 Component Reference Status</h4>
             <div class="refs-debug-info">
               <div v-for="[tabId, ref] of navRefs" :key="tabId" class="ref-debug-item">
                 <div><strong>{{ tabId }}:</strong></div>
                 <div class="debug-row">
-                  <span>引用类型:</span>
+                  <span>Reference Type:</span>
                   <span>{{ typeof ref }}</span>
                 </div>
                 <div class="debug-row">
-                  <span>导出方法:</span>
+                  <span>Export Method:</span>
                   <span :class="typeof ref?.exportCurrentState === 'function' ? 'status-good' : 'status-bad'">
-                    {{ typeof ref?.exportCurrentState === 'function' ? '✅ 可用' : '❌ 不可用' }}
+                    {{ typeof ref?.exportCurrentState === 'function' ? '✅ Available' : '❌ Unavailable' }}
                   </span>
                 </div>
                 <div class="debug-row">
-                  <span>导入方法:</span>
+                  <span>Import Method:</span>
                   <span :class="typeof ref?.importState === 'function' ? 'status-good' : 'status-bad'">
-                    {{ typeof ref?.importState === 'function' ? '✅ 可用' : '❌ 不可用' }}
+                    {{ typeof ref?.importState === 'function' ? '✅ Available' : '❌ Unavailable' }}
                   </span>
                 </div>
               </div>
@@ -423,7 +413,7 @@
 
           <!-- 操作日志 -->
           <div class="debug-section">
-            <h4>📝 操作日志 (最近10条)</h4>
+            <h4>📝 Operation Logs (Last 10)</h4>
             <div class="debug-logs">
               <div 
                 v-for="(log, index) in debugLogs.slice(-10)" 
@@ -589,7 +579,7 @@ const initTabData = async (tabId: string, cards?: number[][]) => {
       
       // 标签页元数据
       createdAt: new Date(),
-      name: `决策路径 ${tabsData.value.size + 1}`,
+      name: `Decision Path ${tabsData.value.size + 1}`,
     };
     
     tabsData.value.set(tabId, tabData);
@@ -795,12 +785,12 @@ const setNavRef = (tabId: string, ref: any) => {
   if (ref) {
     navRefs.value.set(tabId, ref);
     console.log(`Set navigation ref for tab ${tabId}`);
-    addDebugLog('info', `设置导航引用: ${tabId}`);
+    addDebugLog('info', `Set navigation reference: ${tabId}`);
     
     // 每次设置 ref 时都同步活跃 ID，确保与实际渲染的标签页一致
     currentActiveTabId.value = tabId;
     console.log(`Updated active tab to: ${tabId}`);
-    addDebugLog('info', `更新活跃标签页: ${tabId}`);
+    addDebugLog('info', `Updated active tab: ${tabId}`);
     
     // 在组件真正"可导出"的节点，尝试自动保存活跃标签页的导航状态
     nextTick(() => {
@@ -812,7 +802,7 @@ const setNavRef = (tabId: string, ref: any) => {
     // 清除引用
     navRefs.value.delete(tabId);
     console.log(`Cleared navigation ref for tab ${tabId}`);
-    addDebugLog('info', `清除导航引用: ${tabId}`);
+    addDebugLog('info', `Cleared navigation reference: ${tabId}`);
   }
 };
 
@@ -865,20 +855,20 @@ const scheduleAutoSave = (tabId?: string) => {
   // 设置新的定时器（300ms 去抖）
   const timer = setTimeout(async () => {
     console.log(`🔄 Auto-saving navigation state for tab: ${targetTabId}`);
-    addDebugLog('info', `自动保存导航状态: ${targetTabId}`);
+    addDebugLog('info', `Auto-saving navigation state: ${targetTabId}`);
     
     try {
       const success = await saveNavStateByTabId(targetTabId);
       if (success) {
         console.log(`✅ Auto-saved navigation state for tab: ${targetTabId}`);
-        addDebugLog('success', `自动保存成功: ${targetTabId}`);
+        addDebugLog('success', `Auto-save successful: ${targetTabId}`);
       } else {
         console.warn(`⚠️ Auto-save failed for tab: ${targetTabId}`);
-        addDebugLog('warning', `自动保存失败: ${targetTabId}`);
+        addDebugLog('warning', `Auto-save failed: ${targetTabId}`);
       }
     } catch (error) {
       console.error(`❌ Auto-save error for tab ${targetTabId}:`, error);
-      addDebugLog('error', `自动保存错误: ${targetTabId} - ${error}`);
+      addDebugLog('error', `Auto-save error: ${targetTabId} - ${error}`);
     } finally {
       // 清理定时器
       autoSaveTimers.value.delete(targetTabId);
@@ -970,7 +960,7 @@ const ensureActiveTabNavStateSaved = async (tabId: string) => {
           selectedSpotIndex: navState.selectedSpotIndex,
           selectedChanceIndex: navState.selectedChanceIndex,
         });
-        addDebugLog('success', `自动保存导航状态: ${tabId}`);
+        addDebugLog('success', `Auto-saved navigation state: ${tabId}`);
       }
     } catch (error) {
       console.error(`❌ Auto-save failed for tab ${tabId}:`, error);
@@ -989,7 +979,7 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
   const previousTabId = currentActiveTabId.value;
   currentActiveTabId.value = tabId;
   console.log(`Tab switched: ${previousTabId} → ${tabId}`);
-  addDebugLog('info', `标签页切换: "${previousTabId}" → "${tabId}"`);
+  addDebugLog('info', `Tab switched: "${previousTabId}" → "${tabId}"`);
   
   // 防止并发切换
   if (switchingLock.value) {
@@ -1004,7 +994,7 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
   try {
     // 步骤1: 保存前一个标签页的状态（如果存在且不同）
     if (previousTabId && previousTabId !== tabId) {
-      addDebugLog('info', `保存前一个标签页状态: ${previousTabId}`);
+      addDebugLog('info', `Saving previous tab state: ${previousTabId}`);
       console.log(`Saving state for previous tab: ${previousTabId}`);
       await saveCurrentTabNavState();
       
@@ -1014,16 +1004,16 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
     
     // 步骤2: 初始化或恢复目标标签页
     if (!tabsData.value.has(tabId)) {
-      addDebugLog('info', `初始化新标签页: ${tabId}`);
+      addDebugLog('info', `Initializing new tab: ${tabId}`);
       console.log(`Initializing new tab: ${tabId}`);
       await initTabData(tabId);
     } else {
-      addDebugLog('info', `恢复现有标签页: ${tabId}`);
+      addDebugLog('info', `Restoring existing tab: ${tabId}`);
       console.log(`Restoring existing tab: ${tabId}`);
       await restoreTabNavState(tabId);
     }
     
-    addDebugLog('success', `标签页切换成功: ${tabId}`);
+    addDebugLog('success', `Tab switch successful: ${tabId}`);
     console.log(`Successfully switched to tab: ${tabId}`);
     
     // 在切换完成后，确保当前活跃标签页的导航状态已保存
@@ -1041,7 +1031,7 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
     if (!tabsData.value.has(tabId)) {
       try {
         await initTabData(tabId);
-        addDebugLog('info', `错误恢复: 已初始化标签页 ${tabId}`);
+        addDebugLog('info', `Error recovery: Initialized tab ${tabId}`);
       } catch (initError) {
         const initErrorMsg = `错误恢复失败 ${tabId}: ${initError}`;
         console.error(`Failed to initialize tab ${tabId} during error recovery:`, initError);
@@ -1077,7 +1067,7 @@ const onTabDuplicated = (originalTabId: string, newTabId: string) => {
 
 const onTabRenamed = (tabId: string, newName: string) => {
   console.log(`Tab renamed: ${tabId} -> "${newName}"`);
-  addDebugLog('info', `标签页重命名: ${tabId} -> "${newName}"`);
+  addDebugLog('info', `Tab renamed: ${tabId} -> "${newName}"`);
 
   // 更新 tabsData 中的名称
   const tabData = tabsData.value.get(tabId);
@@ -1282,7 +1272,7 @@ const getTabNavStateStatus = (tabId: string) => {
   if (navRef && typeof navRef.exportCurrentState === 'function') {
     return {
       class: 'status-warning',
-      text: '⚠️ 可保存但未保存'
+      text: '⚠️ Savable but not saved'
     };
   }
   
@@ -1290,20 +1280,20 @@ const getTabNavStateStatus = (tabId: string) => {
   if (!navRef) {
     return {
       class: 'status-bad',
-      text: '❌ 导航组件未就绪'
+      text: '❌ Navigation component not ready'
     };
   }
   
   // 默认情况
   return {
     class: 'status-warning',
-    text: '⚠️ 状态未知'
+    text: '⚠️ Status unknown'
   };
 };
 
 // 调试功能方法
 const refreshDebugInfo = () => {
-  addDebugLog('info', '手动刷新调试信息');
+  addDebugLog('info', 'Manually refreshing debug info');
   // 强制重新渲染调试界面
   showTabDebugModal.value = false;
   nextTick(() => {
@@ -1312,13 +1302,13 @@ const refreshDebugInfo = () => {
 };
 
 const testSaveAllTabs = async () => {
-  addDebugLog('info', '开始测试保存所有标签页状态');
+  addDebugLog('info', 'Starting test to save all tab states');
   
   try {
     // 保存当前活跃标签页
     if (currentActiveTabId.value) {
       await saveCurrentTabNavState();
-      addDebugLog('success', `已保存当前标签页: ${currentActiveTabId.value}`);
+      addDebugLog('success', `Saved current tab: ${currentActiveTabId.value}`);
     }
     
     // 尝试获取所有标签页的引用状态
@@ -1332,46 +1322,46 @@ const testSaveAllTabs = async () => {
           const state = navRef.exportCurrentState();
           if (state && state.spots) {
             successCount++;
-            addDebugLog('success', `标签页 ${tab.id} 状态导出成功 (${state.spots.length} spots)`);
+            addDebugLog('success', `Tab ${tab.id} state export successful (${state.spots.length} spots)`);
           } else {
             failCount++;
-            addDebugLog('warning', `标签页 ${tab.id} 状态导出为空`);
+            addDebugLog('warning', `Tab ${tab.id} state export is empty`);
           }
         } catch (error) {
           failCount++;
-          addDebugLog('error', `标签页 ${tab.id} 状态导出失败: ${error}`);
+          addDebugLog('error', `Tab ${tab.id} state export failed: ${error}`);
         }
       } else {
         failCount++;
-        addDebugLog('error', `标签页 ${tab.id} 缺少导航引用或导出方法`);
+        addDebugLog('error', `Tab ${tab.id} missing navigation reference or export method`);
       }
     }
     
-    addDebugLog('info', `测试完成: ${successCount} 成功, ${failCount} 失败`);
+    addDebugLog('info', `Test completed: ${successCount} successful, ${failCount} failed`);
   } catch (error) {
-    addDebugLog('error', `测试保存失败: ${error}`);
+    addDebugLog('error', `Test save failed: ${error}`);
   }
 };
 
 const testRestoreCurrentTab = async () => {
   if (!currentActiveTabId.value) {
-    addDebugLog('warning', '没有当前活跃标签页可以测试恢复');
+    addDebugLog('warning', 'No current active tab available for restore test');
     return;
   }
   
-  addDebugLog('info', `开始测试恢复标签页: ${currentActiveTabId.value}`);
+  addDebugLog('info', `Starting tab restore test: ${currentActiveTabId.value}`);
   
   try {
     await restoreTabNavState(currentActiveTabId.value);
-    addDebugLog('success', `标签页 ${currentActiveTabId.value} 恢复测试完成`);
+    addDebugLog('success', `Tab ${currentActiveTabId.value} restore test completed`);
   } catch (error) {
-    addDebugLog('error', `标签页 ${currentActiveTabId.value} 恢复测试失败: ${error}`);
+    addDebugLog('error', `Tab ${currentActiveTabId.value} restore test failed: ${error}`);
   }
 };
 
 const checkRefsStatus = () => {
   const currentTabId = currentActiveTabId.value;
-  addDebugLog('info', `开始检查引用状态: 活跃标签页=${currentTabId}`);
+  addDebugLog('info', `Starting reference status check: Active tab=${currentTabId}`);
 
   console.log('🔍 完整的引用状态检查:');
   console.log('='.repeat(50));
@@ -1415,7 +1405,7 @@ const checkRefsStatus = () => {
   }
 
   console.log('='.repeat(50));
-  addDebugLog('success', '引用状态检查完成，请查看控制台输出');
+  addDebugLog('success', 'Reference status check completed, please check console output');
 };
 
 
@@ -1481,7 +1471,7 @@ const testSaveCurrentTabNav = async () => {
   const targetTabId = activeTabFromManager || currentActiveTabId.value;
 
   if (!targetTabId) {
-    addDebugLog('warning', '没有当前活跃标签页可以测试保存');
+    addDebugLog('warning', 'No current active tab available for save test');
     return;
   }
 
@@ -1493,7 +1483,7 @@ const testSaveCurrentTabNav = async () => {
     tabManagerActiveTab: tabManager.value?.activeTab?.id
   });
 
-  addDebugLog('info', `开始测试保存当前标签页导航状态: ${targetTabId}`);
+  addDebugLog('info', `Starting test to save current tab navigation state: ${targetTabId}`);
 
   // 添加延迟确保组件完全加载
   await nextTick();
@@ -1502,21 +1492,21 @@ const testSaveCurrentTabNav = async () => {
   // 检查导航引用是否存在
   const navRef = getNavRef(targetTabId);
   if (!navRef) {
-    addDebugLog('error', `导航引用不存在，无法保存状态`);
+    addDebugLog('error', `Navigation reference does not exist, cannot save state`);
     console.error(`Navigation ref not found for tab ${targetTabId}`);
     return;
   }
 
   // 添加额外的状态检查
   if (typeof navRef.exportCurrentState !== 'function') {
-    addDebugLog('error', `导航组件导出方法不可用`);
+    addDebugLog('error', `Navigation component export method unavailable`);
     console.error(`Export method not available for tab ${targetTabId}`);
     return;
   }
 
   const tabData = tabsData.value.get(targetTabId);
   if (!tabData) {
-    addDebugLog('error', `标签页数据不存在，无法保存状态`);
+    addDebugLog('error', `Tab data does not exist, cannot save state`);
     console.error(`Tab data not found for tab ${targetTabId}`);
     return;
   }
@@ -1524,15 +1514,15 @@ const testSaveCurrentTabNav = async () => {
   try {
     const success = await saveNavStateByTabId(targetTabId);
     if (success) {
-      addDebugLog('success', `手动保存导航状态成功: ${targetTabId}`);
+      addDebugLog('success', `Manual save navigation state successful: ${targetTabId}`);
     } else {
-      addDebugLog('error', `手动保存导航状态失败: ${targetTabId}`);
+      addDebugLog('error', `Manual save navigation state failed: ${targetTabId}`);
     }
 
     // 强制刷新状态显示
     refreshDebugInfo();
   } catch (error) {
-    addDebugLog('error', `标签页 ${targetTabId} 导航状态保存测试失败: ${error}`);
+    addDebugLog('error', `Tab ${targetTabId} navigation state save test failed: ${error}`);
   }
 };
 
@@ -1572,9 +1562,9 @@ const exportTabDebugData = async () => {
 
     const content = JSON.stringify(debugData, null, 2);
     await navigator.clipboard.writeText(content);
-    addDebugLog('success', '调试数据已复制到剪贴板');
+    addDebugLog('success', 'Debug data copied to clipboard');
   } catch (error) {
-    addDebugLog('error', `导出调试数据失败: ${error}`);
+    addDebugLog('error', `Export debug data failed: ${error}`);
   }
 };
 
@@ -1583,7 +1573,7 @@ const clearAllTabStates = () => {
     tabsData.value.clear();
     navRefs.value.clear();
     currentActiveTabId.value = '';
-    addDebugLog('warning', '已清除所有标签页状态');
+    addDebugLog('warning', 'All tab states have been cleared');
   }
 };
 
@@ -1786,7 +1776,7 @@ const printDecisionPathToConsole = async () => {
   align-items: flex-end;
 }
 
-.debug-button, .path-button {
+.debug-button, .tab-debug-button, .path-button {
   background-color: #ff5500;
   color: white;
   border: none;
@@ -1795,7 +1785,9 @@ const printDecisionPathToConsole = async () => {
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  min-width: 100px;
+  min-width: 120px;
+  width: 120px;
+  text-align: center;
 }
 
 .debug-button:hover {
@@ -1950,21 +1942,13 @@ const printDecisionPathToConsole = async () => {
   font-size: 0.9rem;
 }
 
-/* 标签页调试器样式 */
+/* Tab Debugger Styles */
 .tab-debug-button {
-  background-color: #8b5cf6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  min-width: 100px;
+  background-color: #10b981;
 }
 
 .tab-debug-button:hover {
-  background-color: #7c3aed;
+  background-color: #059669;
 }
 
 .tab-debug-modal {

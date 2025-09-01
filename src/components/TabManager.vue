@@ -190,7 +190,7 @@ const generateTabId = (): string => {
 
 const generateTabName = (): string => {
   const count = tabs.value.length + 1;
-  return `决策路径 ${count}`;
+  return `Decision Path ${count}`;
 };
 
 const createNewTab = (): string => {

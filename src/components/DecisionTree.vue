@@ -1,42 +1,42 @@
 <template>
   <div class="decision-tree-container">
     <div class="controls">
-      <button @click="fetchDecisionTree(3)">获取决策树 (最大深度3)</button>
-      <button @click="fetchCurrentNode">获取当前节点</button>
-      <button @click="saveTreeToFile">保存树到文件</button>
-      <button @click="printToRustConsole" class="console-button">打印到控制台</button>
-      <span v-if="consoleStatus === 1" class="success-message">已发送到控制台!</span>
-      <span v-if="consoleStatus === -1" class="error-message">发送失败</span>
+      <button @click="fetchDecisionTree(3)">Fetch Decision Tree (Max Depth 3)</button>
+      <button @click="fetchCurrentNode">Fetch Current Node</button>
+      <button @click="saveTreeToFile">Save Tree to File</button>
+      <button @click="printToRustConsole" class="console-button">Print to Console</button>
+      <span v-if="consoleStatus === 1" class="success-message">Sent to console!</span>
+      <span v-if="consoleStatus === -1" class="error-message">Send failed</span>
     </div>
     
-    <div v-if="loading" class="loading">加载中...</div>
+    <div v-if="loading" class="loading">Loading...</div>
     
     <div v-if="error" class="error">{{ error }}</div>
     
     <div v-if="treeData" class="tree-view">
-      <h3>决策树数据</h3>
+      <h3>Decision Tree Data</h3>
       <div class="tree-node">
         <div class="node-info">
           <div class="node-header">
-            <strong>节点ID:</strong> {{ treeData.node_id }} 
+            <strong>Node ID:</strong> {{ treeData.node_id }} 
             <span class="player-badge" :class="treeData.current_player">
               {{ playerLabels[treeData.current_player] }}
             </span>
           </div>
           
           <div v-if="treeData.total_bet_amount" class="bet-info">
-            <strong>总下注:</strong> OOP: {{ treeData.total_bet_amount[0] }}, IP: {{ treeData.total_bet_amount[1] }}
+            <strong>Total Bet:</strong> OOP: {{ treeData.total_bet_amount[0] }}, IP: {{ treeData.total_bet_amount[1] }}
           </div>
           
           <div v-if="treeData.actions.length > 0" class="actions">
-            <strong>可用动作:</strong>
+            <strong>Available Actions:</strong>
             <span v-for="action in treeData.actions" :key="action" class="action-badge">
               {{ action }}
             </span>
           </div>
           
           <div v-if="treeData.strategy.length > 0" class="strategy">
-            <strong>策略:</strong>
+            <strong>Strategy:</strong>
             <div class="strategy-grid">
               <div v-for="(prob, index) in treeData.strategy" :key="index" class="strategy-item">
                 {{ treeData.actions[index % treeData.actions.length] }}: {{ (prob * 100).toFixed(2) }}%
@@ -72,11 +72,11 @@ const TreeNode = {
   },
   setup(props) {
     const playerLabels = {
-      'oop': '场外玩家',
-      'ip': '场内玩家',
-      'terminal': '终止节点',
-      'chance': '机会节点',
-      'unknown': '未知'
+      'oop': 'Out of Position',
+      'ip': 'In Position',
+      'terminal': 'Terminal Node',
+      'chance': 'Chance Node',
+      'unknown': 'Unknown'
     };
     
     return { playerLabels };
@@ -86,25 +86,25 @@ const TreeNode = {
       <div class="node-link">{{ action }}</div>
       <div class="node-info">
         <div class="node-header">
-          <strong>节点ID:</strong> {{ node.node_id }}
+          <strong>Node ID:</strong> {{ node.node_id }}
           <span class="player-badge" :class="node.current_player">
             {{ playerLabels[node.current_player] }}
           </span>
         </div>
         
         <div v-if="node.total_bet_amount" class="bet-info">
-          <strong>总下注:</strong> OOP: {{ node.total_bet_amount[0] }}, IP: {{ node.total_bet_amount[1] }}
+          <strong>Total Bet:</strong> OOP: {{ node.total_bet_amount[0] }}, IP: {{ node.total_bet_amount[1] }}
         </div>
         
         <div v-if="node.actions.length > 0" class="actions">
-          <strong>可用动作:</strong>
+          <strong>Available Actions:</strong>
           <span v-for="action in node.actions" :key="action" class="action-badge">
             {{ action }}
           </span>
         </div>
         
         <div v-if="node.strategy.length > 0" class="strategy">
-          <strong>策略:</strong>
+          <strong>Strategy:</strong>
           <div class="strategy-grid">
             <div v-for="(prob, index) in node.strategy" :key="index" class="strategy-item">
               {{ node.actions[index % node.actions.length] }}: {{ (prob * 100).toFixed(2) }}%
@@ -137,11 +137,11 @@ export default defineComponent({
     const consoleStatus = ref(0);
     
     const playerLabels = {
-      'oop': '场外玩家',
-      'ip': '场内玩家',
-      'terminal': '终止节点',
-      'chance': '机会节点',
-      'unknown': '未知'
+      'oop': 'Out of Position',
+      'ip': 'In Position',
+      'terminal': 'Terminal Node',
+      'chance': 'Chance Node',
+      'unknown': 'Unknown'
     };
     
     const fetchDecisionTree = async (maxDepth) => {
@@ -151,7 +151,7 @@ export default defineComponent({
       try {
         treeData.value = await getDecisionTree(maxDepth);
       } catch (err) {
-        error.value = `获取决策树出错: ${err.message}`;
+        error.value = `Failed to fetch decision tree: ${err.message}`;
         console.error(err);
       } finally {
         loading.value = false;
@@ -165,7 +165,7 @@ export default defineComponent({
       try {
         treeData.value = await getCurrentNodeWithChildren();
       } catch (err) {
-        error.value = `获取当前节点出错: ${err.message}`;
+        error.value = `Failed to fetch current node: ${err.message}`;
         console.error(err);
       } finally {
         loading.value = false;
@@ -174,7 +174,7 @@ export default defineComponent({
     
     const saveTreeToFile = async () => {
       if (!treeData.value) {
-        error.value = "没有树数据可保存";
+        error.value = "No tree data available to save";
         return;
       }
       
