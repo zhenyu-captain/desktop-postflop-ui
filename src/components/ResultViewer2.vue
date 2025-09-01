@@ -792,12 +792,10 @@ const setNavRef = (tabId: string, ref: any) => {
     console.log(`Set navigation ref for tab ${tabId}`);
     addDebugLog('info', `设置导航引用: ${tabId}`);
     
-    // 如果当前没有活跃标签页，设置为这个标签页
-    if (!currentActiveTabId.value) {
-      currentActiveTabId.value = tabId;
-      console.log(`Set initial active tab: ${tabId}`);
-      addDebugLog('info', `设置初始活跃标签页: ${tabId}`);
-    }
+    // 每次设置 ref 时都同步活跃 ID，确保与实际渲染的标签页一致
+    currentActiveTabId.value = tabId;
+    console.log(`Updated active tab to: ${tabId}`);
+    addDebugLog('info', `更新活跃标签页: ${tabId}`);
     
     // 在组件真正"可导出"的节点，尝试自动保存活跃标签页的导航状态
     nextTick(() => {
@@ -873,9 +871,15 @@ const ensureActiveTabNavStateSaved = async (tabId: string) => {
 
 // 标签页事件处理
 const onTabSwitched = async (tabId: string, tab: TabData) => {
+  // 先更新活跃 ID，避免因锁而错位
+  const previousTabId = currentActiveTabId.value;
+  currentActiveTabId.value = tabId;
+  console.log(`Tab switched: ${previousTabId} → ${tabId}`);
+  addDebugLog('info', `标签页切换: "${previousTabId}" → "${tabId}"`);
+  
   // 防止并发切换
   if (switchingLock.value) {
-    const msg = `标签页切换正在进行中，忽略切换到 ${tabId}`;
+    const msg = `标签页切换正在进行中，但已更新活跃ID到 ${tabId}`;
     console.warn(msg);
     addDebugLog('warning', msg);
     return;
@@ -884,11 +888,7 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
   switchingLock.value = true;
   
   try {
-    const previousTabId = currentActiveTabId.value;
-    addDebugLog('info', `开始切换标签页: "${previousTabId}" → "${tabId}"`);
-    console.log(`Switching from tab "${previousTabId}" to tab "${tabId}"`);
-    
-    // 步骤1: 保存当前活跃标签页的状态（如果存在且不同）
+    // 步骤1: 保存前一个标签页的状态（如果存在且不同）
     if (previousTabId && previousTabId !== tabId) {
       addDebugLog('info', `保存前一个标签页状态: ${previousTabId}`);
       console.log(`Saving state for previous tab: ${previousTabId}`);
@@ -898,10 +898,7 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
       await nextTick();
     }
     
-    // 步骤2: 更新当前活跃标签页ID（在恢复之前）
-    currentActiveTabId.value = tabId;
-    
-    // 步骤3: 初始化或恢复目标标签页
+    // 步骤2: 初始化或恢复目标标签页
     if (!tabsData.value.has(tabId)) {
       addDebugLog('info', `初始化新标签页: ${tabId}`);
       console.log(`Initializing new tab: ${tabId}`);
@@ -1292,59 +1289,119 @@ const checkRefsStatus = () => {
 
 
 
+// 按指定 ID 保存导航状态
+const saveNavStateByTabId = async (targetTabId: string) => {
+  const navRef = getNavRef(targetTabId);
+  const tabData = tabsData.value.get(targetTabId);
+
+  console.log(`Attempting to save navigation state for tab ${targetTabId}:`, {
+    hasNavRef: !!navRef,
+    hasExportMethod: !!(navRef?.exportCurrentState),
+    hasTabData: !!tabData
+  });
+
+  if (navRef && typeof navRef.exportCurrentState === 'function' && tabData) {
+    const navState = navRef.exportCurrentState();
+
+    console.log(`Navigation state exported for tab ${targetTabId}:`, {
+      hasNavState: !!navState,
+      hasSpots: !!(navState?.spots),
+      spotsCount: navState?.spots?.length || 0,
+      selectedSpotIndex: navState?.selectedSpotIndex,
+      selectedChanceIndex: navState?.selectedChanceIndex,
+      exportedAt: navState?.exportedAt,
+      hasRates: !!(navState?.rates)
+    });
+
+    if (navState && Array.isArray(navState.spots)) {
+      tabData.navState = navState;
+      tabData.lastSavedAt = new Date();
+
+      console.log(`Successfully saved navigation state for tab ${targetTabId}:`, {
+        spotsCount: navState.spots.length,
+        selectedSpotIndex: navState.selectedSpotIndex,
+        selectedChanceIndex: navState.selectedChanceIndex,
+        exportedAt: navState.exportedAt,
+        hasRates: !!navState.rates
+      });
+      return true;
+    } else {
+      console.warn(`Invalid navigation state exported for tab ${targetTabId}:`, {
+        navState,
+        hasSpots: !!(navState?.spots),
+        spotsIsArray: Array.isArray(navState?.spots),
+        spotsCount: navState?.spots?.length
+      });
+      return false;
+    }
+  } else {
+    console.warn(`Cannot save navigation state for tab ${targetTabId}:`, {
+      hasNavRef: !!navRef,
+      hasExportMethod: !!(navRef?.exportCurrentState),
+      hasTabData: !!tabData
+    });
+    return false;
+  }
+};
+
 const testSaveCurrentTabNav = async () => {
-  if (!currentActiveTabId.value) {
+  // 优先从 TabManager 获取当前活跃标签页，避免依赖 currentActiveTabId
+  const activeTabFromManager = tabManager.value?.activeTab?.id;
+  const targetTabId = activeTabFromManager || currentActiveTabId.value;
+
+  if (!targetTabId) {
     addDebugLog('warning', '没有当前活跃标签页可以测试保存');
     return;
   }
 
-  const tabId = currentActiveTabId.value;
-  addDebugLog('info', `开始测试保存当前标签页导航状态: ${tabId}`);
+  console.log(`手动保存调试信息:`, {
+    activeTabFromManager,
+    currentActiveTabId: currentActiveTabId.value,
+    targetTabId,
+    navRefsKeys: Array.from((navRefs.value as Map<string, any>).keys()),
+    tabManagerActiveTab: tabManager.value?.activeTab?.id
+  });
+
+  addDebugLog('info', `开始测试保存当前标签页导航状态: ${targetTabId}`);
 
   // 添加延迟确保组件完全加载
   await nextTick();
   await new Promise(resolve => setTimeout(resolve, 50));
 
   // 检查导航引用是否存在
-  const navRef = getNavRef(tabId);
+  const navRef = getNavRef(targetTabId);
   if (!navRef) {
     addDebugLog('error', `导航引用不存在，无法保存状态`);
-    console.error(`Navigation ref not found for tab ${tabId}`);
+    console.error(`Navigation ref not found for tab ${targetTabId}`);
     return;
   }
 
   // 添加额外的状态检查
   if (typeof navRef.exportCurrentState !== 'function') {
     addDebugLog('error', `导航组件导出方法不可用`);
-    console.error(`Export method not available for tab ${tabId}`);
+    console.error(`Export method not available for tab ${targetTabId}`);
     return;
   }
 
-  const tabData = tabsData.value.get(tabId);
+  const tabData = tabsData.value.get(targetTabId);
   if (!tabData) {
     addDebugLog('error', `标签页数据不存在，无法保存状态`);
-    console.error(`Tab data not found for tab ${tabId}`);
+    console.error(`Tab data not found for tab ${targetTabId}`);
     return;
   }
 
-  console.log(`导航引用调试信息:`, {
-    tabId,
-    hasNavRef: !!navRef,
-    hasExportMethod: !!(navRef?.exportCurrentState),
-    hasImportMethod: !!(navRef?.importState),
-    navRefsKeys: Array.from(navRefs.value.keys()),
-    tabDataExists: !!tabData,
-    navRefsCount: navRefs.value.size
-  });
-
   try {
-    await saveCurrentTabNavState();
-    addDebugLog('success', `标签页 ${tabId} 导航状态保存测试完成`);
+    const success = await saveNavStateByTabId(targetTabId);
+    if (success) {
+      addDebugLog('success', `手动保存导航状态成功: ${targetTabId}`);
+    } else {
+      addDebugLog('error', `手动保存导航状态失败: ${targetTabId}`);
+    }
 
     // 强制刷新状态显示
     refreshDebugInfo();
   } catch (error) {
-    addDebugLog('error', `标签页 ${tabId} 导航状态保存测试失败: ${error}`);
+    addDebugLog('error', `标签页 ${targetTabId} 导航状态保存测试失败: ${error}`);
   }
 };
 
