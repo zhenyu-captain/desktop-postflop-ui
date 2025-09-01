@@ -1075,6 +1075,20 @@ const onTabDuplicated = (originalTabId: string, newTabId: string) => {
   }
 };
 
+const onTabRenamed = (tabId: string, newName: string) => {
+  console.log(`Tab renamed: ${tabId} -> "${newName}"`);
+  addDebugLog('info', `标签页重命名: ${tabId} -> "${newName}"`);
+
+  // 更新 tabsData 中的名称
+  const tabData = tabsData.value.get(tabId);
+  if (tabData) {
+    tabData.name = newName;
+  }
+
+  // 刷新调试信息
+  refreshDebugInfo();
+};
+
 // 更新标签页的导航状态
 const onUpdateSpot = (
   tabId: string,

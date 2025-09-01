@@ -13,9 +13,25 @@
               : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
           ]"
           @click="switchTab(tab.id)"
+          @dblclick="startRename(tab.id)"
         >
           <span class="flex-shrink-0 mr-2 text-sm">📊</span>
-          <span class="truncate max-w-32 text-sm font-medium">{{ tab.name }}</span>
+          
+          <!-- 编辑模式：输入框 -->
+          <input
+            v-if="editingTabId === tab.id"
+            v-model="editingName"
+            @keydown.enter="finishRename"
+            @keydown.esc="cancelRename"
+            @blur="finishRename"
+            class="flex-1 min-w-0 px-1 py-0 text-sm font-medium bg-transparent border-none outline-none focus:ring-1 focus:ring-blue-500 rounded"
+            :maxlength="40"
+            ref="renameInput"
+          />
+          
+          <!-- 正常模式：显示名称 -->
+          <span v-else class="truncate max-w-32 text-sm font-medium">{{ tab.name }}</span>
+          
           <button
             v-if="tabs.length > 1"
             @click.stop="closeTab(tab.id)"
@@ -88,7 +104,9 @@
         </button>
       </div>
     </div>
-    
+
+
+
     <!-- 标签页内容区域 -->
     <div class="tab-content flex-1 relative">
       <div
@@ -132,6 +150,7 @@ const emit = defineEmits<{
   (event: 'tab-created', tabId: string, tab: TabData): void;
   (event: 'tab-closed', tabId: string): void;
   (event: 'tab-duplicated', originalTabId: string, newTabId: string): void;
+  (event: 'tab-renamed', tabId: string, newName: string): void;
 }>();
 
 // 状态管理
@@ -139,6 +158,10 @@ const tabs = ref<TabData[]>([]);
 const activeTabId = ref<string>('');
 const showTabMenu = ref(false);
 const nextTabId = ref(1);
+
+// 重命名相关状态
+const editingTabId = ref<string>('');
+const editingName = ref<string>('');
 
 // 计算属性
 const activeTab = computed(() => tabs.value.find(tab => tab.id === activeTabId.value));
@@ -297,6 +320,74 @@ const getTabData = (tabId: string): TabData | undefined => {
   return tabs.value.find(t => t.id === tabId);
 };
 
+// 重命名相关方法
+const startRename = (tabId: string) => {
+  const tab = tabs.value.find(t => t.id === tabId);
+  if (!tab) return;
+  
+  editingTabId.value = tabId;
+  editingName.value = tab.name;
+  
+  // 下一个 tick 后聚焦输入框
+  nextTick(() => {
+    const input = document.querySelector(`[data-tab-id="${tabId}"] input`) as HTMLInputElement;
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+};
+
+const finishRename = () => {
+  if (!editingTabId.value) return;
+  
+  const newName = editingName.value.trim();
+  const tab = tabs.value.find(t => t.id === editingTabId.value);
+  
+  if (tab && newName && newName !== tab.name) {
+    // 检查名称长度
+    if (newName.length > 40) {
+      editingName.value = newName.substring(0, 40);
+      return;
+    }
+    
+    // 更新标签页名称
+    tab.name = newName;
+    tab.lastAccessed = new Date();
+    
+    // 触发重命名事件
+    emit('tab-renamed', editingTabId.value, newName);
+    
+    console.log(`Tab renamed: ${editingTabId.value} -> "${newName}"`);
+  }
+  
+  // 退出编辑模式
+  editingTabId.value = '';
+  editingName.value = '';
+};
+
+const cancelRename = () => {
+  editingTabId.value = '';
+  editingName.value = '';
+};
+
+
+
+// 重命名标签页的公共方法
+const renameTab = (tabId: string, newName: string) => {
+  const tab = tabs.value.find(t => t.id === tabId);
+  if (!tab) return false;
+  
+  const trimmedName = newName.trim();
+  if (!trimmedName || trimmedName.length > 40) return false;
+  
+  tab.name = trimmedName;
+  tab.lastAccessed = new Date();
+  emit('tab-renamed', tabId, trimmedName);
+  
+  return true;
+};
+
 // 暴露给父组件的方法
 defineExpose({
   createNewTab,
@@ -364,9 +455,23 @@ defineExpose({
     min-width: 120px;
     max-width: 150px;
   }
-  
+
   .tab-item span {
     font-size: 0.8rem;
   }
+}
+
+
+
+/* 输入框样式改进 */
+.tab-item input {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tab-item input:focus {
+  background-color: white;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 </style>
