@@ -99,54 +99,54 @@
           <div v-show="store.sideView === 'file-operations'">
             <div class="file-operations">
               <div class="section-title mb-6">
-                <h2 class="text-xl font-bold">文件操作</h2>
-                <p class="text-gray-600 mt-1">保存和加载求解方案与配置</p>
+                <h2 class="text-xl font-bold">File Operations</h2>
+                <p class="text-gray-600 mt-1">Save and load solver solutions and configurations</p>
               </div>
               
               <div class="flex flex-col space-y-6">
-                <!-- 保存配置区域 -->
+                <!-- Save Configuration Section -->
                 <div class="card p-5 border rounded-lg shadow-sm bg-white">
-                  <h3 class="text-lg font-semibold mb-3">保存配置</h3>
-                  <p class="text-gray-600 mb-4">将当前的所有配置（牌局设置、范围、游戏树等）保存为JSON文件，以便日后复用。</p>
-                  
+                  <h3 class="text-lg font-semibold mb-3">Save Configuration</h3>
+                  <p class="text-gray-600 mb-4">Save all current configurations (board settings, ranges, game tree, etc.) as a JSON file for future reuse.</p>
+
                   <div class="flex items-center">
-                    <button 
+                    <button
                       class="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center"
                       @click="handleSaveConfig"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                       </svg>
-                      保存配置
+                      Save Configuration
                     </button>
                   </div>
                 </div>
                 
-                <!-- 加载配置区域 -->
+                <!-- Load Configuration Section -->
                 <div class="card p-5 border rounded-lg shadow-sm bg-white">
-                  <h3 class="text-lg font-semibold mb-3">加载配置</h3>
-                  <p class="text-gray-600 mb-4">从之前保存的JSON文件中加载所有配置（牌局设置、范围、游戏树等）。</p>
-                  
+                  <h3 class="text-lg font-semibold mb-3">Load Configuration</h3>
+                  <p class="text-gray-600 mb-4">Load all configurations (board settings, ranges, game tree, etc.) from a previously saved JSON file.</p>
+
                   <div class="flex items-center">
-                    <button 
+                    <button
                       class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center"
                       @click="handleLoadConfig"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
-                      加载配置
+                      Load Configuration
                     </button>
                   </div>
                 </div>
                 
-                <!-- 保存方案区域 -->
+                <!-- Save Solution Section -->
                 <div class="card p-5 border rounded-lg shadow-sm bg-white">
-                  <h3 class="text-lg font-semibold mb-3">保存方案</h3>
-                  <p class="text-gray-600 mb-4">将当前的求解结果保存为二进制文件，以便日后快速载入。</p>
-                  
+                  <h3 class="text-lg font-semibold mb-3">Save Solution</h3>
+                  <p class="text-gray-600 mb-4">Save the current solver results as a binary file for quick loading later.</p>
+
                   <div class="flex items-center">
-                    <button 
+                    <button
                       class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                       @click="handleSaveBin"
                       :disabled="!store.canSaveSolution"
@@ -154,23 +154,23 @@
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                       </svg>
-                      保存解决方案
+                      Save Solution
                     </button>
                     <div class="ml-4">
                       <span v-if="!store.canSaveSolution" class="text-orange-500">
-                        需要先完成求解才能保存
+                        Need to complete solving first before saving
                       </span>
                     </div>
                   </div>
                 </div>
                 
-                <!-- 加载方案区域 -->
+                <!-- Load Solution Section -->
                 <div class="card p-5 border rounded-lg shadow-sm bg-white">
-                  <h3 class="text-lg font-semibold mb-3">加载方案</h3>
-                  <p class="text-gray-600 mb-4">从之前保存的二进制文件中加载求解结果，无需重新计算。</p>
-                  
+                  <h3 class="text-lg font-semibold mb-3">Load Solution</h3>
+                  <p class="text-gray-600 mb-4">Load solver results from a previously saved binary file without recalculation.</p>
+
                   <div class="flex items-center">
-                    <button 
+                    <button
                       class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                       @click="handleLoadBin"
                       :disabled="!store.canLoadSolution"
@@ -178,40 +178,40 @@
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
-                      加载解决方案
+                      Load Solution
                     </button>
                     <div class="ml-4">
                       <span v-if="store.isLoading" class="text-blue-500">
-                        正在加载...
+                        Loading...
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <!-- 新增：调试日志按钮 -->
+                <!-- Debug Configuration Section -->
                 <div class="card p-5 border rounded-lg shadow-sm bg-white">
-                  <h3 class="text-lg font-semibold mb-3">配置调试</h3>
-                  <p class="text-gray-600 mb-4">显示当前范围配置的调试信息，用于诊断加载/保存问题。</p>
-                  
+                  <h3 class="text-lg font-semibold mb-3">Configuration Debug</h3>
+                  <p class="text-gray-600 mb-4">Display current range configuration debug information for diagnosing load/save issues.</p>
+
                   <div class="flex items-center space-x-3">
-                    <button 
+                    <button
                       class="px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700 transition-colors flex items-center"
                       @click="showDebugLog"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      显示范围调试信息
+                      Show Range Debug Info
                     </button>
-                    
-                    <button 
+
+                    <button
                       class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center"
                       @click="testRangeImportExport"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
-                      测试范围导入导出
+                      Test Range Import/Export
                     </button>
                   </div>
                 </div>
@@ -267,7 +267,7 @@
     <div v-if="showDebugModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-4/5 max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">范围配置调试日志</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Range Configuration Debug Log</h3>
           <button @click="showDebugModal = false" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -278,7 +278,7 @@
           <pre class="text-xs whitespace-pre-wrap bg-gray-100 dark:bg-gray-900 p-3 rounded">{{ debugLogText }}</pre>
         </div>
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-          <button @click="showDebugModal = false" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">关闭</button>
+          <button @click="showDebugModal = false" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Close</button>
         </div>
       </div>
     </div>
@@ -318,7 +318,7 @@ const header = computed(() => {
   return store.headers[store.sideView].join(" > ");
 });
 
-// 添加菜单项配置 - 添加了tree-editor选项在tree-config后面和文件操作菜单项
+// Add menu item configuration - added tree-editor option after tree-config and file operations menu item
 const menuItems = [
   { view: 'oop-range', label: 'OOP Range' },
   { view: 'ip-range', label: 'IP Range' },
@@ -327,7 +327,7 @@ const menuItems = [
   { view: 'tree-editor', label: 'Tree Editor' },
   { view: 'bunching', label: 'Bunching' },
   { view: 'run-solver', label: 'Run Solver' },
-  { view: 'file-operations', label: '文件操作' },
+  { view: 'file-operations', label: 'File Operations' },
   { view: 'about', label: 'About' }
 ];
 
@@ -471,96 +471,96 @@ const showDebugLog = async () => {
     const ipIndex = boardLength >= 3 ? 3 : 1;
     
     // 构建详细的调试日志
-    let log = `### 范围调试信息 ###\n\n`;
-    log += `当前翻牌: ${boardInfo}\n`;
-    log += `翻牌长度: ${boardLength}\n`;
-    log += `范围数组总长度: ${store.ranges.length}\n\n`;
-    
-    log += `### 范围索引信息 ###\n`;
-    log += `OOP范围索引: ${oopIndex}\n`;
-    log += `IP范围索引: ${ipIndex}\n\n`;
-    
-    log += `### OOP范围信息 ###\n`;
-    log += `组合数: ${oopCombos}\n`;
-    log += `范围字符串: ${oopRangeStr}\n`;
+    let log = `### Range Debug Information ###\n\n`;
+    log += `Current Board: ${boardInfo}\n`;
+    log += `Board Length: ${boardLength}\n`;
+    log += `Range Array Total Length: ${store.ranges.length}\n\n`;
+
+    log += `### Range Index Information ###\n`;
+    log += `OOP Range Index: ${oopIndex}\n`;
+    log += `IP Range Index: ${ipIndex}\n\n`;
+
+    log += `### OOP Range Information ###\n`;
+    log += `Number of Combos: ${oopCombos}\n`;
+    log += `Range String: ${oopRangeStr}\n`;
     
     // 分析OOP矩阵数据（直接从后端获取的实际数据）
     if (oopMatrix && oopMatrix.length === 13*13) {
       // 计算非零权重的手牌数
       const nonZeroWeights = oopMatrix.filter(w => w > 0).length;
-      log += `实际矩阵长度: ${oopMatrix.length}\n`;
-      log += `实际非零权重手牌数: ${nonZeroWeights}\n`;
-      
+      log += `Actual Matrix Length: ${oopMatrix.length}\n`;
+      log += `Actual Non-Zero Weight Hands: ${nonZeroWeights}\n`;
+
       // 展示具体的矩阵内容（简化版）
-      log += `实际矩阵前10个值: ${oopMatrix.slice(0, 10).join(", ")}\n`;
-      
+      log += `Actual Matrix First 10 Values: ${oopMatrix.slice(0, 10).join(", ")}\n`;
+
       // 尝试找出有问题的部分
       const sum = oopMatrix.reduce((a, b) => a + b, 0);
-      log += `实际权重总和: ${sum}\n`;
-      log += `实际平均权重: ${sum / 169}\n`;
+      log += `Actual Weight Sum: ${sum}\n`;
+      log += `Actual Average Weight: ${sum / 169}\n`;
     } else {
-      log += `警告: 无法获取OOP矩阵数据\n`;
+      log += `Warning: Unable to get OOP matrix data\n`;
     }
     
     // 分析store中的OOP数据（用于保存到配置文件的数据）
     if (store.ranges[oopIndex]) {
       // 计算非零权重的手牌数
       const nonZeroWeights = store.ranges[oopIndex].filter(w => w > 0).length;
-      log += `\nstore存储矩阵长度: ${store.ranges[oopIndex].length}\n`;
-      log += `store非零权重手牌数: ${nonZeroWeights}\n`;
-      
+      log += `\nStore Matrix Length: ${store.ranges[oopIndex].length}\n`;
+      log += `Store Non-Zero Weight Hands: ${nonZeroWeights}\n`;
+
       // 展示具体的矩阵内容（简化版）
-      log += `store矩阵前10个值: ${store.ranges[oopIndex].slice(0, 10).join(", ")}\n`;
-      
+      log += `Store Matrix First 10 Values: ${store.ranges[oopIndex].slice(0, 10).join(", ")}\n`;
+
       // 尝试找出有问题的部分
       const sum = store.ranges[oopIndex].reduce((a, b) => a + b, 0);
-      log += `store权重总和: ${sum}\n`;
-      log += `store平均权重: ${sum / 169}\n`;
+      log += `Store Weight Sum: ${sum}\n`;
+      log += `Store Average Weight: ${sum / 169}\n`;
     } else {
-      log += `警告: OOP范围索引 ${oopIndex} 不存在于store.ranges中!\n`;
+      log += `Warning: OOP range index ${oopIndex} does not exist in store.ranges!\n`;
     }
     
-    log += `\n### IP范围信息 ###\n`;
-    log += `组合数: ${ipCombos}\n`;
-    log += `范围字符串: ${ipRangeStr}\n`;
+    log += `\n### IP Range Information ###\n`;
+    log += `Number of Combos: ${ipCombos}\n`;
+    log += `Range String: ${ipRangeStr}\n`;
     
     // 分析IP矩阵数据（直接从后端获取的实际数据）
     if (ipMatrix && ipMatrix.length === 13*13) {
       // 计算非零权重的手牌数
       const nonZeroWeights = ipMatrix.filter(w => w > 0).length;
-      log += `实际矩阵长度: ${ipMatrix.length}\n`;
-      log += `实际非零权重手牌数: ${nonZeroWeights}\n`;
-      
+      log += `Actual Matrix Length: ${ipMatrix.length}\n`;
+      log += `Actual Non-Zero Weight Hands: ${nonZeroWeights}\n`;
+
       // 展示具体的矩阵内容（简化版）
-      log += `实际矩阵前10个值: ${ipMatrix.slice(0, 10).join(", ")}\n`;
-      
+      log += `Actual Matrix First 10 Values: ${ipMatrix.slice(0, 10).join(", ")}\n`;
+
       // 尝试找出有问题的部分
       const sum = ipMatrix.reduce((a, b) => a + b, 0);
-      log += `实际权重总和: ${sum}\n`;
-      log += `实际平均权重: ${sum / 169}\n`;
+      log += `Actual Weight Sum: ${sum}\n`;
+      log += `Actual Average Weight: ${sum / 169}\n`;
     } else {
-      log += `警告: 无法获取IP矩阵数据\n`;
+      log += `Warning: Unable to get IP matrix data\n`;
     }
     
     // 分析store中的IP数据（用于保存到配置文件的数据）
     if (store.ranges[ipIndex]) {
       // 同样分析IP范围
       const nonZeroWeights = store.ranges[ipIndex].filter(w => w > 0).length;
-      log += `\nstore存储矩阵长度: ${store.ranges[ipIndex].length}\n`;
-      log += `store非零权重手牌数: ${nonZeroWeights}\n`;
-      log += `store矩阵前10个值: ${store.ranges[ipIndex].slice(0, 10).join(", ")}\n`;
-      
+      log += `\nStore Matrix Length: ${store.ranges[ipIndex].length}\n`;
+      log += `Store Non-Zero Weight Hands: ${nonZeroWeights}\n`;
+      log += `Store Matrix First 10 Values: ${store.ranges[ipIndex].slice(0, 10).join(", ")}\n`;
+
       const sum = store.ranges[ipIndex].reduce((a, b) => a + b, 0);
-      log += `store权重总和: ${sum}\n`;
-      log += `store平均权重: ${sum / 169}\n`;
+      log += `Store Weight Sum: ${sum}\n`;
+      log += `Store Average Weight: ${sum / 169}\n`;
     } else {
-      log += `警告: IP范围索引 ${ipIndex} 不存在于store.ranges中!\n`;
+      log += `Warning: IP range index ${ipIndex} does not exist in store.ranges!\n`;
     }
 
     debugLogText.value = log;
     showDebugModal.value = true;
   } catch (error) {
-    debugLogText.value = `获取调试信息时出错: ${error}`;
+    debugLogText.value = `Error getting debug information: ${error}`;
     showDebugModal.value = true;
   }
 };
@@ -585,8 +585,8 @@ const handleSaveConfig = async () => {
     const oopCombos = await invokes.rangeNumCombos(0);
     const ipCombos = await invokes.rangeNumCombos(1);
     
-    console.log(`保存配置 - Board长度: ${boardLength}, OOP索引: ${oopIndex}, IP索引: ${ipIndex}`);
-    console.log(`保存配置 - OOP组合数: ${oopCombos}, IP组合数: ${ipCombos}`);
+    console.log(`Save Config - Board Length: ${boardLength}, OOP Index: ${oopIndex}, IP Index: ${ipIndex}`);
+    console.log(`Save Config - OOP Combos: ${oopCombos}, IP Combos: ${ipCombos}`);
     
     // 检查store.ranges数组是否足够长
     while (mainStore.ranges.length <= Math.max(oopIndex, ipIndex)) {
@@ -598,24 +598,24 @@ const handleSaveConfig = async () => {
     const oopMatrix = await invokes.rangeGetWeights(0);
     const ipMatrix = await invokes.rangeGetWeights(1);
     
-    console.log(`保存配置 - 获取到OOP权重矩阵长度: ${oopMatrix.length}`);
-    console.log(`保存配置 - 获取到IP权重矩阵长度: ${ipMatrix.length}`);
+    console.log(`Save Config - Got OOP weight matrix length: ${oopMatrix.length}`);
+    console.log(`Save Config - Got IP weight matrix length: ${ipMatrix.length}`);
     
     // 确保获取到了有效的权重矩阵
     if (oopMatrix && oopMatrix.length === 13*13) {
       // 复制权重数据
       mainStore.ranges[oopIndex] = [...oopMatrix];
-      console.log(`保存配置 - 已更新OOP范围矩阵到索引 ${oopIndex}`);
+      console.log(`Save Config - Updated OOP range matrix at index ${oopIndex}`);
     } else {
-      console.warn(`保存配置 - 无法获取有效的OOP权重矩阵`);
+      console.warn(`Save Config - Unable to get valid OOP weight matrix`);
     }
     
     if (ipMatrix && ipMatrix.length === 13*13) {
       // 复制权重数据
       mainStore.ranges[ipIndex] = [...ipMatrix];
-      console.log(`保存配置 - 已更新IP范围矩阵到索引 ${ipIndex}`);
+      console.log(`Save Config - Updated IP range matrix at index ${ipIndex}`);
     } else {
-      console.warn(`保存配置 - 无法获取有效的IP权重矩阵`);
+      console.warn(`Save Config - Unable to get valid IP weight matrix`);
     }
     
     // 创建包含所有需要保存的配置的对象
@@ -674,17 +674,17 @@ const handleSaveConfig = async () => {
     // 记录日志 - 检查范围数据是否有效
     const oopRangeHasData = mainStore.ranges[oopIndex] && mainStore.ranges[oopIndex].some(w => w > 0);
     const ipRangeHasData = mainStore.ranges[ipIndex] && mainStore.ranges[ipIndex].some(w => w > 0);
-    console.log(`保存配置 - OOP范围有数据: ${oopRangeHasData}, IP范围有数据: ${ipRangeHasData}`);
+    console.log(`Save Config - OOP range has data: ${oopRangeHasData}, IP range has data: ${ipRangeHasData}`);
     
     // 调用 Tauri 保存对话框
     const result = await showSaveConfigDialog(configJson);
     
     if (result) {
       configSaveError.value = result;
-      console.error(`保存配置失败: ${result}`);
+      console.error(`Save config failed: ${result}`);
     } else {
       configSaveSuccess.value = true;
-      console.log("保存配置成功!");
+      console.log("Save config successful!");
       
       // 3秒后自动清除成功状态
       setTimeout(() => {
@@ -693,7 +693,7 @@ const handleSaveConfig = async () => {
     }
   } catch (error) {
     configSaveError.value = String(error);
-    console.error(`保存配置出错: ${error}`);
+    console.error(`Save config error: ${error}`);
   }
 };
 
@@ -709,7 +709,7 @@ const handleLoadConfig = async () => {
     
     if (typeof result === 'string') {
       configLoadError.value = result;
-      console.error(`加载配置失败: ${result}`);
+      console.error(`Config load failed: ${result}`);
     } else {
       // 解析 JSON 配置
       const configData = JSON.parse(result.configData);
@@ -723,7 +723,7 @@ const handleLoadConfig = async () => {
       const oopIndex = boardLength >= 3 ? 2 : 0;
       const ipIndex = boardLength >= 3 ? 3 : 1;
       
-      console.log(`加载配置 - Board长度: ${boardLength}, OOP索引: ${oopIndex}, IP索引: ${ipIndex}`);
+      console.log(`Load Config - Board Length: ${boardLength}, OOP Index: ${oopIndex}, IP Index: ${ipIndex}`);
       
       // 更新主要配置
       configStore.$patch({
@@ -771,7 +771,7 @@ const handleLoadConfig = async () => {
                                configData.rangeStrings.oop && 
                                configData.rangeStrings.ip;
                               
-        console.log(`加载配置 - 是否有范围字符串: ${useRangeStrings}`);
+        console.log(`Load Config - Has range strings: ${useRangeStrings}`);
         
         // 更新 Rust 端的范围数据
         try {
@@ -781,27 +781,27 @@ const handleLoadConfig = async () => {
           
           // 首先尝试使用保存的范围字符串（如果有）
           if (useRangeStrings) {
-            console.log("使用保存的范围字符串加载范围数据");
+            console.log("Using saved range strings to load range data");
             
             // 使用范围字符串更新OOP范围
             const oopResult = await invokes.rangeFromString(0, configData.rangeStrings.oop);
             if (oopResult) {
-              console.warn(`更新OOP范围警告: ${oopResult}`);
+              console.warn(`Update OOP range warning: ${oopResult}`);
             } else {
-              console.log("成功从字符串更新OOP范围");
+              console.log("Successfully updated OOP range from string");
             }
             
             // 使用范围字符串更新IP范围
             const ipResult = await invokes.rangeFromString(1, configData.rangeStrings.ip);
             if (ipResult) {
-              console.warn(`更新IP范围警告: ${ipResult}`);
+              console.warn(`Update IP range warning: ${ipResult}`);
             } else {
-              console.log("成功从字符串更新IP范围");
+              console.log("Successfully updated IP range from string");
             }
           }
           // 如果没有范围字符串或者加载失败，使用权重矩阵
           else {
-            console.log("使用权重矩阵加载范围数据");
+            console.log("Using weight matrix to load range data");
             
             // 检查OOP范围数据
             if (configData.ranges[oopIndex] && configData.ranges[oopIndex].length === 13*13) {
@@ -809,7 +809,7 @@ const handleLoadConfig = async () => {
               const hasNonZeroWeights = configData.ranges[oopIndex].some(w => w > 0);
               
               if (hasNonZeroWeights) {
-                console.log("OOP范围数据有效，从矩阵重建范围");
+                console.log("OOP range data is valid, reconstructing range from matrix");
                 
                 // 从一维数组构建范围字符串
                 const oopWeights = configData.ranges[oopIndex];
@@ -856,27 +856,27 @@ const handleLoadConfig = async () => {
                   oopRangeStr = oopRangeStr.substring(0, oopRangeStr.length - 1);
                 }
                 
-                console.log(`OOP范围字符串: ${oopRangeStr.length > 100 ? oopRangeStr.substring(0, 100) + '...' : oopRangeStr}`);
-                
+                console.log(`OOP Range String: ${oopRangeStr.length > 100 ? oopRangeStr.substring(0, 100) + '...' : oopRangeStr}`);
+
                 // 如果没有可用范围，添加一个默认的
                 if (oopRangeStr === "") {
                   oopRangeStr = "AA";  // 至少添加一手牌
-                  console.log("警告: OOP范围为空，添加默认范围 AA");
+                  console.log("Warning: OOP range is empty, adding default range AA");
                 }
                 
                 // 使用字符串更新OOP范围
                 const oopResult = await invokes.rangeFromString(0, oopRangeStr);
                 if (oopResult) {
-                  console.warn(`更新OOP范围警告: ${oopResult}`);
+                  console.warn(`Update OOP range warning: ${oopResult}`);
                 } else {
-                  console.log("成功从矩阵重建OOP范围");
+                  console.log("Successfully reconstructed OOP range from matrix");
                 }
               } else {
-                console.warn("OOP范围数据全为零，使用默认范围AA");
+                console.warn("OOP range data is all zeros, using default range AA");
                 await invokes.rangeFromString(0, "AA");
               }
             } else {
-              console.warn("OOP范围数据无效或不存在，使用默认范围AA");
+              console.warn("OOP range data is invalid or does not exist, using default range AA");
               await invokes.rangeFromString(0, "AA");
             }
             
@@ -886,7 +886,7 @@ const handleLoadConfig = async () => {
               const hasNonZeroWeights = configData.ranges[ipIndex].some(w => w > 0);
               
               if (hasNonZeroWeights) {
-                console.log("IP范围数据有效，从矩阵重建范围");
+                console.log("IP range data is valid, reconstructing range from matrix");
                 
                 // 从一维数组构建范围字符串  
                 const ipWeights = configData.ranges[ipIndex];
@@ -933,27 +933,27 @@ const handleLoadConfig = async () => {
                   ipRangeStr = ipRangeStr.substring(0, ipRangeStr.length - 1);
                 }
                 
-                console.log(`IP范围字符串: ${ipRangeStr.length > 100 ? ipRangeStr.substring(0, 100) + '...' : ipRangeStr}`);
-                
+                console.log(`IP Range String: ${ipRangeStr.length > 100 ? ipRangeStr.substring(0, 100) + '...' : ipRangeStr}`);
+
                 // 如果没有可用范围，添加一个默认的
                 if (ipRangeStr === "") {
                   ipRangeStr = "AA";  // 至少添加一手牌
-                  console.log("警告: IP范围为空，添加默认范围 AA");
+                  console.log("Warning: IP range is empty, adding default range AA");
                 }
                 
                 // 使用字符串更新IP范围
                 const ipResult = await invokes.rangeFromString(1, ipRangeStr);
                 if (ipResult) {
-                  console.warn(`更新IP范围警告: ${ipResult}`);
+                  console.warn(`Update IP range warning: ${ipResult}`);
                 } else {
-                  console.log("成功从矩阵重建IP范围");
+                  console.log("Successfully reconstructed IP range from matrix");
                 }
               } else {
-                console.warn("IP范围数据全为零，使用默认范围AA");
+                console.warn("IP range data is all zeros, using default range AA");
                 await invokes.rangeFromString(1, "AA");
               }
             } else {
-              console.warn("IP范围数据无效或不存在，使用默认范围AA");
+              console.warn("IP range data is invalid or does not exist, using default range AA");
               await invokes.rangeFromString(1, "AA");
             }
           }
@@ -961,10 +961,10 @@ const handleLoadConfig = async () => {
           // 验证更新是否成功
           const oopCombos = await invokes.rangeNumCombos(0);
           const ipCombos = await invokes.rangeNumCombos(1);
-          console.log(`范围更新完成 - OOP组合数: ${oopCombos}, IP组合数: ${ipCombos}`);
-          
+          console.log(`Range update completed - OOP Combos: ${oopCombos}, IP Combos: ${ipCombos}`);
+
           if (oopCombos === 0 || ipCombos === 0) {
-            console.error("范围更新失败，没有有效组合，使用默认范围");
+            console.error("Range update failed, no valid combos, using default ranges");
             if (oopCombos === 0) await invokes.rangeFromString(0, "AA");
             if (ipCombos === 0) await invokes.rangeFromString(1, "AA");
           }
@@ -977,20 +977,20 @@ const handleLoadConfig = async () => {
             
             if (updatedOopMatrix && updatedOopMatrix.length === 13*13) {
               mainStore.ranges[oopIndex] = [...updatedOopMatrix];
-              console.log("已从后端更新OOP范围矩阵");
+              console.log("Updated OOP range matrix from backend");
             }
-            
+
             if (updatedIpMatrix && updatedIpMatrix.length === 13*13) {
               mainStore.ranges[ipIndex] = [...updatedIpMatrix];
-              console.log("已从后端更新IP范围矩阵");
+              console.log("Updated IP range matrix from backend");
             }
           } catch (e) {
-            console.error(`获取更新后的范围权重失败: ${e}`);
+            console.error(`Failed to get updated range weights: ${e}`);
           }
           
         } catch (error) {
-          console.error(`更新范围数据失败: ${error}`);
-          configLoadError.value = `更新范围数据失败: ${error}`;
+          console.error(`Failed to update range data: ${error}`);
+          configLoadError.value = `Failed to update range data: ${error}`;
           return; // 出错时提前返回
         }
       }
@@ -1004,14 +1004,14 @@ const handleLoadConfig = async () => {
       }
       
       configLoadSuccess.value = true;
-      console.log("配置加载成功!");
-      
+      console.log("Config loaded successfully!");
+
       // 尝试自动构建游戏树
       try {
         // 检查RunSolver组件是否已存在
         const runSolverInstance = document.querySelector('.solver-container');
         if (runSolverInstance) {
-          console.log("即将自动构建游戏树...");
+          console.log("About to auto-build game tree...");
           
           // 如果不在RunSolver视图，切换到RunSolver视图
           if (store.sideView !== 'run-solver') {
@@ -1026,11 +1026,11 @@ const handleLoadConfig = async () => {
             });
             document.dispatchEvent(buildTreeEvent);
             
-            console.log("已触发自动构建树事件");
+            console.log("Auto-build tree event triggered");
           }, 500);
         }
       } catch (e) {
-        console.error(`自动构建树失败: ${e}`);
+        console.error(`Auto-build tree failed: ${e}`);
       }
       
       // 3秒后自动清除成功状态
@@ -1040,7 +1040,7 @@ const handleLoadConfig = async () => {
     }
   } catch (error) {
     configLoadError.value = String(error);
-    console.error(`加载配置出错: ${error}`);
+    console.error(`Config load error: ${error}`);
   }
 };
 
@@ -1101,7 +1101,7 @@ const handleLoadBin = async () => {
         const configInfo = await invokes.gameGetConfigInfo();
         
         // 打印调试信息，确认从二进制文件加载的配置信息正确
-        console.log("从二进制文件加载的游戏配置:", {
+        console.log("Game config loaded from binary file:", {
           board: configInfo.board.map(card => card),
           startingPot: configInfo.starting_pot,
           effectiveStack: configInfo.effective_stack
@@ -1132,7 +1132,7 @@ const handleLoadBin = async () => {
         }, 3000);
       } catch (configError) {
         console.error("Failed to get game config info:", configError);
-        store.lastLoadError = `加载成功但获取配置失败: ${configError}`;
+        store.lastLoadError = `Load successful but failed to get config: ${configError}`;
       }
     }
   } catch (error) {
@@ -1142,16 +1142,16 @@ const handleLoadBin = async () => {
   }
 };
 
-// 修改状态信息获取函数
+// Modify status message function
 const getStatusMessage = () => {
-  if (store.lastSaveSuccess) return "保存方案成功！";
-  if (store.lastLoadSuccess) return "加载方案成功！";
-  if (configSaveSuccess.value) return "保存配置成功！";
-  if (configLoadSuccess.value) return "加载配置成功！";
-  if (store.lastSaveError) return `保存方案失败: ${store.lastSaveError}`;
-  if (store.lastLoadError) return `加载方案失败: ${store.lastLoadError}`;
-  if (configSaveError.value) return `保存配置失败: ${configSaveError.value}`;
-  if (configLoadError.value) return `加载配置失败: ${configLoadError.value}`;
+  if (store.lastSaveSuccess) return "Solution saved successfully!";
+  if (store.lastLoadSuccess) return "Solution loaded successfully!";
+  if (configSaveSuccess.value) return "Configuration saved successfully!";
+  if (configLoadSuccess.value) return "Configuration loaded successfully!";
+  if (store.lastSaveError) return `Failed to save solution: ${store.lastSaveError}`;
+  if (store.lastLoadError) return `Failed to load solution: ${store.lastLoadError}`;
+  if (configSaveError.value) return `Failed to save configuration: ${configSaveError.value}`;
+  if (configLoadError.value) return `Failed to load configuration: ${configLoadError.value}`;
   return "";
 };
 
@@ -1164,59 +1164,59 @@ const testRangeImportExport = async () => {
       log += msg + "\n";
     };
     
-    addLog("### 范围导入导出测试 ###\n");
-    
+    addLog("### Range Import Export Test ###\n");
+
     // 获取当前实际的范围字符串
-    const currentOopRangeStr = await invokes.rangeToString(0); 
+    const currentOopRangeStr = await invokes.rangeToString(0);
     const currentIpRangeStr = await invokes.rangeToString(1);
-    
+
     // 备份当前范围的矩阵
     const originalOopWeights = await invokes.rangeGetWeights(0);
     const originalIpWeights = await invokes.rangeGetWeights(1);
-    
-    addLog(`当前OOP范围: "${currentOopRangeStr}"`);
-    addLog(`当前IP范围: "${currentIpRangeStr}"`);
+
+    addLog(`Current OOP Range: "${currentOopRangeStr}"`);
+    addLog(`Current IP Range: "${currentIpRangeStr}"`);
     addLog("------------------------------\n");
-    
+
     // ===== 测试OOP范围 =====
-    addLog("===== 测试OOP范围 =====");
+    addLog("===== Testing OOP Range =====");
     
-    // 1. 清空OOP范围
+        // 1. 清空OOP范围
     await invokes.rangeClear(0);
-    addLog("1. 清空OOP范围");
-    
+    addLog("1. Clear OOP Range");
+
     // 2. 设置测试范围 - 使用当前实际范围
-    addLog(`2. 设置OOP范围为 "${currentOopRangeStr}"`);
+    addLog(`2. Set OOP Range to "${currentOopRangeStr}"`);
     let result = await invokes.rangeFromString(0, currentOopRangeStr);
     if (result) {
-      addLog(`测试失败: 无法设置OOP测试范围: ${result}`);
+      addLog(`Test Failed: Unable to set OOP test range: ${result}`);
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
-    
+
     // 3. 从后端获取范围权重矩阵
     const oopWeights = await invokes.rangeGetWeights(0);
     if (!oopWeights || oopWeights.length !== 13*13) {
-      addLog(`测试失败: 无法获取OOP权重矩阵，长度: ${oopWeights ? oopWeights.length : 'undefined'}`);
+      addLog(`Test Failed: Unable to get OOP weight matrix, length: ${oopWeights ? oopWeights.length : 'undefined'}`);
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
-    
+
     // 4. 检查权重矩阵中是否有值
     const oopNonZeroWeights = oopWeights.filter(w => w > 0).length;
-    addLog(`4. OOP权重矩阵中非零权重数: ${oopNonZeroWeights}`);
-    
+    addLog(`4. Number of non-zero weights in OOP matrix: ${oopNonZeroWeights}`);
+
     if (oopNonZeroWeights === 0) {
-      addLog("测试失败: OOP权重矩阵全为零");
+      addLog("Test Failed: OOP weight matrix is all zeros");
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
     
     // 打印一些权重矩阵的详细信息，帮助调试
-    addLog("\nOOP矩阵详细信息:");
+    addLog("\nOOP Matrix Details:");
     // 找出所有非零权重的位置
     const oopNonZeroPositions = [];
     for (let i = 0; i < 13; i++) {
@@ -1232,29 +1232,29 @@ const testRangeImportExport = async () => {
     
     // 5. 获取范围字符串表示
     const oopRangeStr = await invokes.rangeToString(0);
-    addLog(`\n5. OOP范围字符串表示为: "${oopRangeStr}"`);
-    
+    addLog(`\n5. OOP Range String Representation: "${oopRangeStr}"`);
+
     // 6. 生成一个临时保存对象并转换为json
     const oopTestConfig = {
       ranges: [oopWeights]
     };
     const oopTestJson = JSON.stringify(oopTestConfig);
-    addLog("6. 生成OOP临时保存对象并转换为JSON");
-    
+    addLog("6. Generate OOP temporary save object and convert to JSON");
+
     // 7. 模拟从json加载
     const oopParsedConfig = JSON.parse(oopTestJson);
-    addLog("7. 模拟从JSON加载OOP范围");
-    
+    addLog("7. Simulate loading OOP range from JSON");
+
     // 8. 清空范围
     await invokes.rangeClear(0);
-    addLog("8. 再次清空OOP范围");
-    
+    addLog("8. Clear OOP Range again");
+
     // 9. 从矩阵重建范围
     const ranks = "AKQJT98765432";
     let oopRebuiltRangeStr = "";
-    
+
     // 提取权重矩阵的详细信息
-    addLog("\nOOP权重矩阵重建信息:");
+    addLog("\nOOP Weight Matrix Reconstruction Info:");
     const oopMatrixInfo = [];
     for (let i = 0; i < 13; i++) {
       for (let j = 0; j < 13; j++) {
@@ -1269,15 +1269,15 @@ const testRangeImportExport = async () => {
           let combo;
           if (i === j) {
             combo = `${rank1}${rank2}`; // 对子
-            oopMatrixInfo.push(`对子[${i},${j}]: ${combo}, weight=${weight}`);
+            oopMatrixInfo.push(`Pair[${i},${j}]: ${combo}, weight=${weight}`);
           } else if (i < j) { // 同花
             combo = `${rank1}${rank2}s`; // 同花
-            oopMatrixInfo.push(`同花[${i},${j}]: ${combo}, weight=${weight}`);
+            oopMatrixInfo.push(`Suited[${i},${j}]: ${combo}, weight=${weight}`);
           } else { // 异花 (i > j)
             // 确保高牌值在前面 - 由于ranks是"AKQJT98765432"，较小的索引代表较大的牌值
             // 在i > j的情况下，rank2实际上是更高牌值，所以需要交换顺序
             combo = `${rank2}${rank1}o`; // 异花，确保高牌值在前
-            oopMatrixInfo.push(`异花[${i},${j}]: ${combo}, weight=${weight}`);
+            oopMatrixInfo.push(`Offsuit[${i},${j}]: ${combo}, weight=${weight}`);
           }
           
           // 添加到范围字符串
@@ -1295,39 +1295,39 @@ const testRangeImportExport = async () => {
       oopRebuiltRangeStr = oopRebuiltRangeStr.substring(0, oopRebuiltRangeStr.length - 1);
     }
     
-    addLog(`\n9. 从矩阵重建的OOP范围字符串: "${oopRebuiltRangeStr}"`);
-    
+    addLog(`\n9. Reconstructed OOP Range String from Matrix: "${oopRebuiltRangeStr}"`);
+
     // 10. 使用重建的范围字符串更新范围
     const oopRebuildResult = await invokes.rangeFromString(0, oopRebuiltRangeStr);
     if (oopRebuildResult) {
-      addLog(`测试失败: 重建OOP范围时出错: ${oopRebuildResult}`);
+      addLog(`Test Failed: Error rebuilding OOP range: ${oopRebuildResult}`);
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
-    addLog("10. 使用重建的范围字符串更新OOP范围成功");
-    
+    addLog("10. Successfully updated OOP range using reconstructed range string");
+
     // 11. 获取重建后的范围字符串
     const oopFinalRangeStr = await invokes.rangeToString(0);
-    addLog(`11. 最终OOP范围字符串: "${oopFinalRangeStr}"`);
-    
+    addLog(`11. Final OOP Range String: "${oopFinalRangeStr}"`);
+
     // 12. 获取组合数
     const oopOriginalCombos = oopNonZeroWeights / 169 * 1326; // 近似值
     const oopFinalCombos = await invokes.rangeNumCombos(0);
-    addLog(`12. 原始OOP范围组合数(估计): ${oopOriginalCombos.toFixed(1)}, 重建后组合数: ${oopFinalCombos}`);
-    
+    addLog(`12. Original OOP Range Combos (estimated): ${oopOriginalCombos.toFixed(1)}, After Reconstruction: ${oopFinalCombos}`);
+
     // ===== 测试IP范围 =====
-    addLog("\n\n===== 测试IP范围 =====");
+    addLog("\n\n===== Testing IP Range =====");
     
     // 1. 清空IP范围
     await invokes.rangeClear(1);
-    addLog("1. 清空IP范围");
-    
+    addLog("1. Clear IP Range");
+
     // 2. 设置测试范围 - 使用当前实际范围
-    addLog(`2. 设置IP范围为 "${currentIpRangeStr}"`);
+    addLog(`2. Set IP Range to "${currentIpRangeStr}"`);
     result = await invokes.rangeFromString(1, currentIpRangeStr);
     if (result) {
-      addLog(`测试失败: 无法设置IP测试范围: ${result}`);
+      addLog(`Test Failed: Unable to set IP test range: ${result}`);
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
@@ -1336,25 +1336,25 @@ const testRangeImportExport = async () => {
     // 3. 从后端获取范围权重矩阵
     const ipWeights = await invokes.rangeGetWeights(1);
     if (!ipWeights || ipWeights.length !== 13*13) {
-      addLog(`测试失败: 无法获取IP权重矩阵，长度: ${ipWeights ? ipWeights.length : 'undefined'}`);
+      addLog(`Test Failed: Unable to get IP weight matrix, length: ${ipWeights ? ipWeights.length : 'undefined'}`);
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
-    
+
     // 4. 检查权重矩阵中是否有值
     const ipNonZeroWeights = ipWeights.filter(w => w > 0).length;
-    addLog(`4. IP权重矩阵中非零权重数: ${ipNonZeroWeights}`);
-    
+    addLog(`4. Number of non-zero weights in IP matrix: ${ipNonZeroWeights}`);
+
     if (ipNonZeroWeights === 0) {
-      addLog("测试失败: IP权重矩阵全为零");
+      addLog("Test Failed: IP weight matrix is all zeros");
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
-    
+
     // 打印一些权重矩阵的详细信息，帮助调试
-    addLog("\nIP矩阵详细信息:");
+    addLog("\nIP Matrix Details:");
     // 找出所有非零权重的位置
     const ipNonZeroPositions = [];
     for (let i = 0; i < 13; i++) {
@@ -1370,28 +1370,28 @@ const testRangeImportExport = async () => {
     
     // 5. 获取范围字符串表示
     const ipRangeStr = await invokes.rangeToString(1);
-    addLog(`\n5. IP范围字符串表示为: "${ipRangeStr}"`);
-    
+    addLog(`\n5. IP Range String Representation: "${ipRangeStr}"`);
+
     // 6. 生成一个临时保存对象并转换为json
     const ipTestConfig = {
       ranges: [ipWeights]
     };
     const ipTestJson = JSON.stringify(ipTestConfig);
-    addLog("6. 生成IP临时保存对象并转换为JSON");
-    
+    addLog("6. Generate IP temporary save object and convert to JSON");
+
     // 7. 模拟从json加载
     const ipParsedConfig = JSON.parse(ipTestJson);
-    addLog("7. 模拟从JSON加载IP范围");
-    
+    addLog("7. Simulate loading IP range from JSON");
+
     // 8. 清空范围
     await invokes.rangeClear(1);
-    addLog("8. 再次清空IP范围");
-    
+    addLog("8. Clear IP Range again");
+
     // 9. 从矩阵重建范围
     let ipRebuiltRangeStr = "";
-    
+
     // 提取权重矩阵的详细信息
-    addLog("\nIP权重矩阵重建信息:");
+    addLog("\nIP Weight Matrix Reconstruction Info:");
     const ipMatrixInfo = [];
     for (let i = 0; i < 13; i++) {
       for (let j = 0; j < 13; j++) {
@@ -1406,15 +1406,15 @@ const testRangeImportExport = async () => {
           let combo;
           if (i === j) {
             combo = `${rank1}${rank2}`; // 对子
-            ipMatrixInfo.push(`对子[${i},${j}]: ${combo}, weight=${weight}`);
+            ipMatrixInfo.push(`Pair[${i},${j}]: ${combo}, weight=${weight}`);
           } else if (i < j) { // 同花
             combo = `${rank1}${rank2}s`; // 同花
-            ipMatrixInfo.push(`同花[${i},${j}]: ${combo}, weight=${weight}`);
+            ipMatrixInfo.push(`Suited[${i},${j}]: ${combo}, weight=${weight}`);
           } else { // 异花 (i > j)
             // 确保高牌值在前面 - 由于ranks是"AKQJT98765432"，较小的索引代表较大的牌值
             // 在i > j的情况下，rank2实际上是更高牌值，所以需要交换顺序
             combo = `${rank2}${rank1}o`; // 异花，确保高牌值在前
-            ipMatrixInfo.push(`异花[${i},${j}]: ${combo}, weight=${weight}`);
+            ipMatrixInfo.push(`Offsuit[${i},${j}]: ${combo}, weight=${weight}`);
           }
           
           // 添加到范围字符串
@@ -1432,29 +1432,29 @@ const testRangeImportExport = async () => {
       ipRebuiltRangeStr = ipRebuiltRangeStr.substring(0, ipRebuiltRangeStr.length - 1);
     }
     
-    addLog(`\n9. 从矩阵重建的IP范围字符串: "${ipRebuiltRangeStr}"`);
-    
+    addLog(`\n9. Reconstructed IP Range String from Matrix: "${ipRebuiltRangeStr}"`);
+
     // 10. 使用重建的范围字符串更新范围
     const ipRebuildResult = await invokes.rangeFromString(1, ipRebuiltRangeStr);
     if (ipRebuildResult) {
-      addLog(`测试失败: 重建IP范围时出错: ${ipRebuildResult}`);
+      addLog(`Test Failed: Error rebuilding IP range: ${ipRebuildResult}`);
       debugLogText.value = log;
       showDebugModal.value = true;
       return;
     }
-    addLog("10. 使用重建的范围字符串更新IP范围成功");
-    
+    addLog("10. Successfully updated IP range using reconstructed range string");
+
     // 11. 获取重建后的范围字符串
     const ipFinalRangeStr = await invokes.rangeToString(1);
-    addLog(`11. 最终IP范围字符串: "${ipFinalRangeStr}"`);
-    
+    addLog(`11. Final IP Range String: "${ipFinalRangeStr}"`);
+
     // 12. 获取组合数
     const ipOriginalCombos = ipNonZeroWeights / 169 * 1326; // 近似值
     const ipFinalCombos = await invokes.rangeNumCombos(1);
-    addLog(`12. 原始IP范围组合数(估计): ${ipOriginalCombos.toFixed(1)}, 重建后组合数: ${ipFinalCombos}`);
-    
+    addLog(`12. Original IP Range Combos (estimated): ${ipOriginalCombos.toFixed(1)}, After Reconstruction: ${ipFinalCombos}`);
+
     // ===== 测试结果汇总 =====
-    addLog("\n\n===== 测试结果汇总 =====");
+    addLog("\n\n===== Test Results Summary =====");
     
     // 判断OOP测试是否成功
     const oopTestSuccess = oopFinalCombos > 0;
@@ -1464,66 +1464,66 @@ const testRangeImportExport = async () => {
     const overallTestSuccess = oopTestSuccess && ipTestSuccess;
     
     // 显示OOP测试结果
-    addLog("OOP范围测试结果:");
-    addLog(`原始范围: "${currentOopRangeStr}"`);
-    addLog(`转换后范围: "${oopRangeStr}"`);
-    addLog(`重建范围: "${oopRebuiltRangeStr.length > 100 ? oopRebuiltRangeStr.substring(0, 100) + '...' : oopRebuiltRangeStr}"`);
-    addLog(`最终范围: "${oopFinalRangeStr}"`);
-    addLog(`原始组合数(估计): ${oopOriginalCombos.toFixed(1)}`);
-    addLog(`最终组合数: ${oopFinalCombos}`);
-    
+    addLog("OOP Range Test Results:");
+    addLog(`Original Range: "${currentOopRangeStr}"`);
+    addLog(`Converted Range: "${oopRangeStr}"`);
+    addLog(`Reconstructed Range: "${oopRebuiltRangeStr.length > 100 ? oopRebuiltRangeStr.substring(0, 100) + '...' : oopRebuiltRangeStr}"`);
+    addLog(`Final Range: "${oopFinalRangeStr}"`);
+    addLog(`Original Combos (estimated): ${oopOriginalCombos.toFixed(1)}`);
+    addLog(`Final Combos: ${oopFinalCombos}`);
+
     // 检查OOP范围是否匹配
     const oopRangesMatch = oopRangeStr === oopFinalRangeStr;
-    addLog(`原始范围与最终范围匹配: ${oopRangesMatch ? "是" : "否"}`);
-    addLog(`测试结果: ${oopTestSuccess ? "成功" : "失败"}`);
-    
+    addLog(`Original Range Matches Final Range: ${oopRangesMatch ? "Yes" : "No"}`);
+    addLog(`Test Result: ${oopTestSuccess ? "Success" : "Failed"}`);
+
     // 显示IP测试结果
-    addLog("\nIP范围测试结果:");
-    addLog(`原始范围: "${currentIpRangeStr}"`);
-    addLog(`转换后范围: "${ipRangeStr}"`);
-    addLog(`重建范围: "${ipRebuiltRangeStr.length > 100 ? ipRebuiltRangeStr.substring(0, 100) + '...' : ipRebuiltRangeStr}"`);
-    addLog(`最终范围: "${ipFinalRangeStr}"`);
-    addLog(`原始组合数(估计): ${ipOriginalCombos.toFixed(1)}`);
-    addLog(`最终组合数: ${ipFinalCombos}`);
-    
+    addLog("\nIP Range Test Results:");
+    addLog(`Original Range: "${currentIpRangeStr}"`);
+    addLog(`Converted Range: "${ipRangeStr}"`);
+    addLog(`Reconstructed Range: "${ipRebuiltRangeStr.length > 100 ? ipRebuiltRangeStr.substring(0, 100) + '...' : ipRebuiltRangeStr}"`);
+    addLog(`Final Range: "${ipFinalRangeStr}"`);
+    addLog(`Original Combos (estimated): ${ipOriginalCombos.toFixed(1)}`);
+    addLog(`Final Combos: ${ipFinalCombos}`);
+
     // 检查IP范围是否匹配
     const ipRangesMatch = ipRangeStr === ipFinalRangeStr;
-    addLog(`原始范围与最终范围匹配: ${ipRangesMatch ? "是" : "否"}`);
-    addLog(`测试结果: ${ipTestSuccess ? "成功" : "失败"}`);
-    
+    addLog(`Original Range Matches Final Range: ${ipRangesMatch ? "Yes" : "No"}`);
+    addLog(`Test Result: ${ipTestSuccess ? "Success" : "Failed"}`);
+
     // 总体测试结果
-    addLog("\n总体测试结果: " + (overallTestSuccess ? "成功" : "失败"));
+    addLog("\nOverall Test Result: " + (overallTestSuccess ? "Success" : "Failed"));
     
     if (overallTestSuccess) {
-      addLog("\n范围导入导出功能测试通过!");
-      
+      addLog("\nRange Import Export Function Test Passed!");
+
       if (!oopRangesMatch || !ipRangesMatch) {
-        addLog("注意: 虽然范围数据有效，但转换后格式与原始格式不完全匹配");
-        addLog("这通常是因为同一范围可以有不同的表示方式 (如 '22+' 与 'AA,KK,...,22')");
+        addLog("Note: Although range data is valid, converted format does not exactly match original format");
+        addLog("This is usually because the same range can have different representations (e.g., '22+' vs 'AA,KK,...,22')");
       }
     } else {
-      addLog("\n范围导入导出功能测试失败!");
+      addLog("\nRange Import Export Function Test Failed!");
     }
-    
+
     // 最后，恢复原始范围
-    addLog("\n\n===== 恢复原始范围 =====");
-    
+    addLog("\n\n===== Restoring Original Ranges =====");
+
     // 恢复OOP范围
     await invokes.rangeClear(0);
     await invokes.rangeFromString(0, currentOopRangeStr);
-    addLog(`已恢复OOP范围: "${currentOopRangeStr}"`);
-    
+    addLog(`Restored OOP Range: "${currentOopRangeStr}"`);
+
     // 恢复IP范围
     await invokes.rangeClear(1);
     await invokes.rangeFromString(1, currentIpRangeStr);
-    addLog(`已恢复IP范围: "${currentIpRangeStr}"`);
-    
+    addLog(`Restored IP Range: "${currentIpRangeStr}"`);
+
     debugLogText.value = log;
     showDebugModal.value = true;
-    
+
   } catch (error) {
-    console.error(`测试出错: ${error}`);
-    debugLogText.value = `测试范围导入导出功能出错: ${error}`;
+    console.error(`Test error: ${error}`);
+    debugLogText.value = `Error testing range import export function: ${error}`;
     showDebugModal.value = true;
   }
 };
