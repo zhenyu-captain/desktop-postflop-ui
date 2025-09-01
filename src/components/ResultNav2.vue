@@ -338,6 +338,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: "update:is-handler-updated", value: boolean): void;
   (event: "update:is-locked", value: boolean): void;
+  (event: "state-changed", navState: any): void;
   (
     event: "trigger-update",
     selectedSpot: Spot | null,
@@ -353,6 +354,18 @@ const navDiv = ref<HTMLDivElement | null>(null);
 
 const config = useSavedConfigStore();
 const { isHandlerUpdated, dealtCard } = toRefs(props);
+
+// 发射状态变化事件的工具函数
+const emitStateChanged = () => {
+  try {
+    const navState = exportCurrentState();
+    if (navState) {
+      emit('state-changed', navState);
+    }
+  } catch (error) {
+    console.warn('Failed to emit state-changed event:', error);
+  }
+};
 
 const spots = ref<Spot[]>([]);
 const rates = ref<number[] | null>(null);
@@ -632,6 +645,9 @@ const selectSpot = async (
     chanceReports,
     totalBetAmount
   );
+
+  // emit state changed for auto-save
+  emitStateChanged();
 
   // scroll to selected spot
   await nextTick();

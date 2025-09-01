@@ -68,6 +68,7 @@
             :dealt-card="getTabData(tab.id, 'dealtCard', -1)"
             @update:is-handler-updated="(value) => setTabData(tab.id, 'isHandlerUpdated', value)"
             @update:is-locked="(value) => setTabData(tab.id, 'isLocked', value)"
+            @state-changed="onNavStateChanged"
             @trigger-update="(selectedSpot, selectedChance, currentBoard, results, chanceReports, totalBetAmount) => 
               onUpdateSpot(tab.id, selectedSpot, selectedChance, currentBoard, results, chanceReports, totalBetAmount)"
           />
@@ -300,7 +301,7 @@
           <button @click="refreshDebugInfo" class="refresh-button">🔄 刷新状态</button>
           <button @click="testSaveAllTabs" class="test-button">💾 测试保存所有标签页</button>
           <button @click="testRestoreCurrentTab" class="test-button">📥 测试恢复当前标签页</button>
-          <button @click="testSaveCurrentTabNav" class="test-button" title="保存当前标签页的导航状态（需在切换标签页后使用）">💾 保存导航状态</button>
+          <button @click="testSaveCurrentTabNav" class="test-button" title="手动保存当前活跃标签页的导航状态（兜底功能，正常情况下会自动保存）">💾 手动保存</button>
           <button @click="checkRefsStatus" class="test-button">🔍 检查引用状态</button>
           <button @click="exportTabDebugData" class="export-button">📤 导出调试数据</button>
           <button @click="clearAllTabStates" class="clear-button">🗑️ 清除所有状态</button>
@@ -442,7 +443,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from "vue";
+import { computed, ref, watch, nextTick, onUnmounted } from "vue";
 import { useStore, useSavedConfigStore } from "../store";
 import * as invokes from "../invokes";
 
@@ -756,6 +757,10 @@ const restoreTabNavState = async (tabId: string) => {
       // 恢复导航状态
       navRef.importState(tabData.navState);
       console.log(`Successfully restored navigation state for tab ${tabId}`);
+      
+      // 恢复后触发保存，刷新 lastSavedAt 时间戳
+      await nextTick();
+      scheduleAutoSave(tabId);
     } else {
       console.log(`Cannot restore navigation state for tab ${tabId}, triggering reinitialize`);
       // 如果没有保存的导航状态或引用无效，触发重新初始化
@@ -821,6 +826,115 @@ const switchingLock = ref(false);
 
 // 自动保存锁，防止重复触发
 const autoSaveLock = ref(new Set<string>());
+
+// 去抖保存机制
+const autoSaveTimers = ref(new Map<string, NodeJS.Timeout>());
+
+// 页面关闭前兜底保存
+const saveAllTabsBeforeUnload = async () => {
+  console.log('🔄 Saving all tabs before page unload...');
+  const savePromises: Promise<boolean>[] = [];
+  
+  for (const [tabId] of tabsData.value) {
+    const navRef = navRefs.value.get(tabId);
+    if (navRef && typeof navRef.exportCurrentState === 'function') {
+      savePromises.push(saveNavStateByTabId(tabId));
+    }
+  }
+  
+  try {
+    const results = await Promise.all(savePromises);
+    const savedCount = results.filter(success => success).length;
+    console.log(`✅ Saved ${savedCount}/${results.length} tabs before unload`);
+  } catch (error) {
+    console.error('❌ Error saving tabs before unload:', error);
+  }
+};
+
+// 去抖自动保存函数
+const scheduleAutoSave = (tabId?: string) => {
+  const targetTabId = tabId || currentActiveTabId.value;
+  if (!targetTabId) return;
+
+  // 清除之前的定时器
+  const existingTimer = autoSaveTimers.value.get(targetTabId);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  // 设置新的定时器（300ms 去抖）
+  const timer = setTimeout(async () => {
+    console.log(`🔄 Auto-saving navigation state for tab: ${targetTabId}`);
+    addDebugLog('info', `自动保存导航状态: ${targetTabId}`);
+    
+    try {
+      const success = await saveNavStateByTabId(targetTabId);
+      if (success) {
+        console.log(`✅ Auto-saved navigation state for tab: ${targetTabId}`);
+        addDebugLog('success', `自动保存成功: ${targetTabId}`);
+      } else {
+        console.warn(`⚠️ Auto-save failed for tab: ${targetTabId}`);
+        addDebugLog('warning', `自动保存失败: ${targetTabId}`);
+      }
+    } catch (error) {
+      console.error(`❌ Auto-save error for tab ${targetTabId}:`, error);
+      addDebugLog('error', `自动保存错误: ${targetTabId} - ${error}`);
+    } finally {
+      // 清理定时器
+      autoSaveTimers.value.delete(targetTabId);
+    }
+  }, 300);
+
+  autoSaveTimers.value.set(targetTabId, timer);
+  console.log(`⏰ Scheduled auto-save for tab ${targetTabId} in 300ms`);
+};
+
+// 处理导航状态变化事件
+const onNavStateChanged = (navState: any) => {
+  const activeTabId = currentActiveTabId.value;
+  if (!activeTabId) return;
+
+  console.log(`🔔 Navigation state changed for tab ${activeTabId}:`, {
+    spotsCount: navState?.spots?.length || 0,
+    selectedSpotIndex: navState?.selectedSpotIndex,
+    selectedChanceIndex: navState?.selectedChanceIndex,
+  });
+
+  // 触发去抖保存
+  scheduleAutoSave(activeTabId);
+};
+
+/* 生命周期管理 */
+
+// 页面加载时设置 beforeunload 监听器
+if (typeof window !== 'undefined') {
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    // 同步保存所有标签页（浏览器限制异步操作）
+    try {
+      for (const [tabId] of tabsData.value) {
+        const navRef = navRefs.value.get(tabId);
+        const tabData = tabsData.value.get(tabId);
+        if (navRef && typeof navRef.exportCurrentState === 'function' && tabData) {
+          const navState = navRef.exportCurrentState();
+          if (navState && Array.isArray(navState.spots)) {
+            tabData.navState = navState;
+            tabData.lastSavedAt = new Date();
+          }
+        }
+      }
+      console.log('✅ Synchronously saved all tabs before unload');
+    } catch (error) {
+      console.error('❌ Error in beforeunload save:', error);
+    }
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // 清理函数（在组件卸载时移除监听器）
+  onUnmounted(() => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  });
+}
 
 // 幂等的工具函数：确保活跃标签页的导航状态已保存
 const ensureActiveTabNavStateSaved = async (tabId: string) => {
@@ -1010,6 +1124,9 @@ const onUpdateSpot = (
     hasResults: !!newResults,
     navigationHistory: tabData.navigationHistory
   });
+
+  // 触发去抖自动保存（兜底机制）
+  scheduleAutoSave(tabId);
 };
 
 /* 标签页显示模式和选项管理 */
