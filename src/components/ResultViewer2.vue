@@ -273,6 +273,11 @@
             <h4 class="font-semibold text-yellow-800 mb-2">⚡ 增强用户体验</h4>
             <p class="text-yellow-700">标签页可以重命名、复制、关闭，支持快捷键操作。右键菜单提供更多管理选项，包括关闭其他标签页、关闭所有标签页等便捷功能。</p>
           </div>
+
+          <div class="bg-orange-50 border-l-4 border-orange-400 p-4">
+            <h4 class="font-semibold text-orange-800 mb-2">🔧 已知问题</h4>
+            <p class="text-orange-700">首次加载时导航状态可能显示为"可保存但未保存"。解决方案：在多标签页状态调试器中点击"💾 保存导航状态"按钮，或切换到其他标签页再切换回来即可解决。</p>
+          </div>
         </div>
       </div>
       <div class="p-4 border-t border-gray-200 flex justify-end">
@@ -295,6 +300,8 @@
           <button @click="refreshDebugInfo" class="refresh-button">🔄 刷新状态</button>
           <button @click="testSaveAllTabs" class="test-button">💾 测试保存所有标签页</button>
           <button @click="testRestoreCurrentTab" class="test-button">📥 测试恢复当前标签页</button>
+          <button @click="testSaveCurrentTabNav" class="test-button" title="保存当前标签页的导航状态（需在切换标签页后使用）">💾 保存导航状态</button>
+          <button @click="checkRefsStatus" class="test-button">🔍 检查引用状态</button>
           <button @click="exportTabDebugData" class="export-button">📤 导出调试数据</button>
           <button @click="clearAllTabStates" class="clear-button">🗑️ 清除所有状态</button>
         </div>
@@ -345,8 +352,8 @@
                   <div v-if="tabsData.has(tab.id)" class="tab-state-details">
                     <div class="debug-row">
                       <span>导航状态:</span>
-                      <span :class="getTabData(tab.id, 'navState') ? 'status-good' : 'status-warning'">
-                        {{ getTabData(tab.id, 'navState') ? '✅ 已保存' : '⚠️ 未保存' }}
+                      <span :class="getTabNavStateStatus(tab.id).class">
+                        {{ getTabNavStateStatus(tab.id).text }}
                       </span>
                     </div>
                     
@@ -576,6 +583,7 @@ const initTabData = async (tabId: string, cards?: number[][]) => {
       
       // 导航历史和状态持久化
       navigationHistory: null,
+      navState: null,  // 导航状态（由 ResultNav2 导出的完整状态）
       lastSavedAt: new Date(),
       
       // 标签页元数据
@@ -627,34 +635,50 @@ const saveCurrentTabNavState = async () => {
     console.log('No active tab to save state for');
     return;
   }
-  
+
   try {
     const tabId = currentActiveTabId.value;
     const navRef = getNavRef(tabId);
     const tabData = tabsData.value.get(tabId);
-    
+
     console.log(`Attempting to save navigation state for tab ${tabId}:`, {
       hasNavRef: !!navRef,
       hasExportMethod: !!(navRef?.exportCurrentState),
       hasTabData: !!tabData
     });
-    
+
     if (navRef && typeof navRef.exportCurrentState === 'function' && tabData) {
       const navState = navRef.exportCurrentState();
-      
-      if (navState && navState.spots) {
+
+      console.log(`Navigation state exported for tab ${tabId}:`, {
+        hasNavState: !!navState,
+        hasSpots: !!(navState?.spots),
+        spotsCount: navState?.spots?.length || 0,
+        spotsArray: navState?.spots,
+        selectedSpotIndex: navState?.selectedSpotIndex,
+        selectedChanceIndex: navState?.selectedChanceIndex,
+        exportedAt: navState?.exportedAt,
+        hasRates: !!(navState?.rates)
+      });
+
+      if (navState && Array.isArray(navState.spots)) {
         tabData.navState = navState;
         tabData.lastSavedAt = new Date();
-        
+
         console.log(`Successfully saved navigation state for tab ${tabId}:`, {
-          spotsCount: navState.spots?.length || 0,
+          spotsCount: navState.spots.length,
           selectedSpotIndex: navState.selectedSpotIndex,
           selectedChanceIndex: navState.selectedChanceIndex,
           exportedAt: navState.exportedAt,
           hasRates: !!navState.rates
         });
       } else {
-        console.warn(`Invalid navigation state exported for tab ${tabId}:`, navState);
+        console.warn(`Invalid navigation state exported for tab ${tabId}:`, {
+          navState,
+          hasSpots: !!(navState?.spots),
+          spotsIsArray: Array.isArray(navState?.spots),
+          spotsCount: navState?.spots?.length
+        });
       }
     } else {
       console.warn(`Cannot save navigation state for tab ${tabId}:`, {
@@ -765,14 +789,22 @@ const setTabData = (tabId: string, key: string, value: any) => {
 const setNavRef = (tabId: string, ref: any) => {
   if (ref) {
     navRefs.value.set(tabId, ref);
-    const refInfo = {
-      hasExportMethod: typeof ref.exportCurrentState === 'function',
-      hasImportMethod: typeof ref.importState === 'function',
-      refType: typeof ref
-    };
+    console.log(`Set navigation ref for tab ${tabId}`);
+    addDebugLog('info', `设置导航引用: ${tabId}`);
     
-    console.log(`Set navigation ref for tab ${tabId}:`, refInfo);
-    addDebugLog('info', `设置导航引用 ${tabId}: 导出方法=${refInfo.hasExportMethod}, 导入方法=${refInfo.hasImportMethod}`);
+    // 如果当前没有活跃标签页，设置为这个标签页
+    if (!currentActiveTabId.value) {
+      currentActiveTabId.value = tabId;
+      console.log(`Set initial active tab: ${tabId}`);
+      addDebugLog('info', `设置初始活跃标签页: ${tabId}`);
+    }
+    
+    // 在组件真正"可导出"的节点，尝试自动保存活跃标签页的导航状态
+    nextTick(() => {
+      setTimeout(() => {
+        ensureActiveTabNavStateSaved(tabId);
+      }, 50); // 短暂延迟确保组件完全初始化
+    });
   } else {
     // 清除引用
     navRefs.value.delete(tabId);
@@ -788,6 +820,56 @@ const getNavRef = (tabId: string) => {
 
 // 防止并发切换的锁
 const switchingLock = ref(false);
+
+// 自动保存锁，防止重复触发
+const autoSaveLock = ref(new Set<string>());
+
+// 幂等的工具函数：确保活跃标签页的导航状态已保存
+const ensureActiveTabNavStateSaved = async (tabId: string) => {
+  // 防重复触发
+  if (autoSaveLock.value.has(tabId)) {
+    return;
+  }
+
+  // 仅当该 tabId 是当前活跃标签页时处理
+  if (tabId !== currentActiveTabId.value) {
+    return;
+  }
+
+  const tabData = tabsData.value.get(tabId);
+  const navRef = navRefs.value.get(tabId);
+
+  // 仅当存在 navRef.exportCurrentState 且该 tab 还没有 navState 时，自动保存
+  if (navRef && 
+      typeof navRef.exportCurrentState === 'function' && 
+      tabData && 
+      !tabData.navState) {
+    
+    console.log(`🔄 Auto-ensuring nav state saved for active tab: ${tabId}`);
+    autoSaveLock.value.add(tabId);
+    
+    try {
+      const navState = navRef.exportCurrentState();
+      if (navState && Array.isArray(navState.spots)) {
+        tabData.navState = navState;
+        tabData.lastSavedAt = new Date();
+        console.log(`✅ Auto-saved navigation state for tab ${tabId}:`, {
+          spotsCount: navState.spots.length,
+          selectedSpotIndex: navState.selectedSpotIndex,
+          selectedChanceIndex: navState.selectedChanceIndex,
+        });
+        addDebugLog('success', `自动保存导航状态: ${tabId}`);
+      }
+    } catch (error) {
+      console.error(`❌ Auto-save failed for tab ${tabId}:`, error);
+    } finally {
+      // 短暂延迟后移除锁，允许后续保存
+      setTimeout(() => {
+        autoSaveLock.value.delete(tabId);
+      }, 1000);
+    }
+  }
+};
 
 // 标签页事件处理
 const onTabSwitched = async (tabId: string, tab: TabData) => {
@@ -832,6 +914,12 @@ const onTabSwitched = async (tabId: string, tab: TabData) => {
     
     addDebugLog('success', `标签页切换成功: ${tabId}`);
     console.log(`Successfully switched to tab: ${tabId}`);
+    
+    // 在切换完成后，确保当前活跃标签页的导航状态已保存
+    await nextTick();
+    setTimeout(() => {
+      ensureActiveTabNavStateSaved(tabId);
+    }, 100); // 稍长的延迟确保恢复操作完成
     
   } catch (error) {
     const errorMsg = `标签页切换失败 ${tabId}: ${error}`;
@@ -1047,6 +1135,44 @@ const formatTime = (date: Date | string | undefined) => {
   });
 };
 
+// 获取标签页导航状态的显示信息
+const getTabNavStateStatus = (tabId: string) => {
+  const tabData = tabsData.value.get(tabId);
+  const navRef = navRefs.value.get(tabId);
+  const navState = tabData?.navState;
+  
+  // 如果有导航状态且spots是数组（无论是否为空），说明已保存
+  if (navState && Array.isArray(navState.spots)) {
+    const spotsCount = navState.spots.length;
+    return {
+      class: 'status-good',
+      text: spotsCount > 0 ? `✅ 已保存 (${spotsCount} spots)` : '✅ 已保存 (初始状态)'
+    };
+  }
+  
+  // 如果有导航引用但没有保存状态，说明可以保存但尚未保存
+  if (navRef && typeof navRef.exportCurrentState === 'function') {
+    return {
+      class: 'status-warning',
+      text: '⚠️ 可保存但未保存'
+    };
+  }
+  
+  // 如果没有导航引用，说明组件还未准备好
+  if (!navRef) {
+    return {
+      class: 'status-bad',
+      text: '❌ 导航组件未就绪'
+    };
+  }
+  
+  // 默认情况
+  return {
+    class: 'status-warning',
+    text: '⚠️ 状态未知'
+  };
+};
+
 // 调试功能方法
 const refreshDebugInfo = () => {
   addDebugLog('info', '手动刷新调试信息');
@@ -1115,25 +1241,122 @@ const testRestoreCurrentTab = async () => {
   }
 };
 
+const checkRefsStatus = () => {
+  const currentTabId = currentActiveTabId.value;
+  addDebugLog('info', `开始检查引用状态: 活跃标签页=${currentTabId}`);
+
+  console.log('🔍 完整的引用状态检查:');
+  console.log('='.repeat(50));
+
+  // 检查所有标签页
+  const allTabs = tabManager.value?.tabs || [];
+  console.log(`📊 总标签页数量: ${allTabs.length}`);
+  console.log(`📊 navRefs数量: ${(navRefs.value as Map<string, any>).size}`);
+  console.log(`📊 tabsData数量: ${(tabsData.value as Map<string, any>).size}`);
+  console.log(`📊 当前活跃标签页: ${currentTabId || '无'}`);
+  console.log('');
+
+  for (const tab of allTabs) {
+    const tabId = tab.id;
+    const navRef = navRefs.value.get(tabId);
+    const tabData = tabsData.value.get(tabId);
+
+    console.log(`📋 标签页 ${tabId} (${tab.name}):`);
+    console.log(`  - 数据存在: ${!!tabData ? '✅' : '❌'}`);
+    console.log(`  - 导航引用: ${!!navRef ? '✅' : '❌'}`);
+
+    if (navRef) {
+      console.log(`  - 导出方法: ${!!navRef.exportCurrentState ? '✅' : '❌'}`);
+      console.log(`  - 导入方法: ${!!navRef.importState ? '✅' : '❌'}`);
+      console.log(`  - 引用类型: ${typeof navRef}`);
+      console.log(`  - 方法列表:`, Object.getOwnPropertyNames(navRef));
+    }
+
+    if (tabData) {
+      console.log(`  - navState: ${!!tabData.navState ? '✅' : '❌'}`);
+      if (tabData.navState) {
+        console.log(`  - spots数组: ${Array.isArray(tabData.navState.spots) ? '✅' : '❌'}`);
+        console.log(`  - spots数量: ${tabData.navState.spots?.length || 0}`);
+        console.log(`  - 选中Spot: ${tabData.navState.selectedSpotIndex ?? '无'}`);
+        console.log(`  - 选中Chance: ${tabData.navState.selectedChanceIndex ?? '无'}`);
+      }
+    }
+
+    console.log(`  - 状态判断:`, getTabNavStateStatus(tabId));
+    console.log('');
+  }
+
+  console.log('='.repeat(50));
+  addDebugLog('success', '引用状态检查完成，请查看控制台输出');
+};
+
+
+
+const testSaveCurrentTabNav = async () => {
+  if (!currentActiveTabId.value) {
+    addDebugLog('warning', '没有当前活跃标签页可以测试保存');
+    return;
+  }
+
+  const tabId = currentActiveTabId.value;
+  addDebugLog('info', `开始测试保存当前标签页导航状态: ${tabId}`);
+
+  // 添加延迟确保组件完全加载
+  await nextTick();
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // 检查导航引用是否存在
+  const navRef = getNavRef(tabId);
+  if (!navRef) {
+    addDebugLog('error', `导航引用不存在，无法保存状态`);
+    console.error(`Navigation ref not found for tab ${tabId}`);
+    return;
+  }
+
+  // 添加额外的状态检查
+  if (typeof navRef.exportCurrentState !== 'function') {
+    addDebugLog('error', `导航组件导出方法不可用`);
+    console.error(`Export method not available for tab ${tabId}`);
+    return;
+  }
+
+  const tabData = tabsData.value.get(tabId);
+  if (!tabData) {
+    addDebugLog('error', `标签页数据不存在，无法保存状态`);
+    console.error(`Tab data not found for tab ${tabId}`);
+    return;
+  }
+
+  console.log(`导航引用调试信息:`, {
+    tabId,
+    hasNavRef: !!navRef,
+    hasExportMethod: !!(navRef?.exportCurrentState),
+    hasImportMethod: !!(navRef?.importState),
+    navRefsKeys: Array.from(navRefs.value.keys()),
+    tabDataExists: !!tabData,
+    navRefsCount: navRefs.value.size
+  });
+
+  try {
+    await saveCurrentTabNavState();
+    addDebugLog('success', `标签页 ${tabId} 导航状态保存测试完成`);
+
+    // 强制刷新状态显示
+    refreshDebugInfo();
+  } catch (error) {
+    addDebugLog('error', `标签页 ${tabId} 导航状态保存测试失败: ${error}`);
+  }
+};
+
 const exportTabDebugData = async () => {
   try {
-    const debugData = {
-      timestamp: new Date().toISOString(),
-      currentActiveTabId: currentActiveTabId.value,
-      switchingLock: switchingLock.value,
-      tabsCount: tabManager.value?.tabs?.length || 0,
-      dataCount: tabsData.size,
-      refsCount: navRefs.size,
-      tabs: [],
-      logs: debugLogs.value,
-    };
-    
+    const tabsInfo = [];
     // 收集每个标签页的详细信息
     for (const tab of tabManager.value?.tabs || []) {
       const tabData = tabsData.value.get(tab.id);
       const navRef = navRefs.value.get(tab.id);
-      
-      debugData.tabs.push({
+
+      tabsInfo.push({
         id: tab.id,
         name: tab.name,
         hasData: !!tabData,
@@ -1147,7 +1370,18 @@ const exportTabDebugData = async () => {
         hasResults: !!tabData?.results,
       });
     }
-    
+
+    const debugData = {
+      timestamp: new Date().toISOString(),
+      currentActiveTabId: currentActiveTabId.value,
+      switchingLock: switchingLock.value,
+      tabsCount: tabManager.value?.tabs?.length || 0,
+      dataCount: (tabsData.value as Map<string, any>).size,
+      refsCount: (navRefs.value as Map<string, any>).size,
+      tabs: tabsInfo,
+      logs: debugLogs.value,
+    };
+
     const content = JSON.stringify(debugData, null, 2);
     await navigator.clipboard.writeText(content);
     addDebugLog('success', '调试数据已复制到剪贴板');
@@ -1167,6 +1401,9 @@ const clearAllTabStates = () => {
 
 // Collect all relevant data in a single JSON object
 const debugData = computed(() => {
+  const currentTabId = currentActiveTabId.value;
+  const currentTabData = currentTabId ? tabsData.value.get(currentTabId) : null;
+
   return {
     // Store data
     store: {
@@ -1179,96 +1416,37 @@ const debugData = computed(() => {
     },
     // Component state
     componentState: {
-      isHandlerUpdated: isHandlerUpdated.value,
-      isLocked: isLocked.value,
-      cards: cards.value,
-      dealtCard: dealtCard.value,
-      displayMode: displayMode.value,
-      chanceMode: chanceMode.value,
-      displayOptions: displayOptions.value,
-      copySuccess: copySuccess.value,
+      enhancedMode: enhancedMode.value,
+      showVersionInfo: showVersionInfo.value,
+      currentActiveTabId: currentActiveTabId.value,
+      tabsDataCount: tabsData.value.size,
+      navRefsCount: navRefs.value.size,
+      switchingLock: switchingLock.value,
     },
-    // Data flow records
-    dataFlow: {
-      toResultNav: {
-        isHandlerUpdated: isHandlerUpdated.value,
-        isLocked: isLocked.value,
-        cards: cards.value,
-        dealtCard: dealtCard.value,
-      },
-      fromResultNav: {
-        onTriggerUpdateReceived: {
-          selectedSpot: selectedSpot.value,
-          selectedChance: selectedChance.value,
-          currentBoard: currentBoard.value,
-          results: results.value,
-          chanceReports: chanceReports.value,
-          totalBetAmount: totalBetAmount.value,
-        }
-      },
-      toResultMiddle: {
-        displayMode: displayMode.value,
-        chanceMode: chanceMode.value,
-        autoPlayerBasics: autoPlayerBasics.value,
-        autoPlayerChance: autoPlayerChance.value,
-        copySuccess: copySuccess.value,
-      },
-      toResultBasics: {
-        cards: cards.value,
-        selectedSpot: selectedSpot.value,
-        selectedChance: selectedChance.value,
-        currentBoard: currentBoard.value,
-        totalBetAmount: totalBetAmount.value,
-        results: results.value,
-        displayOptions: displayOptions.value,
-        displayPlayer: displayPlayerBasics.value,
-        isCompareMode: displayMode.value === 'compare',
-      },
-      toResultTable: {
-        cards: cards.value,
-        selectedSpot: selectedSpot.value,
-        results: results.value,
-        displayPlayer: displayPlayerBasics.value,
-        hoverContent: basicsHoverContent.value,
-        tableBarWidth: displayOptions.value.barWidth,
-        tableDisplayContent: displayOptions.value.actionContent,
-      },
-      toResultGraphs: {
-        cards: cards.value,
-        selectedSpot: selectedSpot.value,
-        selectedChance: selectedChance.value,
-        results: results.value,
-        chanceReports: chanceReports.value,
-        displayOptions: displayOptions.value,
-        displayPlayer: displayPlayerBasics.value,
-      },
-      toResultCompare: {
-        selectedSpot: selectedSpot.value,
-        selectedChance: selectedChance.value,
-        results: results.value,
-      },
-      toResultChance: {
-        selectedSpot: selectedSpot.value,
-        selectedChance: selectedChance.value,
-        chanceReports: chanceReports.value,
-        displayOptions: displayOptions.value,
-        displayPlayer: displayPlayerChance.value,
-      },
-    },
-    // Raw data objects
-    rawData: {
-      selectedSpot: selectedSpot.value,
-      selectedChance: selectedChance.value,
-      currentBoard: currentBoard.value,
-      results: results.value,
-      chanceReports: chanceReports.value,
-      totalBetAmount: totalBetAmount.value,
-      basicsHoverContent: basicsHoverContent.value,
-    },
+    // Current tab data
+    currentTabData: currentTabData ? {
+      id: currentTabData.name || currentTabId,
+      displayMode: currentTabData.displayMode,
+      hasResults: !!currentTabData.results,
+      hasNavState: !!currentTabData.navState,
+      spotsCount: currentTabData.navState?.spots?.length || 0,
+      selectedSpotIndex: currentTabData.navState?.selectedSpotIndex,
+      selectedChanceIndex: currentTabData.navState?.selectedChanceIndex,
+      lastSavedAt: currentTabData.lastSavedAt,
+    } : null,
+    // All tabs data
+    allTabsData: Array.from((tabsData.value as Map<string, any>).entries()).map(([tabId, data]) => ({
+      id: tabId,
+      name: data.name,
+      hasNavState: !!data.navState,
+      spotsCount: data.navState?.spots?.length || 0,
+      hasResults: !!data.results,
+      displayMode: data.displayMode,
+    })),
     // Debug metadata
     meta: {
       timestamp: new Date().toISOString(),
-      version: "1.0.0",
+      version: "2.0.0",
     }
   };
 });
