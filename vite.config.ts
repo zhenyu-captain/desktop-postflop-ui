@@ -22,5 +22,18 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    // ensure proper base path for Tauri
+    outDir: "dist",
+    assetsDir: "assets",
+    // ensure assets are properly referenced
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]"
+      }
+    }
   },
+  // ensure proper base path
+  base: "./",
 });
