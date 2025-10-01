@@ -18,9 +18,20 @@ use postflop_solver::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 use std::sync::Mutex;
 use sysinfo::{System, SystemExt};
+use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            // 在release模式下也打开DevTools
+            #[cfg(not(debug_assertions))]
+            {
+                let window = app.get_window("main").unwrap();
+                window.open_devtools();
+                println!("DevTools已在release模式下打开");
+            }
+            Ok(())
+        })
         .manage(Mutex::new(RangeManager::default()))
         .manage(Mutex::new(default_action_tree()))
         .manage(Mutex::new(None as Option<BunchingData>))
@@ -79,7 +90,9 @@ fn main() {
             get_complete_decision_path,
             log_to_console,
             save_config_to_file,
-            load_config_from_file
+            load_config_from_file,
+            write_log_to_file,
+            get_log_file_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -137,3 +150,45 @@ fn load_config_from_file(file_path: String) -> Result<String, String> {
     std::fs::read_to_string(&file_path)
         .map_err(|e| format!("Failed to load config file: {}", e))
 }
+
+/// 获取日志文件路径
+#[tauri::command]
+fn get_log_file_path() -> Result<String, String> {
+    // 获取应用数据目录
+    let app_data_dir = dirs::data_dir()
+        .ok_or("无法获取应用数据目录")?
+        .join("desktop-postflop-ui")
+        .join("logs");
+    
+    // 确保目录存在
+    std::fs::create_dir_all(&app_data_dir)
+        .map_err(|e| format!("无法创建日志目录: {}", e))?;
+    
+    // 生成日志文件名（包含日期）
+    let now = chrono::Local::now();
+    let log_filename = format!("solver-{}.log", now.format("%Y-%m-%d"));
+    let log_path = app_data_dir.join(log_filename);
+    
+    Ok(log_path.to_string_lossy().to_string())
+}
+
+/// 写入日志到文件
+#[tauri::command]
+fn write_log_to_file(log_message: String) -> Result<(), String> {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    
+    let log_path = get_log_file_path()?;
+    
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .map_err(|e| format!("无法打开日志文件: {}", e))?;
+    
+    writeln!(file, "{}", log_message)
+        .map_err(|e| format!("无法写入日志文件: {}", e))?;
+    
+    Ok(())
+}
+

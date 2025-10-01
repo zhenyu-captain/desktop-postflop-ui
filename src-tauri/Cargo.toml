@@ -16,13 +16,16 @@ tauri-build = { version = "1.5.0", features = [] }
 [dependencies]
 serde_json = "1.0.107"
 serde = { version = "1.0.188", features = ["derive"] }
-tauri = { version = "1.5.0", features = ["dialog-open", "dialog-save", "fs-read-file", "fs-write-file", "shell-open"] }
+tauri = { version = "1.5.0", features = ["dialog-open", "dialog-save", "fs-read-file", "fs-write-file", "shell-open", "devtools"] }
 # 原 git 依赖方式（作为备用）
 # postflop-solver = { git = "https://zhenyu-captain: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@github.com/zhenyu-captain/postflop-solver.git", features = ["custom-alloc"] }
 # 使用本地路径依赖
 postflop-solver = { path = "vendor/postflop-solver", features = ["custom-alloc"] }
 rayon = "1.8.0"
 sysinfo = "0.29.10"
+dirs = "5.0"
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
 
 [features]
 # by default Tauri runs in production mode

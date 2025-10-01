@@ -12,6 +12,7 @@
   },
   "tauri": {
     "allowlist": {
+      "all": false,
       "dialog": { "open": true, "save": true },
       "fs": { "readFile": true, "writeFile": true },
       "shell": { "open": "^https://github.com/" }
@@ -59,6 +60,7 @@
     "windows": [
       {
         "title": "OptimalPoker Pro",
+        "label": "main",
         "width": 1500,
         "height": 810,
         "minWidth": 1080,

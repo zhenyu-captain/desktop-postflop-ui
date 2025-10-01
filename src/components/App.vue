@@ -1529,9 +1529,10 @@ const testRangeImportExport = async () => {
 };
 
 // 生命周期方法
-onMounted(() => {
+onMounted(async () => {
   updateClientHeight();
   window.addEventListener("resize", updateClientHeight);
+  
 });
 </script>
 

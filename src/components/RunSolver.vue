@@ -82,6 +82,75 @@
         </button>
       </div>
 
+      <!-- 日志区域 -->
+      <div class="log-section mt-4 p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-semibold text-lg text-gray-800 dark:text-gray-200 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+            </svg>
+            Solver Log
+          </h4>
+          <div class="flex gap-2">
+            <button
+              class="px-3 py-1 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              @click="clearLogs"
+              :disabled="solverLogs.length === 0"
+            >
+              Clear
+            </button>
+            <button
+              class="px-3 py-1 text-sm rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              @click="exportLogs"
+              :disabled="solverLogs.length === 0"
+            >
+              Export
+            </button>
+            <button
+              class="px-3 py-1 text-sm rounded-lg bg-blue-200 dark:bg-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-300 dark:hover:bg-blue-600 transition-colors"
+              @click="openLogFile"
+              :disabled="!logFilePath"
+            >
+              Open Log File
+            </button>
+          </div>
+        </div>
+        
+        <div class="log-container bg-white dark:bg-gray-900 rounded-lg p-3 max-h-[300px] overflow-y-auto border border-gray-200 dark:border-gray-700">
+          <div v-if="solverLogs.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-4">
+            暂无日志记录
+          </div>
+          <div v-else class="space-y-1">
+            <div
+              v-for="(log, index) in solverLogs"
+              :key="index"
+              class="log-entry text-sm font-mono"
+              :class="{
+                'text-blue-600 dark:text-blue-400': log.type === 'info',
+                'text-green-600 dark:text-green-400': log.type === 'success',
+                'text-yellow-600 dark:text-yellow-400': log.type === 'warning',
+                'text-red-600 dark:text-red-400': log.type === 'error',
+                'text-gray-600 dark:text-gray-400': log.type === 'debug'
+              }"
+            >
+              <span class="text-gray-500 dark:text-gray-500">[{{ log.timestamp }}]</span>
+              <span class="ml-2">{{ log.message }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 日志文件路径信息 -->
+        <div v-if="logFilePath" class="mt-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs text-gray-600 dark:text-gray-400">
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+            </svg>
+            <span class="font-medium">日志文件路径:</span>
+            <span class="ml-1 font-mono break-all">{{ logFilePath }}</span>
+          </div>
+        </div>
+      </div>
+
       <div class="status-indicator my-2 py-1.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center">
         <div class="w-2 h-2 rounded-full mr-2" :class="{
           'bg-green-500': isTreeBuilt && !store.isSolverError,
@@ -477,7 +546,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
 import {
   useStore,
   useConfigStore,
@@ -625,6 +694,12 @@ const debugTreeInfo = ref('');
 const debugValidationResult = ref('');
 const debugValidationError = ref(false);
 
+// 添加日志系统相关的响应式变量
+const solverLogs = ref<Array<{timestamp: string, type: 'info' | 'success' | 'warning' | 'error' | 'debug', message: string}>>([]);
+const logFilePath = ref<string>('');
+const logQueue = ref<string[]>([]);
+let logWriteTimer: number | null = null;
+
 const numThreads = ref(navigator.hardwareConcurrency || 1);
 const targetExploitability = ref(0.3);
 const maxIterations = ref(1000);
@@ -715,19 +790,154 @@ const timeText = computed(() => {
   }
 });
 
+// 批量写入日志到文件（后台异步，完全不阻塞）
+const flushLogQueue = () => {
+  if (logQueue.value.length === 0) return;
+  
+  const logsToWrite = logQueue.value.join('\n');
+  logQueue.value = [];
+  
+  // 完全异步写入，不等待结果
+  Promise.resolve().then(() => {
+    invokes.writeLogToFile(logsToWrite).catch(error => {
+      console.error('写入日志文件时发生错误:', error);
+    });
+  });
+};
+
+// 写入原始日志到文件（用于console.log的内容）
+const writeRawLog = (message: string) => {
+  const timestamp = new Date().toLocaleTimeString('zh-CN', { 
+    hour12: false, 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    fractionalSecondDigits: 3
+  });
+  const logMessage = `[${timestamp}] ${message}`;
+  logQueue.value.push(logMessage);
+  
+  if (logQueue.value.length >= 20) {
+    flushLogQueue();
+  } else if (logWriteTimer === null) {
+    logWriteTimer = window.setTimeout(() => {
+      flushLogQueue();
+      logWriteTimer = null;
+    }, 2000) as any;
+  }
+};
+
+// 日志记录函数（立即返回，立即渲染）
+const addLog = (type: 'info' | 'success' | 'warning' | 'error' | 'debug', message: string) => {
+  const timestamp = new Date().toLocaleTimeString('zh-CN', { 
+    hour12: false, 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    fractionalSecondDigits: 3
+  });
+  
+  const logEntry = { timestamp, type, message };
+  
+  // 控制台输出并写入文件
+  const consoleMsg = `[${type.toUpperCase()}] ${message}`;
+  console.log(consoleMsg);
+  
+  // 立即添加到内存日志（立即渲染）
+  solverLogs.value.push(logEntry);
+  
+  // 限制日志数量
+  if (solverLogs.value.length > 500) {
+    solverLogs.value = solverLogs.value.slice(-500);
+  }
+  
+  // 添加到写入队列（后台处理）
+  const logMessage = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+  logQueue.value.push(logMessage);
+  
+  // 每收集20条或2秒后批量写入一次
+  if (logQueue.value.length >= 20) {
+    flushLogQueue();
+  } else if (logWriteTimer === null) {
+    logWriteTimer = window.setTimeout(() => {
+      flushLogQueue();
+      logWriteTimer = null;
+    }, 2000) as any;
+  }
+};
+
+// 清除日志
+const clearLogs = () => {
+  solverLogs.value = [];
+  addLog('info', '日志已清除');
+};
+
+// 导出日志
+const exportLogs = () => {
+  const logText = solverLogs.value.map(log => 
+    `[${log.timestamp}] [${log.type.toUpperCase()}] ${log.message}`
+  ).join('\n');
+  
+  const blob = new Blob([logText], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `solver-log-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  addLog('info', '日志已导出');
+};
+
+// 获取日志文件路径
+const getLogPath = async () => {
+  try {
+    logFilePath.value = await invokes.getLogFilePath();
+  } catch (error) {
+    console.error('获取日志文件路径失败:', error);
+  }
+};
+
+// 打开日志文件
+const openLogFile = async () => {
+  if (!logFilePath.value) {
+    addLog('warning', '日志文件路径未获取到');
+    return;
+  }
+  
+  try {
+    // 使用Tauri的shell API打开文件
+    const { open } = await import('@tauri-apps/api/shell');
+    await open(logFilePath.value);
+    addLog('info', '已打开日志文件');
+  } catch (error) {
+    console.error('打开日志文件失败:', error);
+    addLog('error', `打开日志文件失败: ${error}`);
+  }
+};
+
 const buildTree = async () => {
   isTreeBuilt.value = false;
+  addLog('info', '开始构建决策树...');
 
   const configError = checkConfig(config);
   if (configError !== null) {
     treeStatus.value = `Error: ${configError}`;
+    addLog('error', `配置验证失败: ${configError}`);
     return;
   }
 
+  addLog('success', '配置验证通过');
   saveConfigTmp();
+  addLog('info', '临时配置已保存');
+  
   isTreeBuilding.value = true;
   treeStatus.value = "Building tree...";
+  addLog('info', '正在构建决策树...');
 
+  addLog('info', '正在初始化游戏引擎...');
   const errorString = await invokes.gameInit(
     tmpConfig.board,
     tmpConfig.startingPot,
@@ -759,23 +969,35 @@ const buildTree = async () => {
   if (errorString) {
     isTreeBuilding.value = false;
     treeStatus.value = "Error: " + errorString;
+    addLog('error', `游戏引擎初始化失败: ${errorString}`);
     return;
   }
 
+  addLog('success', '游戏引擎初始化成功');
   saveConfig();
+  addLog('info', '配置已保存');
 
+  addLog('info', '正在计算内存使用情况...');
   [memoryUsageRaw.value, memoryUsageRawCompressed.value] =
     await invokes.gameMemoryUsage();
   memoryUsageBunching.value = await invokes.gameMemoryUsageBunching();
 
+  addLog('info', `内存使用情况 - 32位FP: ${(memoryUsageRaw.value / (1024 * 1024)).toFixed(0)}MB, 16位整数: ${(memoryUsageRawCompressed.value / (1024 * 1024)).toFixed(0)}MB`);
+  if (memoryUsageBunching.value > 0) {
+    addLog('info', `Bunching效果额外内存: ${(memoryUsageBunching.value / (1024 * 1024)).toFixed(0)}MB`);
+  }
+
   osName.value = await invokes.osName();
   [availableMemory.value, totalMemory.value] = await invokes.memory();
+  addLog('info', `系统信息 - 操作系统: ${osName.value}, 总内存: ${(totalMemory.value / (1024 * 1024 * 1024)).toFixed(2)}GB`);
 
   if (osName.value === "macos") {
     // available memory is not useful on macOS
     maxMemoryUsage.value = totalMemory.value * 0.7;
+    addLog('info', `macOS内存限制: ${(maxMemoryUsage.value / (1024 * 1024 * 1024)).toFixed(1)}GB (70% of total)`);
   } else {
     maxMemoryUsage.value = availableMemory.value;
+    addLog('info', `可用内存: ${(availableMemory.value / (1024 * 1024 * 1024)).toFixed(2)}GB`);
   }
 
   if (
@@ -783,61 +1005,147 @@ const buildTree = async () => {
     memoryUsageCompressed.value <= maxMemoryUsage.value
   ) {
     isCompressionEnabled.value = true;
+    addLog('warning', '内存使用超出限制，自动启用16位整数压缩模式');
   }
 
   isTreeBuilding.value = false;
   isTreeBuilt.value = true;
   treeStatus.value = "Successfully built tree";
+  addLog('success', '决策树构建完成！');
 
   store.isSolverRunning = false;
   store.isSolverPaused = false;
   store.isSolverFinished = false;
   store.isSolverError = false;
+  addLog('info', 'Solver状态已重置，准备运行');
 };
 
 const runSolver = async () => {
-  terminateFlag.value = false;
-  pauseFlag.value = false;
-  currentIteration.value = -1;
-  exploitability.value = Number.POSITIVE_INFINITY;
-  elapsedTimeMs.value = -1;
+  try {
+    addLog('info', '开始运行Solver...');
+    addLog('info', `Solver参数 - 线程数: ${numThreads.value}, 目标exploitability: ${targetExploitability.value}%, 最大迭代次数: ${maxIterations.value}`);
+    addLog('info', `精度模式: ${isCompressionEnabled.value ? '16位整数' : '32位FP'}`);
+    
+    terminateFlag.value = false;
+    pauseFlag.value = false;
+    currentIteration.value = -1;
+    exploitability.value = Number.POSITIVE_INFINITY;
+    elapsedTimeMs.value = -1;
 
-  store.isSolverRunning = true;
+    store.isSolverRunning = true;
+    const stateMsg1 = `[STATE] store.isSolverRunning = ${store.isSolverRunning}`;
+    console.log(stateMsg1);
+    writeRawLog(stateMsg1);
+    addLog('info', 'Solver状态设置为运行中');
+    
+    // 强制UI更新
+    await nextTick();
+    const stateMsg2 = '[STATE] nextTick完成，UI应该已更新';
+    console.log(stateMsg2);
+    writeRawLog(stateMsg2);
 
-  startTime = performance.now();
+    startTime = performance.now();
+    addLog('info', '开始计时');
 
-  await invokes.setNumThreads(numThreads.value);
-  await invokes.gameAllocateMemory(isCompressionEnabled.value);
-
-  if (store.isBunchingEnabled && store.bunchingFlop.length > 0) {
-    currentIteration.value = -2;
-    const errorString = await invokes.gameSetBunching();
-    if (errorString) {
-      solverErrorText.value = "Error: " + errorString;
-      store.isSolverRunning = false;
-      store.isSolverError = true;
-      return;
+    addLog('info', `设置线程数为: ${numThreads.value}`);
+    await invokes.setNumThreads(numThreads.value);
+    
+    // 强制让出到宏任务队列，确保渲染
+    await nextTick();
+    
+    addLog('info', `分配内存 - 压缩模式: ${isCompressionEnabled.value}`);
+    await nextTick(); // 让日志先渲染
+    
+    // 看门狗：检测Promise是否resolve
+    writeRawLog('[WATCHDOG] 调用gameAllocateMemory之前');
+    console.log('[WATCHDOG] 调用gameAllocateMemory之前');
+    try {
+      const allocPromise = invokes.gameAllocateMemory(isCompressionEnabled.value);
+      writeRawLog('[WATCHDOG] gameAllocateMemory Promise已创建');
+      console.log('[WATCHDOG] gameAllocateMemory Promise已创建');
+      
+      await allocPromise;
+      writeRawLog('[WATCHDOG] ⭐⭐⭐ ALLOC DONE THEN - Promise已resolve');
+      console.log('[WATCHDOG] ⭐⭐⭐ ALLOC DONE THEN - Promise已resolve');
+      addLog('info', '✅ 内存分配完成 (Promise已resolve)');
+    } catch (allocError) {
+      const errorMsg = `[ERROR] gameAllocateMemory异常: ${allocError}`;
+      console.error(errorMsg);
+      writeRawLog(errorMsg);
+      addLog('error', `内存分配异常: ${allocError}`);
+      throw allocError;
     }
+    
+    // 强制让出渲染机会
+    await nextTick();
+
+    if (store.isBunchingEnabled && store.bunchingFlop.length > 0) {
+      addLog('info', '正在设置Bunching效果...');
+      currentIteration.value = -2;
+      const errorString = await invokes.gameSetBunching();
+      if (errorString) {
+        solverErrorText.value = "Error: " + errorString;
+        store.isSolverRunning = false;
+        store.isSolverError = true;
+        addLog('error', `Bunching设置失败: ${errorString}`);
+        return;
+      }
+      addLog('success', 'Bunching效果设置成功');
+      await nextTick();
+    }
+
+    addLog('info', '正在计算初始exploitability...');
+    currentIteration.value = 0;
+    writeRawLog(`[STATE] currentIteration = ${currentIteration.value}`);
+    console.log('[STATE] currentIteration =', currentIteration.value);
+    await nextTick();
+    
+    addLog('debug', '调用gameExploitability...');
+    writeRawLog('[WATCHDOG] 调用gameExploitability之前');
+    console.log('[WATCHDOG] 调用gameExploitability之前');
+    exploitability.value = Math.max(await invokes.gameExploitability(), 0);
+    writeRawLog('[WATCHDOG] ⭐⭐⭐ EXPLOITABILITY DONE THEN - Promise已resolve');
+    console.log('[WATCHDOG] ⭐⭐⭐ EXPLOITABILITY DONE THEN - Promise已resolve');
+    writeRawLog(`[STATE] exploitability = ${exploitability.value}`);
+    console.log('[STATE] exploitability =', exploitability.value);
+    exploitabilityUpdated = true;
+    addLog('info', `初始exploitability: ${exploitability.value.toFixed(4)} (${((exploitability.value * 100) / config.startingPot).toFixed(2)}%)`);
+    
+    await nextTick();
+
+    addLog('info', '开始求解过程...');
+    await resumeSolver();
+  } catch (error) {
+    const errorMsg = `Solver运行错误: ${error}`;
+    writeRawLog(`[ERROR] ${errorMsg}`);
+    console.error('[ERROR]', errorMsg, error);
+    addLog('error', errorMsg);
+    store.isSolverRunning = false;
+    store.isSolverError = true;
+    solverErrorText.value = `Error: ${error}`;
+  } finally {
+    writeRawLog('[FINALLY] runSolver函数执行完毕');
+    console.log('[FINALLY] runSolver函数执行完毕');
   }
-
-  currentIteration.value = 0;
-  exploitability.value = Math.max(await invokes.gameExploitability(), 0);
-  exploitabilityUpdated = true;
-
-  await resumeSolver();
 };
 
 const resumeSolver = async () => {
+  addLog('info', '恢复Solver运行...');
   store.isSolverRunning = true;
   store.isSolverPaused = false;
 
   if (startTime === 0) {
     startTime = performance.now();
+    addLog('info', '重新开始计时');
     await invokes.setNumThreads(numThreads.value);
   }
 
   const target = (config.startingPot * targetExploitability.value) / 100;
+  addLog('info', `目标exploitability: ${target.toFixed(4)} (${targetExploitability.value}% of pot)`);
 
+  addLog('info', '开始迭代求解...');
+  writeRawLog(`[LOOP] 进入while循环 - terminate=${terminateFlag.value}, iter=${currentIteration.value}, maxIter=${maxIterations.value}, exploi=${exploitability.value}, target=${target}`);
+  
   while (
     !terminateFlag.value &&
     currentIteration.value < maxIterations.value &&
@@ -850,6 +1158,7 @@ const resumeSolver = async () => {
       pauseFlag.value = false;
       store.isSolverRunning = false;
       store.isSolverPaused = true;
+      addLog('warning', `Solver已暂停 - 当前迭代: ${currentIteration.value}, 当前exploitability: ${exploitability.value.toFixed(4)}`);
       return;
     }
 
@@ -860,27 +1169,89 @@ const resumeSolver = async () => {
     if (currentIteration.value % 10 === 0) {
       exploitability.value = Math.max(await invokes.gameExploitability(), 0);
       exploitabilityUpdated = true;
+      addLog('debug', `迭代 ${currentIteration.value}: exploitability = ${exploitability.value.toFixed(4)} (${((exploitability.value * 100) / config.startingPot).toFixed(2)}%)`);
     }
   }
+
+  writeRawLog(`[LOOP] 退出while循环 - terminate=${terminateFlag.value}, iter=${currentIteration.value}, exploi=${exploitability.value}, target=${target}`);
 
   if (!exploitabilityUpdated) {
     exploitability.value = Math.max(await invokes.gameExploitability(), 0);
   }
 
-  store.isSolverRunning = false;
-  store.isFinalizing = true;
+  // 检查终止原因
+  writeRawLog('[LOGIC] 检查终止原因...');
+  if (terminateFlag.value) {
+    addLog('warning', `Solver被用户终止 - 完成迭代: ${currentIteration.value}, 最终exploitability: ${exploitability.value.toFixed(4)}`);
+  } else if (currentIteration.value >= maxIterations.value) {
+    addLog('warning', `Solver达到最大迭代次数限制 - 完成迭代: ${currentIteration.value}, 最终exploitability: ${exploitability.value.toFixed(4)}`);
+  } else {
+    addLog('success', `Solver达到目标exploitability - 完成迭代: ${currentIteration.value}, 最终exploitability: ${exploitability.value.toFixed(4)}`);
+  }
 
+  writeRawLog('[LOGIC] 终止原因检查完成，准备设置状态...');
+  store.isSolverRunning = false;
+  writeRawLog('[STATE] store.isSolverRunning = false');
+  
+  store.isFinalizing = true;
+  writeRawLog('[STATE] store.isFinalizing = true');
+  
+  addLog('info', '正在完成求解过程...');
+  writeRawLog('[LOG] addLog("正在完成求解过程...")已调用');
+  
+  // 让UI先更新状态
+  writeRawLog('[WATCHDOG] 准备执行setTimeout(0)让出渲染...');
+  await nextTick();
+  writeRawLog('[WATCHDOG] ⭐ setTimeout(0)完成');
+
+  addLog('debug', '调用gameFinalize...');
+  writeRawLog('[WATCHDOG] 调用gameFinalize之前');
+  console.log('[WATCHDOG] 调用gameFinalize之前');
   await invokes.gameFinalize();
+  writeRawLog('[WATCHDOG] ⭐⭐⭐ FINALIZE DONE THEN - Promise已resolve');
+  console.log('[WATCHDOG] ⭐⭐⭐ FINALIZE DONE THEN - Promise已resolve');
+  addLog('debug', 'gameFinalize完成');
 
   store.isFinalizing = false;
+  writeRawLog(`[STATE] store.isFinalizing = ${store.isFinalizing}`);
+  console.log('[STATE] store.isFinalizing =', store.isFinalizing);
+  
   store.isSolverFinished = true;
+  writeRawLog(`[STATE] store.isSolverFinished = ${store.isSolverFinished}`);
+  console.log('[STATE] store.isSolverFinished =', store.isSolverFinished);
+  writeRawLog(`[STATE] store.hasSolverRun = ${store.hasSolverRun}`);
+  console.log('[STATE] store.hasSolverRun =', store.hasSolverRun);
+  
+  addLog('success', 'Solver求解完成！');
 
   const end = performance.now();
   elapsedTimeMs.value += end - startTime;
+  writeRawLog(`[STATE] elapsedTimeMs = ${elapsedTimeMs.value}`);
+  console.log('[STATE] elapsedTimeMs =', elapsedTimeMs.value);
+  
+  addLog('info', `总求解时间: ${(elapsedTimeMs.value / 1000).toFixed(2)}秒`);
+  addLog('info', `最终结果 - 迭代次数: ${currentIteration.value}, 最终exploitability: ${exploitability.value.toFixed(4)} (${((exploitability.value * 100) / config.startingPot).toFixed(2)}%)`);
+  
+  // 确保最终状态渲染
+  await nextTick();
+  writeRawLog('[STATE] 最终nextTick完成');
+  console.log('[STATE] 最终nextTick完成');
+  
+  const finalState = {
+    isSolverRunning: store.isSolverRunning,
+    isSolverFinished: store.isSolverFinished,
+    isFinalizing: store.isFinalizing,
+    currentIteration: currentIteration.value
+  };
+  writeRawLog(`[STATE] 所有状态: ${JSON.stringify(finalState)}`);
+  console.log('[STATE] 所有状态:', finalState);
+  writeRawLog('✅✅✅ Solver求解流程完成');
+  console.log('✅✅✅ Solver求解流程完成');
 };
 
 // 显示调试信息的函数
 const showDebugInfo = async () => {
+  addLog('info', '显示调试信息');
   showDebug.value = true;
   
   // 收集牌局配置信息
@@ -980,14 +1351,23 @@ const handleAutoBuildTree = (event) => {
 };
 
 // 添加生命周期钩子和事件监听器
-onMounted(() => {
+onMounted(async () => {
   // 监听自动构建树事件
   document.addEventListener('auto-build-tree', handleAutoBuildTree);
+  // 获取日志文件路径
+  await getLogPath();
+  // 添加初始日志
+  addLog('info', 'RunSolver组件已加载');
 });
 
 onUnmounted(() => {
   // 移除事件监听器
   document.removeEventListener('auto-build-tree', handleAutoBuildTree);
+  // 确保所有日志都被写入
+  if (logWriteTimer !== null) {
+    clearTimeout(logWriteTimer);
+  }
+  flushLogQueue();
 });
 </script>
 

@@ -514,3 +514,17 @@ export const showLoadConfigDialog = async (): Promise<{ configData: string } | s
     return error as string;
   }
 };
+
+// 日志文件相关函数
+export const writeLogToFile = async (logMessage: string): Promise<string | null> => {
+  try {
+    await invoke("write_log_to_file", { logMessage });
+    return null; // 成功返回 null
+  } catch (error) {
+    return error as string; // 失败返回错误信息
+  }
+};
+
+export const getLogFilePath = async (): Promise<string> => {
+  return await invoke("get_log_file_path");
+};

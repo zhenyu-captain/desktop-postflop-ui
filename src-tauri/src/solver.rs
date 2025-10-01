@@ -198,54 +198,81 @@ pub fn game_memory_usage_bunching(game_state: tauri::State<Mutex<PostFlopGame>>)
     game.memory_usage_bunching()
 }
 
-#[tauri::command(async)]
+#[tauri::command]
 pub fn game_allocate_memory(
     game_state: tauri::State<Mutex<PostFlopGame>>,
     enable_compression: bool,
 ) {
+    println!("[Rust] 开始分配内存 - 压缩模式: {}", enable_compression);
+    println!("[Rust] 尝试获取game锁...");
     let mut game = game_state.lock().unwrap();
+    println!("[Rust] game锁已获取，开始内存分配...");
     game.allocate_memory(enable_compression);
+    println!("[Rust] 内存分配完成，释放锁");
+    drop(game);
+    println!("[Rust] game_allocate_memory 函数返回");
 }
 
-#[tauri::command(async)]
+#[tauri::command]
 pub fn game_set_bunching(
     bunching_state: tauri::State<Mutex<Option<BunchingData>>>,
     game_state: tauri::State<Mutex<PostFlopGame>>,
 ) -> Option<String> {
+    println!("[Rust] 开始设置bunching");
     let bunching_data = bunching_state.lock().unwrap();
     let bunching_data = bunching_data.as_ref().unwrap();
     let mut game = game_state.lock().unwrap();
-    game.set_bunching_effect(bunching_data).err()
+    let result = game.set_bunching_effect(bunching_data).err();
+    println!("[Rust] bunching设置完成");
+    result
 }
 
-#[tauri::command(async)]
+#[tauri::command]
 pub fn game_solve_step(
     game_state: tauri::State<Mutex<PostFlopGame>>,
     pool_state: tauri::State<Mutex<ThreadPool>>,
     current_iteration: u32,
 ) {
+    // 统一锁顺序：先game后pool
     let game = game_state.lock().unwrap();
     let pool = pool_state.lock().unwrap();
     pool.install(|| solve_step(&*game, current_iteration));
 }
 
-#[tauri::command(async)]
+#[tauri::command]
 pub fn game_exploitability(
     game_state: tauri::State<Mutex<PostFlopGame>>,
     pool_state: tauri::State<Mutex<ThreadPool>>,
 ) -> f32 {
+    println!("[Rust] 开始计算exploitability");
+    // 统一锁顺序：先game后pool
     let game = game_state.lock().unwrap();
     let pool = pool_state.lock().unwrap();
-    pool.install(|| compute_exploitability(&*game))
+    let result = pool.install(|| compute_exploitability(&*game));
+    println!("[Rust] exploitability计算完成: {}", result);
+    result
 }
 
-#[tauri::command(async)]
+#[tauri::command]
 pub fn game_finalize(
     game_state: tauri::State<Mutex<PostFlopGame>>,
     pool_state: tauri::State<Mutex<ThreadPool>>,
 ) {
+    println!("[Rust] 开始finalize");
+    // 先获取pool锁，在install内部再获取game锁
+    println!("[Rust] 尝试获取pool锁...");
     let pool = pool_state.lock().unwrap();
-    pool.install(|| finalize(&mut *game_state.lock().unwrap()));
+    println!("[Rust] pool锁已获取，开始执行finalize...");
+    pool.install(|| {
+        println!("[Rust] 在worker线程中尝试获取game锁...");
+        let mut game = game_state.lock().unwrap();
+        println!("[Rust] 在worker线程中game锁已获取，执行finalize...");
+        finalize(&mut *game);
+        println!("[Rust] worker线程中finalize完成");
+    });
+    println!("[Rust] finalize计算完成");
+    drop(pool);
+    println!("[Rust] 锁已释放，game_finalize 函数返回");
 }
 
 #[tauri::command]

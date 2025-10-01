@@ -433,7 +433,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, onUnmounted } from "vue";
+import { computed, ref, watch, nextTick, onUnmounted, onMounted } from "vue";
 import { useStore, useSavedConfigStore } from "../store";
 import * as invokes from "../invokes";
 
@@ -477,6 +477,15 @@ const toggleEnhancedMode = () => {
 const tabManager = ref<InstanceType<typeof TabManager>>();
 const tabsData = ref<Map<string, any>>(new Map());
 const navRefs = ref<Map<string, any>>(new Map());
+
+// 在组件挂载时，同步一次当前活跃标签ID，避免依赖ref回调触发活跃ID更新
+onMounted(() => {
+  const activeId = tabManager.value?.activeTab?.id;
+  if (activeId) {
+    currentActiveTabId.value = activeId;
+    addDebugLog('info', `Initial active tab: ${activeId}`);
+  }
+});
 
 // 默认显示选项
 const defaultDisplayOptions: DisplayOptions = {
@@ -783,14 +792,22 @@ const setTabData = (tabId: string, key: string, value: any) => {
 // 设置导航组件引用
 const setNavRef = (tabId: string, ref: any) => {
   if (ref) {
-    navRefs.value.set(tabId, ref);
-    console.log(`Set navigation ref for tab ${tabId}`);
-    addDebugLog('info', `Set navigation reference: ${tabId}`);
-    
-    // 每次设置 ref 时都同步活跃 ID，确保与实际渲染的标签页一致
-    currentActiveTabId.value = tabId;
-    console.log(`Updated active tab to: ${tabId}`);
-    addDebugLog('info', `Updated active tab: ${tabId}`);
+    // 只在ref真正变化时才设置，避免无限循环
+    const existingRef = navRefs.value.get(tabId);
+    // 如果引用对象未变化，则直接返回，避免重复设置和日志
+    if (existingRef === ref) {
+      return;
+    }
+
+    if (!existingRef) {
+      // 只在首次设置时记录和更新（不在此更新活跃ID，避免循环）
+      navRefs.value.set(tabId, ref);
+      console.log(`Set navigation ref for tab ${tabId} (first time)`);
+      addDebugLog('info', `Set navigation reference: ${tabId}`);
+    } else {
+      // 已存在，静默更新ref，不触发任何响应式操作
+      navRefs.value.set(tabId, ref);
+    }
     
     // 在组件真正"可导出"的节点，尝试自动保存活跃标签页的导航状态
     nextTick(() => {

@@ -1,11 +1,44 @@
-### 下一步
-1. ~~ooprange和iprange的Range Analysis，Quick Templates图表信息区域应该实际工作~~
-2. ~~Board的Combo Statistics，Board Strength，Equity Distribution区域也应该实际工作~~
-3. ~~能够在结果页面看到计算前的选项数据，也要能在结果页面看到计算以后的行动建议数据，最终合并为一个大的提供预览，有变化但是完成了~~
-3. ~~增加一个操作软件以前的状态判断，如果小于某个系统日期则直接登录允许用户操作，如果大于某个日期则弹出一个登录框，必须输入用户名称才能登录。商业逻辑想想在说~~
-
 ### 说明
 1. clean.sh
 2. npm install
 3. npm run tauri dev
 4. happy
+
+### bug解决
+🔍 问题的真正根源
+🎯 核心问题：ResultViewer2.vue的无限重渲染循环
+
+循环链路：
+1. Solver完成 → store.isSolverFinished = true
+2. 触发ResultViewer2组件渲染
+3. 组件渲染 → 调用setNavRef(tabId, ref)
+4. setNavRef设置 currentActiveTabId.value = tabId ← 触发响应式更新
+5. currentActiveTabId变化 → 组件重新渲染
+6. 回到步骤3，无限循环！
+
+解决方案的关键点
+三重保护
+// 1️⃣ 引用相等检查 - 最关键！
+if (existingRef === ref) {
+  return; // 同一个ref对象，直接返回，避免任何操作
+}
+
+// 2️⃣ 首次设置时不更新currentActiveTabId
+if (!existingRef) {
+  navRefs.value.set(tabId, ref);
+  // ❌ 不在这里设置 currentActiveTabId
+}
+
+// 3️⃣ 在onMounted中初始化
+onMounted(() => {
+  currentActiveTabId.value = activeId; // 只执行一次
+});
+
+// 移除所有setTimeout(resolve, 0)
+// 替换为nextTick()
+await nextTick(); // 使用微任务，更可靠
+
+
+/ 统一Rust命令的锁顺序
+// 移除错误的#[tauri::command(async)]装饰器
+// 添加详细的调试日志
