@@ -22,14 +22,9 @@ use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
-        .setup(|app| {
-            // 在release模式下也打开DevTools
-            #[cfg(not(debug_assertions))]
-            {
-                let window = app.get_window("main").unwrap();
-                window.open_devtools();
-                println!("DevTools已在release模式下打开");
-            }
+        .setup(|_app| {
+            // 不自动打开DevTools，只通过快捷键调用
+            println!("应用启动成功，按 Cmd+Shift+I 或 F12 打开DevTools");
             Ok(())
         })
         .manage(Mutex::new(RangeManager::default()))
@@ -92,7 +87,8 @@ fn main() {
             save_config_to_file,
             load_config_from_file,
             write_log_to_file,
-            get_log_file_path
+            get_log_file_path,
+            toggle_devtools
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -190,5 +186,19 @@ fn write_log_to_file(log_message: String) -> Result<(), String> {
         .map_err(|e| format!("无法写入日志文件: {}", e))?;
     
     Ok(())
+}
+
+/// 切换开发者工具
+#[tauri::command]
+fn toggle_devtools(app: tauri::AppHandle) {
+    if let Some(window) = app.get_window("main") {
+        if window.is_devtools_open() {
+            window.close_devtools();
+            println!("DevTools已关闭");
+        } else {
+            window.open_devtools();
+            println!("DevTools已打开");
+        }
+    }
 }
 

@@ -1533,6 +1533,17 @@ onMounted(async () => {
   updateClientHeight();
   window.addEventListener("resize", updateClientHeight);
   
+  // 添加快捷键切换DevTools (Cmd+Shift+I 或 F12)
+  window.addEventListener("keydown", async (e) => {
+    if ((e.metaKey && e.shiftKey && e.key === 'I') || e.key === 'F12') {
+      e.preventDefault();
+      try {
+        await invokes.toggleDevTools();
+      } catch (error) {
+        console.error('切换DevTools失败:', error);
+      }
+    }
+  });
 });
 </script>
 

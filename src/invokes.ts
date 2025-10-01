@@ -528,3 +528,8 @@ export const writeLogToFile = async (logMessage: string): Promise<string | null>
 export const getLogFilePath = async (): Promise<string> => {
   return await invoke("get_log_file_path");
 };
+
+// 切换开发者工具
+export const toggleDevTools = async (): Promise<void> => {
+  await invoke("toggle_devtools");
+};

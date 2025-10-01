@@ -3,6 +3,7 @@
 2. npm install
 3. npm run tauri dev
 4. happy
+5. shift + command + i 调出浏览器控制台
 
 ### bug解决
 🔍 问题的真正根源
