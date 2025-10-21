@@ -49,7 +49,8 @@
         </button>
         <button 
           @click="toggleDebugInfo"
-          class="px-3 py-1 text-sm button-base button-yellow">
+          class="px-3 py-1 text-sm button-base button-yellow"
+          style="display: none;">
           Debug
         </button>
       </div>

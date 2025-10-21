@@ -547,7 +547,7 @@
           </div>
           
           <!-- Debug按钮 - 调整到指标区域下方 -->
-          <div class="flex justify-center mt-3">
+          <div class="flex justify-center mt-3" style="display: none;">
             <button 
               class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg text-sm transition-colors duration-150 shadow-sm"
               @click="showDebugInfo"

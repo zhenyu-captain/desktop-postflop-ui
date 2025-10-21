@@ -189,7 +189,7 @@
                 </div>
 
                 <!-- Debug Configuration Section -->
-                <div class="card p-5 border rounded-lg shadow-sm bg-white">
+                <div class="card p-5 border rounded-lg shadow-sm bg-white" style="display: none;">
                   <h3 class="text-lg font-semibold mb-3">Configuration Debug</h3>
                   <p class="text-gray-600 mb-4">Display current range configuration debug information for diagnosing load/save issues.</p>
 

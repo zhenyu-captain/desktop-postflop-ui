@@ -190,7 +190,7 @@
     </TabManager>
 
     <!-- Debug Button -->
-    <div class="debug-button-container">
+    <div class="debug-button-container" style="display: none;">
       <button 
         class="debug-button"
         @click="showDebugModal = true"
