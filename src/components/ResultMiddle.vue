@@ -432,15 +432,15 @@ const displayOptions = reactive<Types.DisplayOptions>({
   playerChance: "auto",
   barHeight: "normalized",
   suit: "grouped",
-  strategy: "show",
-  contentBasics: "default",
+  strategy: "none",
+  contentBasics: "ev",
   contentGraphs: "eq",
   chartChance: "strategy-combos",
   barWidth: "normalized",
   actionContent: "percentage",
 });
 
-const strategyContentPair = ref("show,default");
+const strategyContentPair = ref("none,ev");
 
 const savedDisplayOptions = localStorage.getItem("display-options");
 
@@ -457,7 +457,13 @@ if (savedDisplayOptions) {
     displayOptions.strategy = saved.strategy;
   }
   if (Types.contentBasicsList.includes(saved?.contentBasics)) {
-    displayOptions.contentBasics = saved.contentBasics;
+    // 如果保存的是旧的"default"值，使用新的"ev"默认值
+    if (saved.contentBasics === "default") {
+      displayOptions.contentBasics = "ev";
+      displayOptions.strategy = "none"; // 同时设置为纯EV模式
+    } else {
+      displayOptions.contentBasics = saved.contentBasics;
+    }
   }
   if (Types.contentGraphsList.includes(saved?.contentGraphs)) {
     displayOptions.contentGraphs = saved.contentGraphs;
