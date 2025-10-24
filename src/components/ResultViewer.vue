@@ -322,8 +322,8 @@ const displayOptions = ref<DisplayOptions>({
   playerChance: "auto",
   barHeight: "normalized",
   suit: "grouped",
-  strategy: "show",
-  contentBasics: "default",
+  strategy: "none",
+  contentBasics: "ev",
   contentGraphs: "eq",
   chartChance: "strategy-combos",
 });
