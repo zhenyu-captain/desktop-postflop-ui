@@ -284,6 +284,15 @@
     </div>
   </div>
 
+  <!-- 网络检测弹窗 -->
+  <NetworkCheckModal 
+    :show="showNetworkCheck"
+    :gtosim-com-status="networkCheckResult.gtosimComStatus"
+    :www-gtosim-com-status="networkCheckResult.wwwGtosimComStatus"
+    :error="networkCheckResult.error"
+    @retry="retryNetworkCheck"
+  />
+
   <!-- 停用警告弹窗 -->
   <ShutdownWarningModal 
     :show="showShutdownWarning" 
@@ -297,6 +306,7 @@ import { useStore, useConfigStore } from "../store";
 import * as invokes from "../invokes";
 import { showSaveDialog, showLoadDialog, showSaveConfigDialog, showLoadConfigDialog } from "../invokes";
 import { checkVersionControl } from "../utils/versionCheck";
+import { checkNetworkConnectivity } from "../utils/networkCheck";
 
 import RangeEditor from "./RangeEditor.vue";
 import BoardSelector from "./BoardSelector.vue";
@@ -308,14 +318,21 @@ import AboutPage from "./AboutPage.vue";
 import ResultViewer from "./ResultViewer.vue";
 import ResultViewer2 from "./ResultViewer2.vue";
 import ShutdownWarningModal from "./ShutdownWarningModal.vue";
+import NetworkCheckModal from "./NetworkCheckModal.vue";
 
 const store = useStore();
 const config = useConfigStore();
 const showSaveSuccess = ref(false);
 const inTreeEditor = ref(false);
 
-// 版本检查相关状态
+// 网络检查和版本检查相关状态
+const showNetworkCheck = ref(false);
 const showShutdownWarning = ref(false);
+const networkCheckResult = ref({
+  gtosimComStatus: false,
+  wwwGtosimComStatus: false,
+  error: ''
+});
 const header = computed(() => {
   if (store.treeEditMode) {
     if (inTreeEditor.value) {
@@ -1539,6 +1556,43 @@ const testRangeImportExport = async () => {
   }
 };
 
+// 网络检查函数
+const checkNetworkOnStartup = async () => {
+  try {
+    console.log('开始检查网络连接状态...');
+    const result = await checkNetworkConnectivity();
+    
+    // 在开发模式下显示详细的调试信息
+    if (import.meta.env.DEV) {
+      console.log('网络检查详细结果:', {
+        isOnline: result.is_online,
+        gtosimComStatus: result.gtosim_com_status,
+        wwwGtosimComStatus: result.www_gtosim_com_status,
+        error: result.error
+      });
+    }
+    
+    // 更新网络检查结果
+    networkCheckResult.value = {
+      gtosimComStatus: result.gtosim_com_status || false,
+      wwwGtosimComStatus: result.www_gtosim_com_status || false,
+      error: result.error || ''
+    };
+    
+    if (!result.is_online) {
+      console.log('网络连接失败，显示网络检测弹窗');
+      showNetworkCheck.value = true;
+    } else {
+      console.log('网络连接正常，继续版本检查');
+      await checkVersionOnStartup();
+    }
+  } catch (error) {
+    console.error('网络检查异常:', error);
+    // 网络检查失败时显示网络检测弹窗
+    showNetworkCheck.value = true;
+  }
+};
+
 // 版本检查函数
 const checkVersionOnStartup = async () => {
   try {
@@ -1568,6 +1622,45 @@ const checkVersionOnStartup = async () => {
   }
 };
 
+// 网络检查相关函数
+const retryNetworkCheck = async () => {
+  // 不关闭弹窗，直接重新检查网络
+  try {
+    console.log('用户点击重试，重新检查网络连接...');
+    const result = await checkNetworkConnectivity();
+    
+    // 在开发模式下显示详细的调试信息
+    if (import.meta.env.DEV) {
+      console.log('重试网络检查详细结果:', {
+        isOnline: result.is_online,
+        gtosimComStatus: result.gtosim_com_status,
+        wwwGtosimComStatus: result.www_gtosim_com_status,
+        error: result.error
+      });
+    }
+    
+    // 更新网络检查结果
+    networkCheckResult.value = {
+      gtosimComStatus: result.gtosim_com_status || false,
+      wwwGtosimComStatus: result.www_gtosim_com_status || false,
+      error: result.error || ''
+    };
+    
+    if (result.is_online) {
+      console.log('网络连接恢复，关闭网络检测弹窗，继续版本检查');
+      showNetworkCheck.value = false;
+      await checkVersionOnStartup();
+    } else {
+      console.log('网络连接仍然失败，保持弹窗显示');
+      // 保持弹窗显示，不关闭
+    }
+  } catch (error) {
+    console.error('重试网络检查异常:', error);
+    // 重试失败时保持弹窗显示
+  }
+};
+
+
 // 关闭停用警告弹窗
 const closeShutdownWarning = () => {
   showShutdownWarning.value = false;
@@ -1590,8 +1683,8 @@ onMounted(async () => {
     }
   });
 
-  // 启动时检查版本
-  await checkVersionOnStartup();
+  // 启动时先检查网络，再检查版本
+  await checkNetworkOnStartup();
 });
 </script>
 

@@ -9,12 +9,14 @@ mod solver;
 mod test;
 mod tree;
 mod version_check;
+mod network_check;
 use crate::bunching::*;
 use crate::range::*;
 use crate::solver::*;
 use crate::test::*;
 use crate::tree::*;
 use crate::version_check::*;
+use crate::network_check::*;
 
 use postflop_solver::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
@@ -91,6 +93,7 @@ fn main() {
             write_log_to_file,
             get_log_file_path,
             toggle_devtools,
+            check_network_connectivity,
             check_version_control_status,
             exit_application
         ])
@@ -204,6 +207,15 @@ fn toggle_devtools(app: tauri::AppHandle) {
             println!("DevTools已打开");
         }
     }
+}
+
+/// 检查网络连接状态
+#[tauri::command]
+async fn check_network_connectivity() -> Result<NetworkCheckResult, String> {
+    println!("开始检查网络连接状态...");
+    let result = crate::network_check::check_network_connectivity().await;
+    println!("网络检查完成: {:?}", result);
+    Ok(result)
 }
 
 /// 检查版本控制状态
