@@ -171,18 +171,29 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: 'retry'): void;
+  (event: 'retry-complete'): void;
 }>();
 
 const isRetrying = ref(false);
 
 const retryConnection = async () => {
+  if (isRetrying.value) return; // 防止重复点击
+  
   isRetrying.value = true;
   emit('retry');
-  // Reset retrying state after a delay
-  setTimeout(() => {
-    isRetrying.value = false;
-  }, 3000); // 增加延迟时间，给用户更好的反馈
+  
+  // 注意：不再在这里重置状态，而是等待父组件通知完成
 };
+
+// 暴露重置状态的方法给父组件调用
+const resetRetryState = () => {
+  isRetrying.value = false;
+};
+
+// 暴露方法给父组件
+defineExpose({
+  resetRetryState
+});
 
 const exitApplication = async () => {
   try {

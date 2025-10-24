@@ -1,11 +1,17 @@
-### 说明
+# 使用说明
 1. clean.sh
 2. npm install
 3. npm run tauri dev
 4. happy
 5. shift + command + i 调出浏览器控制台
 
-### bug解决
+# 重要新增
+1. remote_open_shutdown_gto.sh控制了free字段值为shutdown还是free，在shutdown的时候弹出“版本检测停用”窗口，free的时候直接进入。
+2. 网络通的情况下直接进入，不通的时候“Network Connection Check”窗口弹出，用户需要与gtosim.com和www.gtosim.com的网络是通的情况下才能使用
+
+
+
+## 重要错误调试记录
 🔍 问题的真正根源
 🎯 核心问题：ResultViewer2.vue的无限重渲染循环
 

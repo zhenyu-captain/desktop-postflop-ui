@@ -286,6 +286,7 @@
 
   <!-- 网络检测弹窗 -->
   <NetworkCheckModal 
+    ref="networkCheckModalRef"
     :show="showNetworkCheck"
     :gtosim-com-status="networkCheckResult.gtosimComStatus"
     :www-gtosim-com-status="networkCheckResult.wwwGtosimComStatus"
@@ -328,6 +329,7 @@ const inTreeEditor = ref(false);
 // 网络检查和版本检查相关状态
 const showNetworkCheck = ref(false);
 const showShutdownWarning = ref(false);
+const networkCheckModalRef = ref(null);
 const networkCheckResult = ref({
   gtosimComStatus: false,
   wwwGtosimComStatus: false,
@@ -1657,6 +1659,11 @@ const retryNetworkCheck = async () => {
   } catch (error) {
     console.error('重试网络检查异常:', error);
     // 重试失败时保持弹窗显示
+  } finally {
+    // 无论成功还是失败，都重置重试按钮状态
+    if (networkCheckModalRef.value) {
+      networkCheckModalRef.value.resetRetryState();
+    }
   }
 };
 
