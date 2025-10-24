@@ -4,7 +4,7 @@
     <nav class="flex w-full h-12 shadow-lg bg-white text-slate-800 border-b border-gray-200">
       <div class="flex items-center px-4">
         <span class="text-lg font-semibold">Pro</span>
-        <span class="text-sm ml-2 text-gray-500">v0.1.2</span>
+        <span class="text-sm ml-2 text-gray-500">v0.2.7</span>
       </div>
       
       <div class="flex items-center space-x-1 ml-8">
