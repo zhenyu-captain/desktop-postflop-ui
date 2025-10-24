@@ -4,6 +4,7 @@
 3. npm run tauri dev
 4. happy
 5. shift + command + i 调出浏览器控制台
+6. npm run tauri build 构建分发版本
 
 # 重要新增
 1. remote_open_shutdown_gto.sh控制了free字段值为shutdown还是free，在shutdown的时候弹出“版本检测停用”窗口，free的时候直接进入。
