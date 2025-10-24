@@ -8,11 +8,13 @@ mod range;
 mod solver;
 mod test;
 mod tree;
+mod version_check;
 use crate::bunching::*;
 use crate::range::*;
 use crate::solver::*;
 use crate::test::*;
 use crate::tree::*;
+use crate::version_check::*;
 
 use postflop_solver::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
@@ -88,7 +90,9 @@ fn main() {
             load_config_from_file,
             write_log_to_file,
             get_log_file_path,
-            toggle_devtools
+            toggle_devtools,
+            check_version_control_status,
+            exit_application
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -200,5 +204,21 @@ fn toggle_devtools(app: tauri::AppHandle) {
             println!("DevTools已打开");
         }
     }
+}
+
+/// 检查版本控制状态
+#[tauri::command]
+async fn check_version_control_status() -> Result<VersionCheckResult, String> {
+    println!("开始检查版本控制状态...");
+    let result = check_version_control().await;
+    println!("版本检查完成: {:?}", result);
+    Ok(result)
+}
+
+/// 退出应用程序
+#[tauri::command]
+fn exit_application(app: tauri::AppHandle) {
+    println!("免费版本已停用，正在退出应用程序...");
+    app.exit(0);
 }
 

@@ -283,6 +283,12 @@
       </div>
     </div>
   </div>
+
+  <!-- 停用警告弹窗 -->
+  <ShutdownWarningModal 
+    :show="showShutdownWarning" 
+    @close="closeShutdownWarning" 
+  />
 </template>
 
 <script setup lang="ts">
@@ -290,6 +296,7 @@ import { computed, ref, onMounted } from "vue";
 import { useStore, useConfigStore } from "../store";
 import * as invokes from "../invokes";
 import { showSaveDialog, showLoadDialog, showSaveConfigDialog, showLoadConfigDialog } from "../invokes";
+import { checkVersionControl } from "../utils/versionCheck";
 
 import RangeEditor from "./RangeEditor.vue";
 import BoardSelector from "./BoardSelector.vue";
@@ -300,11 +307,15 @@ import RunSolver from "./RunSolver.vue";
 import AboutPage from "./AboutPage.vue";
 import ResultViewer from "./ResultViewer.vue";
 import ResultViewer2 from "./ResultViewer2.vue";
+import ShutdownWarningModal from "./ShutdownWarningModal.vue";
 
 const store = useStore();
 const config = useConfigStore();
 const showSaveSuccess = ref(false);
 const inTreeEditor = ref(false);
+
+// 版本检查相关状态
+const showShutdownWarning = ref(false);
 const header = computed(() => {
   if (store.treeEditMode) {
     if (inTreeEditor.value) {
@@ -1528,6 +1539,40 @@ const testRangeImportExport = async () => {
   }
 };
 
+// 版本检查函数
+const checkVersionOnStartup = async () => {
+  try {
+    console.log('开始检查版本控制状态...');
+    const result = await checkVersionControl();
+    
+    // 在开发模式下显示详细的调试信息
+    if (import.meta.env.DEV) {
+      console.log('版本检查详细结果:', {
+        isShutdown: result.is_shutdown,
+        error: result.error,
+        response: result.response
+      });
+    }
+    
+    if (result.is_shutdown && !result.error) {
+      console.log('检测到免费版本已停用，显示警告弹窗');
+      showShutdownWarning.value = true;
+    } else if (result.error) {
+      console.warn('版本检查失败，但不影响正常使用:', result.error);
+    } else {
+      console.log('版本检查正常，免费版本未停用');
+    }
+  } catch (error) {
+    console.error('版本检查异常:', error);
+    // 版本检查失败时不显示警告，避免影响正常使用
+  }
+};
+
+// 关闭停用警告弹窗
+const closeShutdownWarning = () => {
+  showShutdownWarning.value = false;
+};
+
 // 生命周期方法
 onMounted(async () => {
   updateClientHeight();
@@ -1544,6 +1589,9 @@ onMounted(async () => {
       }
     }
   });
+
+  // 启动时检查版本
+  await checkVersionOnStartup();
 });
 </script>
 
