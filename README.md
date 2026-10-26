@@ -1,3 +1,21 @@
+# desktop-postflop-ui
+
+Secondary development (customisation) of the open-source GTO poker study tool
+[desktop-postflop](https://github.com/b-inary/desktop-postflop) by b-inary,
+upstream licensed under **AGPL-3.0** (see LICENSE). Credit for the upstream
+solver and UI codebase belongs to its original authors.
+
+Custom work in this repository (2025-03 ~ 2025-09, ~97 commits):
+
+- remote version-control / free-shutdown gating (`version_control.json`, `remote_open_shutdown_gto.sh`)
+- network connectivity check with gated entry window
+- Results Pro / Results Classic views, default-EV display fixes
+- build alignment for Windows / macOS distribution
+
+Distributed under AGPL-3.0, same as upstream.
+
+---
+
 # 使用说明
 1. clean.sh
 2. npm install
